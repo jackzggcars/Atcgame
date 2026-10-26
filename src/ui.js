@@ -16,7 +16,7 @@ const UI={
   R3.onPick=e=>{if(e)this.select(e.id);};MAPV.onPick=e=>{if(e)this.select(e.id);};
   this.bind();this.buildManual();this.syncSettings();this.voiceStatus();
   window.addEventListener('resize',()=>this.resize());this.resize();
-  Mic.onText=(t,fin)=>{$('cmd').value=t;if(fin){this.submit();}};
+  Mic.onText=t=>{$('cmd').value=t;};Mic.onDone=t=>{if((t||'').trim()){$('cmd').value=t.trim();this.submit();}};
   Mic.onState=(on,err)=>{$('mic').classList.toggle('on',on);if(on){this.toast('Listening… speak your transmission','ok');return;}
    const M={'not-allowed':'Microphone blocked. Click the lock / camera icon in the address bar, allow the microphone, then try again.','service-not-allowed':'Speech recognition is blocked in this browser or page. Use Chrome or Edge on the downloaded or deployed (https) page.','no-microphone':'No microphone found.','audio-capture':'No microphone found.','network':'Speech recognition needs an internet connection.','insecure-context':'The microphone needs a secure (https) page.','unsupported':'This page cannot access the microphone (it may be embedded; open it in its own tab).','no-speech':"Didn't hear anything. Hold Space and speak."};
    if(err&&err!=='end'&&err!=='aborted')this.toast(M[err]||('Microphone: '+err),'warn');};
@@ -265,7 +265,7 @@ const UI={
   ['k-key','k-model','k-gem','k-voice','k-fb','k-fx','k-style','k-vol','k-mic','k-assist'].forEach(i=>$(i).addEventListener('change',()=>this.saveSettings()));
   $('send').addEventListener('click',()=>this.submit());
   $('cmd').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();this.submit();}e.stopPropagation();if(e.key==='Escape')$('cmd').blur();});
-  $('mic').addEventListener('click',()=>{if(!Mic.supported){this.toast('Speech recognition is not available in this browser — type your transmission.','warn');return;}if(Mic.active)Mic.stop();else Mic.start();});
+  $('mic').addEventListener('click',()=>{if(!Mic.supported){this.toast('Speech recognition is not available in this browser — type your transmission.','warn');return;}if(Mic.active)Mic.stop(0);else Mic.start('toggle');});
   $('log').addEventListener('click',e=>{const a=e.target.closest('a[data-id]');if(a)this.select(+a.dataset.id);});
   $('hdr-nextreq').addEventListener('click',()=>this.nextReq());
   document.addEventListener('keydown',e=>{
@@ -277,9 +277,9 @@ const UI={
    else if(e.key==='Tab'){e.preventDefault();this.nextReq();}
    else if(e.key==='/'){e.preventDefault();$('cmd').focus();}
    else if(e.key==='p'||e.key==='P')this.setSpeed(this.speed===0?1:0);
-   else if(e.code==='Space'&&Voice.micOn&&Mic.supported&&!e.repeat){e.preventDefault();Mic.start();}
+   else if(e.code==='Space'&&Voice.micOn&&Mic.supported&&!e.repeat){e.preventDefault();Mic.start('hold');}
   });
-  document.addEventListener('keyup',e=>{if(e.code==='Space'&&Mic.active)Mic.stop();});
+  document.addEventListener('keyup',e=>{if(e.code==='Space'&&(Mic.active||Mic.starting)&&Mic.mode==='hold')Mic.stop(450);});
   $('manual').addEventListener('click',e=>{if(e.target.id==='manual'&&!$('manual').classList.contains('docked'))this.closeManual();});
  }
 };

@@ -141,23 +141,38 @@ const Voice={
 
 /* ---------- microphone (Web Speech API) ---------- */
 const Mic={
- rec:null,active:false,starting:false,wantStop:false,granted:false,supported:!!(window.SpeechRecognition||window.webkitSpeechRecognition),onText:null,onState:null,last:'',
- async start(){
+ rec:null,active:false,starting:false,wantStop:false,granted:false,supported:!!(window.SpeechRecognition||window.webkitSpeechRecognition),onText:null,onDone:null,onState:null,
+ mode:'hold',acc:'',cur:'',silT:null,
+ text(){return (this.acc+' '+this.cur).replace(/\s+/g,' ').trim();},
+ async start(mode){
   if(!this.supported||this.active||this.starting)return false;
-  this.starting=true;this.wantStop=false;
-  // ask for microphone permission explicitly so the browser shows its prompt
+  this.mode=mode||'hold';this.starting=true;this.wantStop=false;this.acc='';this.cur='';
   if(!this.granted){
    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){this.starting=false;if(this.onState)this.onState(false,window.isSecureContext===false?'insecure-context':'unsupported');return false;}
    try{const s=await navigator.mediaDevices.getUserMedia({audio:true});s.getTracks().forEach(t=>t.stop());this.granted=true;}
    catch(e){this.starting=false;if(this.onState)this.onState(false,(e&&e.name==='NotFoundError')?'no-microphone':'not-allowed');return false;}
   }
   this.starting=false;if(this.wantStop)return false;
-  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  const r=new SR();r.lang='en-GB';r.interimResults=true;r.continuous=false;r.maxAlternatives=1;this.last='';
-  r.onresult=ev=>{let t='';for(const res of ev.results)t+=res[0].transcript;this.last=t;if(this.onText)this.onText(t,ev.results[ev.results.length-1].isFinal);};
-  r.onerror=ev=>{this.active=false;if(this.onState)this.onState(false,ev.error);};
-  r.onend=()=>{this.active=false;if(this.onState)this.onState(false,'end');};
-  try{r.start();this.rec=r;this.active=true;if(this.onState)this.onState(true);return true;}catch(e){if(this.onState)this.onState(false,String(e&&e.message||e));return false;}
+  return this.begin(true);
  },
- stop(){this.wantStop=true;if(this.rec&&this.active){try{this.rec.stop();}catch(e){}}}
+ begin(first){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  const r=new SR();r.lang='en-GB';r.interimResults=true;r.continuous=true;r.maxAlternatives=1;this.cur='';
+  r.onresult=ev=>{let fin='',interim='';for(let i=0;i<ev.results.length;i++){const t=ev.results[i][0].transcript;if(ev.results[i].isFinal)fin+=t+' ';else interim+=t;}
+   this.cur=(fin+interim).trim();if(this.onText)this.onText(this.text(),false);
+   if(this.mode==='toggle'){clearTimeout(this.silT);this.silT=setTimeout(()=>this.stop(0),2200);}};
+  r.onerror=ev=>{if(ev.error==='no-speech'||ev.error==='aborted')return;this.active=false;clearTimeout(this.silT);this.wantStop=true;if(this.onState)this.onState(false,ev.error);};
+  r.onend=()=>{
+   this.acc=this.text();this.cur='';
+   if(!this.wantStop&&this.active){try{this.begin(false);return;}catch(e){}}   // browser ended the session on its own while still held: keep listening
+   const was=this.active;this.active=false;clearTimeout(this.silT);if(this.onState)this.onState(false,'end');
+   if(was&&this.onDone)this.onDone(this.acc);this.acc='';
+  };
+  try{r.start();this.rec=r;this.active=true;if(first&&this.onState)this.onState(true);return true;}catch(e){this.active=false;if(this.onState)this.onState(false,String(e&&e.message||e));return false;}
+ },
+ stop(delay){
+  this.wantStop=true;
+  const go=()=>{clearTimeout(this.silT);if(this.rec&&this.active){try{this.rec.stop();}catch(e){}}};
+  if(delay)setTimeout(go,delay);else go();
+ }
 };
