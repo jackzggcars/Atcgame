@@ -174,6 +174,7 @@ function placeApproach(a){
 /* ---------------- requests & reminders ---------------- */
 /* radio discipline: non-urgent pilots wait for a quiet frequency and never stack more than two open requests */
 function radioBusy(){
+ if(typeof Mic!=='undefined'&&(Mic.active||Mic.starting))return true;   // the controller is transmitting
  if((G.radioFree||0)>G.t+0.2)return true;
  if(typeof Voice!=='undefined'&&Voice.on&&(Voice.busy||Voice.queue.length))return true;
  let n=0;for(const e of G.ents)if(e.req&&!e.dead&&!(PH[e.req.kind]&&PH[e.req.kind].urgent))n++;
@@ -190,7 +191,7 @@ function request(a,kind,x){
  emit('req',a);
 }
 function remind(a){
- const ph=PH[a.req.kind];if(!ph.urgent&&(G.radioFree||0)>G.t+0.2)return;const v=V(a,{unit:UNITS[ph.unit].n});
+ const ph=PH[a.req.kind];if(!ph.urgent&&((G.radioFree||0)>G.t+0.2||(typeof Mic!=='undefined'&&(Mic.active||Mic.starting))))return;const v=V(a,{unit:UNITS[ph.unit].n});
  const t=pick(['{unit}, {cs}, still waiting.','{unit}, {cs}, do you copy?','{unit}, {cs}, how do you read, we are still waiting.']);
  say('pilot',a,fmt(t,v),ph.urgent?'urgent':'');G.score=Math.max(0,G.score-1);G.stats.delay+=1;
 }

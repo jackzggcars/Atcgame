@@ -742,6 +742,7 @@ function placeApproach(a){
 /* ---------------- requests & reminders ---------------- */
 /* radio discipline: non-urgent pilots wait for a quiet frequency and never stack more than two open requests */
 function radioBusy(){
+ if(typeof Mic!=='undefined'&&(Mic.active||Mic.starting))return true;   // the controller is transmitting
  if((G.radioFree||0)>G.t+0.2)return true;
  if(typeof Voice!=='undefined'&&Voice.on&&(Voice.busy||Voice.queue.length))return true;
  let n=0;for(const e of G.ents)if(e.req&&!e.dead&&!(PH[e.req.kind]&&PH[e.req.kind].urgent))n++;
@@ -758,7 +759,7 @@ function request(a,kind,x){
  emit('req',a);
 }
 function remind(a){
- const ph=PH[a.req.kind];if(!ph.urgent&&(G.radioFree||0)>G.t+0.2)return;const v=V(a,{unit:UNITS[ph.unit].n});
+ const ph=PH[a.req.kind];if(!ph.urgent&&((G.radioFree||0)>G.t+0.2||(typeof Mic!=='undefined'&&(Mic.active||Mic.starting))))return;const v=V(a,{unit:UNITS[ph.unit].n});
  const t=pick(['{unit}, {cs}, still waiting.','{unit}, {cs}, do you copy?','{unit}, {cs}, how do you read, we are still waiting.']);
  say('pilot',a,fmt(t,v),ph.urgent?'urgent':'');G.score=Math.max(0,G.score-1);G.stats.delay+=1;
 }
@@ -1512,6 +1513,10 @@ const Voice={
   const acc=e.accent&&e.accent!=='international'?e.accent+' accent, ':'';
   return (e.urgent?'tense and urgent, clipped and fast, ':'calm and professional, clipped, ')+'airline pilot on a VHF radio, '+acc.replace(/, $/,'');
  },
+ hold(on){   // pause pilot audio while the controller is transmitting
+  try{if(this.ctx){if(on)this.ctx.suspend();else this.ctx.resume();}}catch(e){}
+  try{if('speechSynthesis' in window){if(on)speechSynthesis.pause();else speechSynthesis.resume();}}catch(e){}
+ },
  release(e){const r=e&&e.ent&&e.ent.req;if(r&&r.hold){r.hold=0;r.t=G.t;}},
  speak(e){
   if(!this.on||G.over&&false){this.release(e);return;}
@@ -1522,6 +1527,7 @@ const Voice={
  async pump(){
   if(this.busy)return;this.busy=true;
   while(this.queue.length&&this.on){
+   while(typeof Mic!=='undefined'&&(Mic.active||Mic.starting))await new Promise(r=>setTimeout(r,150));
    const e=this.queue.shift();const spoken=toSpeech(e.text);
    try{
     let done=false;
@@ -2716,7 +2722,7 @@ const UI={
   this.bind();this.buildManual();this.syncSettings();this.voiceStatus();
   window.addEventListener('resize',()=>this.resize());this.resize();
   Mic.onText=t=>{$('cmd').value=t;};Mic.onDone=t=>{if((t||'').trim()){$('cmd').value=t.trim();this.submit();}};
-  Mic.onState=(on,err)=>{$('mic').classList.toggle('on',on);if(on){this.toast('Listening… speak your transmission','ok');return;}
+  Mic.onState=(on,err)=>{$('mic').classList.toggle('on',on);Voice.hold(on);if(on){this.toast('Listening… speak your transmission','ok');return;}
    const M={'not-allowed':'Microphone blocked. Click the lock / camera icon in the address bar, allow the microphone, then try again.','service-not-allowed':'Speech recognition is blocked in this browser or page. Use Chrome or Edge on the downloaded or deployed (https) page.','no-microphone':'No microphone found.','audio-capture':'No microphone found.','network':'Speech recognition needs an internet connection.','insecure-context':'The microphone needs a secure (https) page.','unsupported':'This page cannot access the microphone (it may be embedded; open it in its own tab).','no-speech':"Didn't hear anything. Hold Space and speak."};
    if(err&&err!=='end'&&err!=='aborted')this.toast(M[err]||('Microphone: '+err),'warn');};
   on('say',e=>this.onSay(e));on('incident',i=>this.banner(i.text,'bad'));on('over',o=>this.onOver(o));

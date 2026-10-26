@@ -17,7 +17,7 @@ const UI={
   this.bind();this.buildManual();this.syncSettings();this.voiceStatus();
   window.addEventListener('resize',()=>this.resize());this.resize();
   Mic.onText=t=>{$('cmd').value=t;};Mic.onDone=t=>{if((t||'').trim()){$('cmd').value=t.trim();this.submit();}};
-  Mic.onState=(on,err)=>{$('mic').classList.toggle('on',on);if(on){this.toast('Listening… speak your transmission','ok');return;}
+  Mic.onState=(on,err)=>{$('mic').classList.toggle('on',on);Voice.hold(on);if(on){this.toast('Listening… speak your transmission','ok');return;}
    const M={'not-allowed':'Microphone blocked. Click the lock / camera icon in the address bar, allow the microphone, then try again.','service-not-allowed':'Speech recognition is blocked in this browser or page. Use Chrome or Edge on the downloaded or deployed (https) page.','no-microphone':'No microphone found.','audio-capture':'No microphone found.','network':'Speech recognition needs an internet connection.','insecure-context':'The microphone needs a secure (https) page.','unsupported':'This page cannot access the microphone (it may be embedded; open it in its own tab).','no-speech':"Didn't hear anything. Hold Space and speak."};
    if(err&&err!=='end'&&err!=='aborted')this.toast(M[err]||('Microphone: '+err),'warn');};
   on('say',e=>this.onSay(e));on('incident',i=>this.banner(i.text,'bad'));on('over',o=>this.onOver(o));

@@ -22,6 +22,10 @@ const Voice={
   const acc=e.accent&&e.accent!=='international'?e.accent+' accent, ':'';
   return (e.urgent?'tense and urgent, clipped and fast, ':'calm and professional, clipped, ')+'airline pilot on a VHF radio, '+acc.replace(/, $/,'');
  },
+ hold(on){   // pause pilot audio while the controller is transmitting
+  try{if(this.ctx){if(on)this.ctx.suspend();else this.ctx.resume();}}catch(e){}
+  try{if('speechSynthesis' in window){if(on)speechSynthesis.pause();else speechSynthesis.resume();}}catch(e){}
+ },
  release(e){const r=e&&e.ent&&e.ent.req;if(r&&r.hold){r.hold=0;r.t=G.t;}},
  speak(e){
   if(!this.on||G.over&&false){this.release(e);return;}
@@ -32,6 +36,7 @@ const Voice={
  async pump(){
   if(this.busy)return;this.busy=true;
   while(this.queue.length&&this.on){
+   while(typeof Mic!=='undefined'&&(Mic.active||Mic.starting))await new Promise(r=>setTimeout(r,150));
    const e=this.queue.shift();const spoken=toSpeech(e.text);
    try{
     let done=false;
