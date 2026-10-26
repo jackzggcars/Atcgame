@@ -17,6 +17,10 @@ Open `dist/marlow-tower.html` in Chrome or Edge (no server needed). Needs intern
 - Accept / Deny / Wait replies generate the real phraseology; you can also type or speak your own.
 - Career mode (a collision ends the shift) and Training mode.
 
+## Deploy (Vercel / Netlify / GitHub Pages)
+
+`vercel.json` sets the build command to `node build.js` and the output directory to `dist`, which serves `dist/index.html`. On Vercel just import the repo, no settings needed.
+
 ## Develop
 
 ```

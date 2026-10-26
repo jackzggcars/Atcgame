@@ -10,4 +10,5 @@ const scripts=three+'\n<script>\n'+js+'\n</script>\n';
 fs.mkdirSync('dist',{recursive:true});
 fs.writeFileSync('dist/marlow-tower.html','<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n'+head+'</head><body>\n'+body+scripts+'</body></html>');
 fs.writeFileSync('dist/marlow-tower.artifact.html',page+scripts);
-console.log('built dist/');
+fs.copyFileSync('dist/marlow-tower.html','dist/index.html');
+console.log('built dist/ (index.html is the deployable page)');
