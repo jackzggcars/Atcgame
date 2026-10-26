@@ -35,7 +35,7 @@ const UI={
  /* ---------- start / stop ---------- */
  showStart(){
   const s=this.saved||{};
-  $('s-level').value=s.level||'controller';$('s-mode').value=s.mode||'career';$('s-tod').value=s.tod||'day';$('s-fog').checked=!!s.fog;$('s-shift').value=s.shift||30;
+  $('s-level').value=s.level||'cadet';$('s-mode').value=s.mode||'career';$('s-tod').value=s.tod||'day';$('s-fog').checked=!!s.fog;$('s-shift').value=s.shift||30;
   $('s-key').value=Voice.key||'';$('s-gem').checked=Voice.gemini;$('s-voice').checked=Voice.on;
   $('start').hidden=false;$('over').hidden=true;
  },
@@ -92,6 +92,7 @@ const UI={
  },
  submit(){
   const inp=$('cmd');const t=inp.value.trim();if(!t)return;
+  const br=/\[[^\]]+\]/.exec(t);if(br){inp.focus();inp.setSelectionRange(br.index,br.index+br[0].length);this.toast('Replace '+br[0]+' with the real detail before sending.','warn');return;}
   Voice.ensureCtx();
   const ok=command(t,this.sel);inp.value='';this.renderSel();
   if(ok===false&&!this.selAc())this.toast('Select an aircraft first (or start with its callsign).','warn');
@@ -217,7 +218,13 @@ const UI={
    d.dataset.text=('instructions '+i.title+' '+i.atc+' '+i.rb+' '+i.note).toLowerCase();frag.appendChild(d);});
   MAN_EXTRA.forEach(x=>{const d=document.createElement('article');d.className='mc ref';d.dataset.cat=x.cat;d.innerHTML='<header><span class="chip">Reference</span><h3>'+esc(x.title)+'</h3></header><div class="refbody">'+x.html+'</div>';d.dataset.text=(x.cat+' '+x.title+' '+x.tags+' '+x.html.replace(/<[^>]+>/g,' ')).toLowerCase();frag.appendChild(d);});
   body.appendChild(frag);
-  body.addEventListener('click',e=>{const b=e.target.closest('.use');if(!b)return;const a=this.selAc();const cs=a?(a.veh?a.rt:csName(a)):'Speedbird 452';let t=b.dataset.t;t=t.replace(/\{cs\}/g,cs);t=fmt(t,Object.assign({},SAMPLE,{cs,rwy:G.rwy||'09',wdir:G.wind?V(null).wdir:'080',wspd:G.wind?V(null).wspd:'10'}));$('cmd').value=t;if(!this.docked())this.closeManual();$('cmd').focus();});
+  body.addEventListener('click',e=>{const b=e.target.closest('.use');if(!b)return;const a=this.selAc();
+   let vals=Object.assign({},SAMPLE);
+   try{const un=a&&a.unit&&UNITS[a.unit]?UNITS[a.unit].n:null;const v=V(a&&!a.veh?a:null,un?{unit:un}:{});for(const k in v){if(v[k]!==''&&v[k]!==undefined&&v[k]!==null)vals[k]=String(v[k]);}}catch(err){}
+   vals.cs=a?(a.veh?a.rt:csName(a)):SAMPLE.cs;if(G.rwy)vals.rwy=G.rwy;
+   if(vals.hs&&vals.hs.indexOf('[')<0)vals.hs=', hold short of runway '+vals.rwy;
+   let t=b.dataset.t.replace(/\{cs\}/g,vals.cs);t=fmt(t,vals);$('cmd').value=t;if(!this.docked())this.closeManual();$('cmd').focus();
+   const m=/\[[^\]]+\]/.exec(t);if(m){$('cmd').setSelectionRange(m.index,m.index+m[0].length);this.toast('Replace the [BRACKETS] with the real details before sending.','warn');}});
   const cats=['All','Delivery','Ground','Tower','Emergency','Instructions','Reference'];
   $('m-cats').innerHTML=cats.map((c,i)=>'<button data-c="'+c+'"'+(i?'':' class="on"')+'>'+c+'</button>').join('');
   $('m-cats').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;this.mcat=b.dataset.c;$('m-cats').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));this.filterManual();});

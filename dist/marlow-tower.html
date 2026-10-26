@@ -139,6 +139,7 @@ select,input[type=text],input[type=password],input[type=number]{background:#0b12
 .m-top{display:flex;gap:10px;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
 .m-top h2{margin:0;font:700 24px var(--disp);letter-spacing:.1em;text-transform:uppercase;color:var(--amber)}
 #m-q{flex:1;min-width:200px;font-size:15px;padding:9px 12px}
+#m-legend{padding:7px 14px;border-bottom:1px solid var(--line);background:#0f1a23;color:#b9c9d6;font-size:12px;line-height:1.5}#m-legend b{color:var(--amber2)}
 #m-cats{display:flex;gap:5px;flex-wrap:wrap;padding:8px 14px;border-bottom:1px solid var(--line)}
 #m-cats button{background:#0c141b;border:1px solid #2c4054;border-radius:12px;padding:3px 11px;font:500 12px var(--mono);color:#9fb2c1}
 #m-cats button.on{background:var(--amber);color:#1b1305;border-color:var(--amber)}
@@ -281,6 +282,7 @@ body.man-docked #app{padding-right:calc(min(460px,42vw) + 12px)}
  <div class="pane">
   <div class="m-top"><h2>Phraseology manual</h2><input id="m-q" type="text" placeholder="Search phrases: squawk, line up, mayday, hold short, pushback…" autocomplete="off" spellcheck="false"><span class="hint" id="m-count"></span><button class="tbtn" id="man-dock" title="Keep the manual open beside the game">Dock ▸</button><button class="tbtn" id="man-close">Close (Esc)</button></div>
   <div id="m-cats"></div>
+  <div id="m-legend" class="hint">Words in <b>[BRACKETS]</b> are placeholders: say the real value. <b>[CALLSIGN]</b> from the strip · <b>[RUNWAY]</b> and <b>[QNH]</b>/<b>[ATIS LETTER]</b>/wind from the top bar · <b>[STAND]</b>, <b>[DESTINATION]</b> in the selected-aircraft panel. <b>Insert</b> fills them in for you where it can.</div>
   <div id="m-body"></div>
   <div id="m-none" hidden>Nothing matches that search.</div>
  </div>
@@ -555,6 +557,7 @@ const INSTR=[
 
 /* Reference tables for the manual */
 const MAN_EXTRA=[
+ {cat:'Reference',title:'Placeholders: where to find the real details',tags:'placeholder bracket callsign squawk runway qnh atis stand destination wind frequency fill in',html:'<p>Phrases in this manual use <b>[BRACKETS]</b> where the real value goes. Never read the bracket out. Replace it:</p><table class="mt"><tr><td><b>[CALLSIGN]</b></td><td>Strip or selected-aircraft panel, e.g. &ldquo;Speedbird 452&rdquo;</td></tr><tr><td><b>[UNIT]</b></td><td>Who you are: Marlow Delivery, Marlow Ground or Marlow Tower</td></tr><tr><td><b>[RUNWAY]</b></td><td>RWY button in the top bar (09 or 27)</td></tr><tr><td><b>[ATIS LETTER] [QNH] [WIND DIR] [WIND SPEED]</b></td><td>ATIS chip in the top bar, e.g. &ldquo;Bravo, 080/9kt, QNH 1013&rdquo;</td></tr><tr><td><b>[STAND]</b> <b>[DESTINATION]</b></td><td>Selected-aircraft panel</td></tr><tr><td><b>[SQUAWK]</b></td><td>Any 4 digits 0 to 7 not already in use (never 7500, 7600, 7700)</td></tr><tr><td><b>[HOLDING POINT]</b></td><td>Bravo, Charlie, Delta or Echo: the one nearest the runway end in use</td></tr><tr><td><b>[TAXIWAY ROUTE]</b></td><td>The taxiways to follow, e.g. &ldquo;Foxtrot, Alpha&rdquo;</td></tr><tr><td><b>[MILES]</b></td><td>Distance shown on the map data block</td></tr><tr><td><b>[FREQUENCY]</b></td><td>Departure 119.500, Tower 118.100, Ground 121.800, Delivery 121.700</td></tr></table><p>The <b>Insert</b> buttons fill in everything they know. Anything still in brackets must be filled in before you can send.</p>'},
  {cat:'Reference',title:'ICAO phonetic alphabet',tags:'alphabet phonetic letters spelling',html:'<table class="mt"><tr>'+'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map((c,i)=>'<td><b>'+c+'</b> '+['Alfa','Bravo','Charlie','Delta','Echo','Foxtrot','Golf','Hotel','India','Juliett','Kilo','Lima','Mike','November','Oscar','Papa','Quebec','Romeo','Sierra','Tango','Uniform','Victor','Whiskey','X-ray','Yankee','Zulu'][i]+'</td>'+((i+1)%4===0?'</tr><tr>':'')).join('')+'</tr></table>'},
  {cat:'Reference',title:'Saying numbers',tags:'numbers digits niner decimal altitude',html:'<p>Numbers are spoken digit by digit: <b>0</b> zero, <b>1</b> one, <b>2</b> two, <b>3</b> three (tree), <b>4</b> four (fower), <b>5</b> five (fife), <b>6</b> six, <b>7</b> seven, <b>8</b> eight, <b>9</b> <b>niner</b>.</p><p>Callsign Speedbird 452 → "Speedbird four five two". Runway 09 → "runway zero niner". Frequency 118.1 → "one one eight decimal one". Squawk 4521 → "four five two one". Altitude 5000 ft → "five thousand feet". Wind 080 at 10 → "zero eight zero degrees, one zero knots".</p><p>You can type digits or words — the game understands both.</p>'},
  {cat:'Reference',title:'Squawk (transponder) codes',tags:'squawk 7700 7600 7500 transponder emergency code',html:'<table class="mt"><tr><td><b>7700</b></td><td>General emergency (MAYDAY / PAN-PAN)</td></tr><tr><td><b>7600</b></td><td>Radio (communications) failure</td></tr><tr><td><b>7500</b></td><td>Unlawful interference (hijack)</td></tr><tr><td><b>2000</b></td><td>No code assigned / entering airspace without instruction</td></tr><tr><td><b>7000</b></td><td>VFR conspicuity (UK)</td></tr><tr><td><b>1200</b></td><td>VFR (US/ICAO)</td></tr></table><p>Assigned squawks are 4 digits, each 0–7 (octal). In the game, a 7600 aircraft stops responding and must be handled with the light gun.</p>'},
@@ -566,7 +569,7 @@ const MAN_EXTRA=[
  {cat:'Reference',title:'How to talk to the pilots',tags:'how to type voice microphone buttons accept deny wait command',html:'<p>Select an aircraft (click its strip, its map label, or its plane). If it has a request, press <b>ACCEPT</b>, <b>DENY</b> or <b>WAIT</b> — that sends the exact standard phrase. Or type / speak your own transmission. Start with the callsign (or just select the aircraft). Hold <b>Space</b> to talk if the microphone is enabled.</p><p>Examples: "Speedbird 452, runway 09, line up and wait" · "Easy 301, cleared for takeoff runway 27" · "Lufthansa 12, go around".</p>'}
 ];
 
-const SAMPLE={cs:'Speedbird 452',unit:'Marlow Tower',gate:'3',dest:'Frankfurt',sid:'Rosel Two Alpha',sq:'4521',alt:'5000',qnh:'1013',atis:'Bravo',rwy:'09',hp:'Bravo',via:'Foxtrot, Alpha',hs:', hold short of runway 09',wdir:'080',wspd:'10',dist:'8',facing:'west',freq:'119.500',n:'2',exit:'Delta',spd:'160',tod:'morning'};
+const SAMPLE={cs:'[CALLSIGN]',unit:'[UNIT]',gate:'[STAND]',dest:'[DESTINATION]',sid:'[SID NAME]',sq:'[SQUAWK]',alt:'[ALTITUDE]',qnh:'[QNH]',atis:'[ATIS LETTER]',rwy:'[RUNWAY]',hp:'[HOLDING POINT]',via:'[TAXIWAY ROUTE]',hs:', hold short of [RUNWAY]',wdir:'[WIND DIR]',wspd:'[WIND SPEED]',dist:'[MILES]',facing:'[DIRECTION]',freq:'[FREQUENCY]',n:'[NUMBER]',exit:'[EXIT]',spd:'[SPEED]',tod:'[MORNING/AFTERNOON/EVENING]',instr:'[INSTRUCTION]'};
 
 ;
 'use strict';
@@ -652,9 +655,9 @@ function pathFromNodes(ids,startPt,r){
 /* ---------------- global state ---------------- */
 const G={hooks:{}};
 const PRESETS={
- cadet:{dep:0.38,arr:0.32,mishap:0.07,err:0.03,maxAir:2,assist:true},
- controller:{dep:0.62,arr:0.5,mishap:0.15,err:0.08,maxAir:3,assist:false},
- veteran:{dep:1.05,arr:0.85,mishap:0.28,err:0.14,maxAir:4,assist:false}
+ cadet:{dep:0.38,arr:0.32,mishap:0.07,err:0.03,maxAir:2,maxActive:2,assist:true},
+ controller:{dep:0.62,arr:0.5,mishap:0.15,err:0.08,maxAir:3,maxActive:4,assist:false},
+ veteran:{dep:1.05,arr:0.85,mishap:0.28,err:0.14,maxAir:4,maxActive:6,assist:false}
 };
 function emit(t,d){(G.hooks[t]||[]).forEach(f=>{try{f(d);}catch(e){console.error(e);}});}
 function on(t,f){(G.hooks[t]=G.hooks[t]||[]).push(f);}
@@ -839,8 +842,9 @@ function weather(dt){
 }
 function spawnLogic(dt){
  const c=G.cfg;G.acc.dep+=c.dep*dt/60*(0.7+0.6*Math.random());G.acc.arr+=c.arr*dt/60*(0.7+0.6*Math.random());
- if(G.acc.dep>=1){if(gatesFree().length>=2&&spawnDep())G.acc.dep=0;else G.acc.dep=0.9;}
- if(G.acc.arr>=1){const a=spawnArr();if(a)G.acc.arr=0;else G.acc.arr=0.95;}
+ const active=G.ents.filter(e=>!e.veh&&!e.dead&&e.phase!=='BOARDING'&&e.phase!=='PARKED').length,full=active>=(c.maxActive||99);
+ if(G.acc.dep>=1){if(!full&&gatesFree().length>=2&&spawnDep())G.acc.dep=0;else G.acc.dep=0.9;}
+ if(G.acc.arr>=1){if(!full&&spawnArr())G.acc.arr=0;else G.acc.arr=0.95;}
  if(G.t>G.opsNext&&!G.ents.some(e=>e.veh&&e.vt==='ops')){G.opsNext=G.t+rnd(300,420);spawnOps(false);}
 }
 
@@ -2743,7 +2747,7 @@ const UI={
  /* ---------- start / stop ---------- */
  showStart(){
   const s=this.saved||{};
-  $('s-level').value=s.level||'controller';$('s-mode').value=s.mode||'career';$('s-tod').value=s.tod||'day';$('s-fog').checked=!!s.fog;$('s-shift').value=s.shift||30;
+  $('s-level').value=s.level||'cadet';$('s-mode').value=s.mode||'career';$('s-tod').value=s.tod||'day';$('s-fog').checked=!!s.fog;$('s-shift').value=s.shift||30;
   $('s-key').value=Voice.key||'';$('s-gem').checked=Voice.gemini;$('s-voice').checked=Voice.on;
   $('start').hidden=false;$('over').hidden=true;
  },
@@ -2800,6 +2804,7 @@ const UI={
  },
  submit(){
   const inp=$('cmd');const t=inp.value.trim();if(!t)return;
+  const br=/\[[^\]]+\]/.exec(t);if(br){inp.focus();inp.setSelectionRange(br.index,br.index+br[0].length);this.toast('Replace '+br[0]+' with the real detail before sending.','warn');return;}
   Voice.ensureCtx();
   const ok=command(t,this.sel);inp.value='';this.renderSel();
   if(ok===false&&!this.selAc())this.toast('Select an aircraft first (or start with its callsign).','warn');
@@ -2925,7 +2930,13 @@ const UI={
    d.dataset.text=('instructions '+i.title+' '+i.atc+' '+i.rb+' '+i.note).toLowerCase();frag.appendChild(d);});
   MAN_EXTRA.forEach(x=>{const d=document.createElement('article');d.className='mc ref';d.dataset.cat=x.cat;d.innerHTML='<header><span class="chip">Reference</span><h3>'+esc(x.title)+'</h3></header><div class="refbody">'+x.html+'</div>';d.dataset.text=(x.cat+' '+x.title+' '+x.tags+' '+x.html.replace(/<[^>]+>/g,' ')).toLowerCase();frag.appendChild(d);});
   body.appendChild(frag);
-  body.addEventListener('click',e=>{const b=e.target.closest('.use');if(!b)return;const a=this.selAc();const cs=a?(a.veh?a.rt:csName(a)):'Speedbird 452';let t=b.dataset.t;t=t.replace(/\{cs\}/g,cs);t=fmt(t,Object.assign({},SAMPLE,{cs,rwy:G.rwy||'09',wdir:G.wind?V(null).wdir:'080',wspd:G.wind?V(null).wspd:'10'}));$('cmd').value=t;if(!this.docked())this.closeManual();$('cmd').focus();});
+  body.addEventListener('click',e=>{const b=e.target.closest('.use');if(!b)return;const a=this.selAc();
+   let vals=Object.assign({},SAMPLE);
+   try{const un=a&&a.unit&&UNITS[a.unit]?UNITS[a.unit].n:null;const v=V(a&&!a.veh?a:null,un?{unit:un}:{});for(const k in v){if(v[k]!==''&&v[k]!==undefined&&v[k]!==null)vals[k]=String(v[k]);}}catch(err){}
+   vals.cs=a?(a.veh?a.rt:csName(a)):SAMPLE.cs;if(G.rwy)vals.rwy=G.rwy;
+   if(vals.hs&&vals.hs.indexOf('[')<0)vals.hs=', hold short of runway '+vals.rwy;
+   let t=b.dataset.t.replace(/\{cs\}/g,vals.cs);t=fmt(t,vals);$('cmd').value=t;if(!this.docked())this.closeManual();$('cmd').focus();
+   const m=/\[[^\]]+\]/.exec(t);if(m){$('cmd').setSelectionRange(m.index,m.index+m[0].length);this.toast('Replace the [BRACKETS] with the real details before sending.','warn');}});
   const cats=['All','Delivery','Ground','Tower','Emergency','Instructions','Reference'];
   $('m-cats').innerHTML=cats.map((c,i)=>'<button data-c="'+c+'"'+(i?'':' class="on"')+'>'+c+'</button>').join('');
   $('m-cats').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;this.mcat=b.dataset.c;$('m-cats').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));this.filterManual();});

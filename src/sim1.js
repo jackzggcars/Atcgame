@@ -81,9 +81,9 @@ function pathFromNodes(ids,startPt,r){
 /* ---------------- global state ---------------- */
 const G={hooks:{}};
 const PRESETS={
- cadet:{dep:0.38,arr:0.32,mishap:0.07,err:0.03,maxAir:2,assist:true},
- controller:{dep:0.62,arr:0.5,mishap:0.15,err:0.08,maxAir:3,assist:false},
- veteran:{dep:1.05,arr:0.85,mishap:0.28,err:0.14,maxAir:4,assist:false}
+ cadet:{dep:0.38,arr:0.32,mishap:0.07,err:0.03,maxAir:2,maxActive:2,assist:true},
+ controller:{dep:0.62,arr:0.5,mishap:0.15,err:0.08,maxAir:3,maxActive:4,assist:false},
+ veteran:{dep:1.05,arr:0.85,mishap:0.28,err:0.14,maxAir:4,maxActive:6,assist:false}
 };
 function emit(t,d){(G.hooks[t]||[]).forEach(f=>{try{f(d);}catch(e){console.error(e);}});}
 function on(t,f){(G.hooks[t]=G.hooks[t]||[]).push(f);}
@@ -268,8 +268,9 @@ function weather(dt){
 }
 function spawnLogic(dt){
  const c=G.cfg;G.acc.dep+=c.dep*dt/60*(0.7+0.6*Math.random());G.acc.arr+=c.arr*dt/60*(0.7+0.6*Math.random());
- if(G.acc.dep>=1){if(gatesFree().length>=2&&spawnDep())G.acc.dep=0;else G.acc.dep=0.9;}
- if(G.acc.arr>=1){const a=spawnArr();if(a)G.acc.arr=0;else G.acc.arr=0.95;}
+ const active=G.ents.filter(e=>!e.veh&&!e.dead&&e.phase!=='BOARDING'&&e.phase!=='PARKED').length,full=active>=(c.maxActive||99);
+ if(G.acc.dep>=1){if(!full&&gatesFree().length>=2&&spawnDep())G.acc.dep=0;else G.acc.dep=0.9;}
+ if(G.acc.arr>=1){if(!full&&spawnArr())G.acc.arr=0;else G.acc.arr=0.95;}
  if(G.t>G.opsNext&&!G.ents.some(e=>e.veh&&e.vt==='ops')){G.opsNext=G.t+rnd(300,420);spawnOps(false);}
 }
 

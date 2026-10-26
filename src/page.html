@@ -137,6 +137,7 @@ select,input[type=text],input[type=password],input[type=number]{background:#0b12
 .m-top{display:flex;gap:10px;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
 .m-top h2{margin:0;font:700 24px var(--disp);letter-spacing:.1em;text-transform:uppercase;color:var(--amber)}
 #m-q{flex:1;min-width:200px;font-size:15px;padding:9px 12px}
+#m-legend{padding:7px 14px;border-bottom:1px solid var(--line);background:#0f1a23;color:#b9c9d6;font-size:12px;line-height:1.5}#m-legend b{color:var(--amber2)}
 #m-cats{display:flex;gap:5px;flex-wrap:wrap;padding:8px 14px;border-bottom:1px solid var(--line)}
 #m-cats button{background:#0c141b;border:1px solid #2c4054;border-radius:12px;padding:3px 11px;font:500 12px var(--mono);color:#9fb2c1}
 #m-cats button.on{background:var(--amber);color:#1b1305;border-color:var(--amber)}
@@ -278,6 +279,7 @@ body.man-docked #app{padding-right:calc(min(460px,42vw) + 12px)}
  <div class="pane">
   <div class="m-top"><h2>Phraseology manual</h2><input id="m-q" type="text" placeholder="Search phrases: squawk, line up, mayday, hold short, pushback…" autocomplete="off" spellcheck="false"><span class="hint" id="m-count"></span><button class="tbtn" id="man-dock" title="Keep the manual open beside the game">Dock ▸</button><button class="tbtn" id="man-close">Close (Esc)</button></div>
   <div id="m-cats"></div>
+  <div id="m-legend" class="hint">Words in <b>[BRACKETS]</b> are placeholders: say the real value. <b>[CALLSIGN]</b> from the strip · <b>[RUNWAY]</b> and <b>[QNH]</b>/<b>[ATIS LETTER]</b>/wind from the top bar · <b>[STAND]</b>, <b>[DESTINATION]</b> in the selected-aircraft panel. <b>Insert</b> fills them in for you where it can.</div>
   <div id="m-body"></div>
   <div id="m-none" hidden>Nothing matches that search.</div>
  </div>
