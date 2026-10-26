@@ -1149,8 +1149,47 @@ function separation(){
    COMMS — parser for what the player says/types, handlers, readbacks, read-back errors
    ===================================================================== */
 const NUMW={zero:0,oh:0,one:1,two:2,three:3,tree:3,four:4,fower:4,five:5,fife:5,six:6,seven:7,eight:8,nine:9,niner:9};
+let _VOC=null;
+function vocab(){
+ if(_VOC)return _VOC;
+ const w=('runway holding point takeoff take off cleared squawk departure ground tower approach delivery contact pushback push back push start taxi hold short position vacate inspection '+
+  'continue landing land around going standby stand by negative unable immediately knots speed reduce increase maintain stop charlie bravo delta echo alpha via wait line up and '+
+  'roger wilco affirm clearance radio check emergency services priority mayday pan disregard correction again approved denied cannot call wind information marlow degrees heading '+
+  'zero one two three tree four fower five fife six seven eight niner nine operations ops onto inspect there stay not left right straight initial climb altitude feet the for to on at').split(' ');
+ const add=t=>String(t).toLowerCase().split(/[^a-z]+/).filter(x=>x.length>2).forEach(x=>w.push(x));
+ try{AIRLINES.forEach(a=>{add(a.rt);add(a.icao);});}catch(e){}
+ try{DESTS.forEach(d=>{add(d.n);add(d.c);});}catch(e){}
+ try{Object.values(UNITS).forEach(u=>add(u.n));}catch(e){}
+ _VOC=new Set(w);return _VOC;
+}
+function lev(a,b,max){
+ if(Math.abs(a.length-b.length)>max)return 99;
+ let p=[];for(let j=0;j<=b.length;j++)p[j]=j;
+ for(let i=1;i<=a.length;i++){const c=[i];let m=i;for(let j=1;j<=b.length;j++){c[j]=Math.min(p[j]+1,c[j-1]+1,p[j-1]+(a[i-1]===b[j-1]?0:1));if(c[j]<m)m=c[j];}if(m>max)return 99;p=c;}
+ return p[b.length];
+}
+/* Like a real controller/pilot: forgive near-misses ("tower"/"power", "to"/"two", "for"/"four") */
+function fuzzWord(t){
+ if(t.length<4||/\d/.test(t))return t;
+ const V=vocab();if(V.has(t))return t;
+ const max=t.length>=8?2:1;let best=null,bd=99,tie=false;
+ for(const v of V){if(v.length<4)continue;const d=lev(t,v,max);if(d<bd){bd=d;best=v;tie=false;}else if(d===bd&&d<99)tie=true;}
+ return(best&&bd<=max&&!tie)?best:t;
+}
 function normText(s){
- s=s.toLowerCase().replace(/[,.;:!?()"]/g,' ').replace(/-/g,' ').replace(/\bair france\b/g,'airfrance').replace(/\bwinds?\b/g,'wind');
+ s=s.toLowerCase().replace(/[,.;:!?()"]/g,' ').replace(/-/g,' ').replace(/\b(uh|um|er|erm|ah|please)\b/g,' ');
+ s=s.replace(/\bair france\b/g,'airfrance').replace(/\bwinds?\b/g,'wind').replace(/\bnine er\b/g,'niner').replace(/\bstand by\b/g,'standby');
+ s=s.replace(/\b(won|wan)\b/g,'one').replace(/\b(free|tray)\b/g,'three').replace(/\b(ate)\b/g,'eight').replace(/\b(fore|fo)\b/g,'four').replace(/\b(sicks|sics)\b/g,'six').replace(/\b(nein|nina|niner)\b/g,'nine').replace(/\bheaven\b/g,'seven').replace(/\bweight\b/g,'wait').replace(/\bsquawk (to|too) (?=\d)/g,'squawk ').replace(/\bsquark|squack|squach|scott\b/g,'squawk');
+ s=s.replace(/\bthe\s+(point|runway)\b/g,'$1').replace(/\bwrong way\b/g,'runway');
+ let t=s.split(/\s+/).filter(Boolean).map(fuzzWord);
+ const numish=x=>x&&(/^\d+$/.test(x)||/^(zero|oh|one|two|three|tree|four|fower|five|fife|six|seven|eight|niner|nine)$/.test(x));
+ const stop=/^(squawk|climb|descend|maintain|cleared|taxi|contact|go|via|hold|holding|reduce|increase|speed|vacate|continue|line|lineup|up|push|pushback|proceed|back|expect)$/;
+ for(let i=0;i<t.length;i++){
+  const prev=t[i-1],next=t[i+1];
+  if(/^(to|too|tu)$/.test(t[i])&&(numish(next)||(numish(prev)&&!stop.test(prev)&&next===undefined))&&!stop.test(prev||''))t[i]='two';
+  else if(/^(for|fore)$/.test(t[i])&&(numish(next)||numish(prev))&&!stop.test(prev||'')&&!/^cleared$/.test(prev||''))t[i]='four';
+ }
+ s=t.join(' ');
  s=s.replace(/\b(zero|oh|one|two|three|tree|four|fower|five|fife|six|seven|eight|niner|nine)\b/g,m=>NUMW[m]);
  s=s.replace(/(\d)\s+(?=\d)/g,'$1').replace(/\s+/g,' ').trim();
  return s;
