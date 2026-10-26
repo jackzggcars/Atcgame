@@ -366,6 +366,48 @@ const FX={
    const bx=e.x-c*D.L*0.18-s*sd*hw,bz=e.z-s*D.L*0.18+c*sd*hw;
    psEmit(this.smoke,bx+rnd2(-0.4,0.4),e.y+rnd2(1.5,3.5),bz+rnd2(-0.4,0.4),-s*sd*rnd2(0.2,1.0),-0.5,c*sd*rnd2(0.2,1.0),rnd2(9,14),rnd2(0.9,1.4),rnd2(5.5,8),[0.92,0.94,0.96],[0.8,0.82,0.86],0.09,0.12,0.05,0,0.4);}
  },
+ /* airborne effects: engine contrails, wing condensation, tip vortices; F-14 afterburner */
+ airFx(e,m,dt){
+  if(!e.type||e.y<3||e.veh)return;const D=m.root.userData.dims,fus=m.root.userData.fus;if(!D||!fus)return;
+  let sp=e.v||0;if(sp<40)return;if(typeof UI!=='undefined'&&UI.speed===0)sp=0;
+  const c=Math.cos(e.th),s=Math.sin(e.th),T=e.type,L=D.L,hw=D.half,vy=e.vs||0;
+  const wet=(G.wx==='rain'||G.wx==='storm')?1:(G.wx==='clear'?0.35:0.7);
+  const load=clamp((e.pitch||0)*8+vy*0.05+(e.phase==='GOAROUND'||e.phase==='CLIMB'||e.phase==='ROLL'?0.5:0)+(e.phase==='APPROACH'?0.25:0),0,1.2);
+  const big=clamp(L/45,0.5,1.8),f14=T.n==='F14';
+  m.holder.updateMatrixWorld(true);
+  // wing-surface condensation: mist over the upper wing and flap roots when heavily loaded in damp air (rotation, climb-out, flare, go-around)
+  if(e.y<420&&!T.heli&&!T.prop){const rate=load*wet*(f14?55:75)*big;const n=this.n('wc'+e.id,rate,dt);
+   for(let i=0;i<n;i++)for(const sd of[-1,1]){if(Math.random()<0.5)continue;
+    const u=rnd2(0.25,0.95),fx=-L*rnd2(0.05,0.2),lat=sd*hw*u;
+    const bx=e.x+c*fx-s*lat,bz=e.z+s*fx+c*lat;
+    psEmit(this.smoke,bx,e.y+(D.wy||0)+rnd2(0.4,1.1),bz,-c*sp*0.25+rnd2(-0.3,0.3),0.2,-s*sp*0.25+rnd2(-0.3,0.3),rnd2(0.5,1.1),rnd2(0.8,1.4),rnd2(2.5,4.2)*big*0.7,[0.95,0.97,1],[0.88,0.9,0.94],0.28*Math.min(1,load*wet+0.1),0,1.6,0,0);}}
+  // tip vortices: thin condensation cores streaming from both wingtips (all types; stronger when loaded and humid)
+  if(e.y<600&&!T.heli){const tv=(0.25+load)*(0.35+wet)*(T.wake==='H'?1.3:1);const n=this.n('tv'+e.id,28*tv,dt);
+   for(let i=0;i<n;i++)for(const sd of[-1,1]){
+    const bx=e.x-c*L*0.16-s*sd*hw*0.98,bz=e.z-s*L*0.16+c*sd*hw*0.98;
+    const ph=(performance.now()/110+sd)*1.0,sw=Math.min(1.2,0.3+sp/120);
+    psEmit(this.smoke,bx+rnd2(-0.12,0.12),e.y+(D.wy||0)+0.3,bz+rnd2(-0.12,0.12),-c*sp*0.12-s*Math.cos(ph)*sw*sd*0.5,-0.7,-s*sp*0.12+c*Math.cos(ph)*sw*sd*0.5,rnd2(1.8,3.2),rnd2(0.25,0.45),rnd2(1.2,2.2),[1,1,1],[0.85,0.88,0.93],0.32*Math.min(1,tv),0,0.6,0,0.2);}}
+  // engine contrails at altitude (game-scale: from ~150 m, thicker with more engines)
+  if(e.y>150&&!T.prop){const eng=T.eng||2,n=this.n('ct'+e.id,(10+eng*6)*clamp(wet+0.3,0.4,1.3),dt);
+   for(let i=0;i<n;i++){const k=eng>=4?[-0.45,-0.2,0.2,0.45][i%4]:eng===2?(i%2?0.28:-0.28):0;
+    const lat=k*hw*(f14?0.12:1),fx=-L*0.5;
+    psEmit(this.smoke,e.x+c*fx-s*lat,e.y-1+rnd2(-0.4,0.4),e.z+s*fx+c*lat,rnd2(-0.4,0.4),0.1,rnd2(-0.4,0.4),rnd2(14,26),rnd2(0.8,1.4),rnd2(7,13)*big,[0.97,0.98,1],[0.86,0.9,0.95],0.28,0,0.1,0,0.5);}}
+  // F-14 afterburner while flying to the landing position (off on final)
+  if(f14&&this.f14AB(e)){const engs=fus.userData.engs||[];const sc=1+(e.phase==='ROLL'||e.phase==='GOAROUND'?0.2:0);
+   for(const g of engs){_v.set(-10.0,0,0);g.localToWorld(_v);const nx=_v.x,ny=_v.y,nz=_v.z,bv=-1;
+    const n=this.n('ab'+e.id+g.userData.side,420,dt);
+    for(let i=0;i<n;i++){const u=Math.random();const d=u*u*11*sc;
+     const ox=nx-c*d+rnd2(-0.05,0.05),oy=ny+rnd2(-0.05,0.05),oz=nz-s*d+rnd2(-0.05,0.05),w=1.1*(1-u*0.65)*(1+0.3*Math.sin(d*2.2));
+     const vv=sp-30-u*20;
+     psEmit(this.glow,ox,oy,oz,c*vv*0.98+rnd2(-0.2,0.2),rnd2(-0.2,0.2),s*vv*0.98+rnd2(-0.2,0.2),rnd2(0.1,0.2),w*1.5,w*0.5,u<0.35?[0.85,0.92,1]:[1,0.72,0.3],[1,0.25,0.05],0.95,0,0.3,0,0);}
+    // shock diamonds: bright beads along the plume
+    for(let k=0;k<4;k++){const d=0.9+k*1.25;psEmit(this.glow,nx-c*d,ny,nz-s*d,c*(sp-30),0,s*(sp-30),0.06,1.1-k*0.15,0.7,[1,0.95,0.85],[1,0.7,0.35],0.9,0,0,0,0);}
+    // hot exhaust haze
+    if(Math.random()<dt*50)psEmit(this.smoke,nx-c*8,ny,nz-s*8,c*sp*0.8,0.3,s*sp*0.8,rnd2(2,4),0.8,3.5,[0.5,0.5,0.52],[0.7,0.72,0.75],0.1,0,0.5,0,0.3);}}
+ },
+ f14AB(e){const nm=e.type.n;if(nm!=='F14')return false;if(e.y<20)return e.phase==='ROLL';
+  if(e.phase==='APPROACH')return (e.D||0)>4.5*NM||(e.y>500);
+  return ['GOAROUND','CLIMB','RETURN','TRANSIT','FLYPAST','VLEAVE','VHOLD'].includes(e.phase);},
  /* tyre smoke when the main gear touches down */
  tdSmoke(e,m,dt){
   if(e.tdT==null||e.y>1.5)return;const D=m.root.userData.dims;if(!D)return;
@@ -392,7 +434,7 @@ const FX={
     const m=R3.meshes.get(e.id);if(!m)continue;
     if(e.veh){if(e.vt==='fire')this.truckFx(e,m,dt);continue;}
     if(e.crashed||m.holder.userData.wreck)continue;
-    this.tdSmoke(e,m,dt);this.wakeVortex(e,m,dt);
+    this.tdSmoke(e,m,dt);this.wakeVortex(e,m,dt);try{this.airFx(e,m,dt);}catch(er){if(!this._e3){this._e3=1;console.warn('airFx',er);}}
     try{this.entityFx(e,m,dt);}catch(er){if(!this._err){this._err=1;console.warn('fx',er);}}
    }
   }
