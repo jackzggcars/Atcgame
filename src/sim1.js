@@ -119,7 +119,7 @@ function endGame(kind,reason,ents){G.over={kind,reason,t:G.t};emit('over',G.over
 function newGame(cfg){
  const base=Object.assign({},PRESETS[cfg.level||'controller'],cfg);
  G.cfg=Object.assign({level:'controller',mode:'career',shift:30,tod:'day',fog:false},base);
- G.t=0;G.clock=({day:10*3600+20*60,dusk:18*3600+30*60,night:23*3600+10*60}[G.cfg.tod])||6*3600+10*60;G.rwy=Math.random()<0.5?'09':'27';
+ G.v=null;G.fly=null;G.t=0;G.clock=({day:10*3600+20*60,dusk:18*3600+30*60,night:23*3600+10*60}[G.cfg.tod])||6*3600+10*60;G.rwy=Math.random()<0.5?'09':'27';
  const wd=G.rwy==='09'?rnd(60,120):rnd(240,300);
  G.wind={dir:wd,spd:rnd(6,12),target:wd,base:rnd(6,12)};G.qnh=rint(1004,1024);G.atis=rint(0,25);
  G.wx=G.cfg.wx||'clear';G.gust=G.wx==='storm'?9:G.wx==='rain'?4:0;if(G.wx==='storm'){G.wind.base+=11;G.qnh=rint(988,1002);}else if(G.wx==='rain'){G.wind.base+=4;G.qnh=rint(996,1010);}
@@ -140,24 +140,32 @@ function newSquawk(){
  for(let k=0;k<200;k++){const s=[0,0,0,0].map(()=>rint(0,7)).join('');if(['7500','7600','7700','0000','7000','1200','2000'].includes(s)||G.sqUsed[s])continue;G.sqUsed[s]=1;return s;}
  return '4'+rint(0,7)+rint(0,7)+rint(0,7);
 }
-function uniqueNum(al){for(let k=0;k<50;k++){const n=String(rint(2,998)).padStart(rint(0,1)?3:2,'0').replace(/^0+(?=\d{2})/,'');if(!G.ents.some(e=>e.al===al&&e.num===n))return n;}return String(rint(100,999));}
+function uniqueNum(al){for(let k=0;k<50;k++){const n=String(rint(2,998)).padStart(rint(0,1)?3:2,'0').replace(/^0+(?=\d{2})/,'');if(!G.ents.some(e=>e.al&&e.al.icao===al.icao&&e.num===n))return n;}return String(rint(100,999));}
 function wpickAl(){const L=AIRPORT.airlines;let t=0;L.forEach(x=>t+=x[1]);let r=Math.random()*t;for(const x of L){r-=x[1];if(r<=0)return AL_BY[x[0]];}return AL_BY[L[0][0]];}
-function mkAc(kind){
- let al=wpickAl(),rare=false;
- if(kind==='arr'&&Math.random()<(G.cfg.rare!==undefined?G.cfg.rare:0.05)){let t=0;RARE_OPS.forEach(x=>t+=x.w);let r=Math.random()*t;for(const x of RARE_OPS){r-=x.w;if(r<=0){al=x;break;}}rare=true;}
- const ty=TYPES[(al.rareFleet&&al.rareFleet.length&&Math.random()<0.05)?pick(al.rareFleet):pick(al.fleet)]||TYPES.A320;
- let num=uniqueNum(al);if(rare){const f=al.nums.filter(n=>!G.ents.some(e=>e.al===al&&e.num===n));num=pick(f.length?f:al.nums);}
+function mkAc(kind,alF,tyF){
+ let al=alF||wpickAl(),rare=false,prio=null,sp=null;
+ if(!alF&&kind==='arr'&&Math.random()<(G.cfg.rare!==undefined?G.cfg.rare:0.05)){let t=0;RARE_OPS.forEach(x=>t+=x.w);let r=Math.random()*t;for(const x of RARE_OPS){r-=x.w;if(r<=0){al=x;break;}}rare=true;}
+ else if(!alF&&kind==='arr'&&Math.random()<(G.cfg.prio!==undefined?G.cfg.prio:0.045)){al=pick(VIS_OPS.filter(o=>o.prio));prio=al.prio;}
+ const ty=tyF||TYPES[(al.rareFleet&&al.rareFleet.length&&Math.random()<0.05)?pick(al.rareFleet):pick(al.fleet)]||TYPES.A320;
+ if(!alF&&!rare&&!prio&&G.cfg.spec!==false&&specialEligible(al,ty)){
+  if(G.forceSpec){sp=SPEC_BY[G.forceSpec];G.forceSpec=null;}
+  else if(Math.random()<(G.cfg.spec!==undefined?G.cfg.spec:0.07)){let t=0;SPECIALS.forEach(x=>t+=x.w);let r=Math.random()*t;for(const x of SPECIALS){r-=x.w;if(r<=0){sp=x;break;}}}
+  if(sp&&sp.w>=0)al=specialAirline(al,sp);else sp=null;
+ }
+ let num=uniqueNum(al);if(rare||prio){const f=al.nums.filter(n=>!G.ents.some(e=>e.al&&e.al.icao===al.icao&&e.num===n));num=pick(f.length?f:al.nums);}
  const a={id:G.nextId++,kind,al,type:ty,num,cs:al.icao+num,rt:al.rt+' '+num,heavy:ty.wake==='H',
   x:0,z:0,y:0,th:0,v:0,pitch:0,bank:0,vs:0,phase:'',req:null,nextReq:null,waitSec:0,dead:false,r:0.32*Math.max(ty.wing,ty.len),
   gate:null,dest:pick(DESTS),squawk:'',sqPlan:null,clrOk:false,pushDone:false,node:null,path:null,s:0,paused:false,back:false,
   hp:null,unit:'DEL',cleared:false,D:0,spdCmd:0,fuel:rnd(34,60),mishap:null,err:null,nordo:false,lightG:null,handed:false,
-  autoTO:false,blowHold:false,rwyAuth:false,incurred:false,emerg:null,priority:false,t0:G.t,blockT:0,veh:false,chk:0};
+  autoTO:false,blowHold:false,rwyAuth:false,incurred:false,emerg:null,priority:false,t0:G.t,blockT:0,veh:false,chk:0,prio:prio,special:sp?al.special:null};
+ if(sp){G.stats.spec=(G.stats.spec||0)+1;later(1.5,()=>{if(!a.dead)sysMsg('Spotter alert: '+a.cs+' ('+ty.n+') is wearing the '+al.special+'.','ok');});}
  return a;
 }
 function pickW(L){let t=0;L.forEach(x=>t+=x[1]);let r=Math.random()*t;for(const x of L){r-=x[1];if(r<=0)return x[0];}return L[0][0];}
 function pickMishap(kind){
+ if(G.forceMishap&&kind==='arr'){const m=G.forceMishap;G.forceMishap=null;return m;}
  if(Math.random()>=G.cfg.mishap)return null;
- return kind==='dep'?pickW([['rto',24],['engine',16],['bird',22],['nordo',8],['rtofire',6],['engfire_dep',7],['engsep',2.5],['birdeng',5]]):pickW([['panpan',22],['lowfuel',16],['bstrike',7],['fuelhid',8],['nordo',7],['leak',10],['engfire',8],['gear',8],['hyd',6],['smoke',5]]);
+ return kind==='dep'?pickW([['rto',24],['engine',16],['bird',22],['nordo',8],['rtofire',6],['engfire_dep',7],['engsep',2.5],['birdeng',5]]):pickW([['panpan',22],['hijack',2.2],['divert',5],['lowfuel',16],['bstrike',7],['fuelhid',8],['nordo',7],['leak',10],['engfire',8],['gear',8],['hyd',6],['smoke',5]]);
 }
 function spawnDep(delay){
  const free=gatesFree();if(!free.length)return null;
@@ -175,9 +183,12 @@ function spawnArr(){
  G.ents.push(a);emit('spawn',a);
  if(a.mishap==='nordo'){a.nordo=true;a.squawk='7600';sysMsg('A '+a.cs+' squawking 7600: lost communications. Use the light gun.','warn');}
  else if(a.mishap==='panpan'){a.emerg='panpan';a.squawk='7700';G.stats.emerg++;request(a,'PANPAN',{dist:Math.round(D/NM)});}
+ else if(a.mishap==='hijack')startHijack(a,D);
+ else if(a.mishap==='divert')startDivert(a,D);
  else if(a.mishap==='fuelhid'){a.fuel=rnd(8,10);request(a,'CHECKIN',{dist:Math.round(D/NM)});}
  else if(a.mishap==='lowfuel'){a.fuel=rnd(9,11);request(a,'CHECKIN',{dist:Math.round(D/NM)});}
  else if(EMKIND[a.mishap]){startArrEmerg(a,D);}
+ else if(a.prio)request(a,'PRIO',{dist:Math.round(D/NM),what:a.prio==='medevac'?'medical priority flight, patient on board':'VIP flight'});
  else request(a,'CHECKIN',{dist:Math.round(D/NM)});
  a.checked=true;return a;
 }
@@ -283,7 +294,7 @@ function step(dt){
  if(G.over)return;
  G.t+=dt;G.clock+=dt;
  for(let i=G.q.length-1;i>=0;i--){if(G.q[i].t<=G.t){const f=G.q[i].fn;G.q.splice(i,1);try{f();}catch(e){console.error(e);}}}
- weather(dt);cellUpdate(dt);wakeUpdate(dt);spawnLogic(dt);
+ weather(dt);cellUpdate(dt);wakeUpdate(dt);visUpdate(dt);spawnLogic(dt);
  for(const e of G.ents){if(e.dead)continue;if(e.yieldT>0){e.yieldT-=dt;if(e.yDone<e.yMag){const st=Math.min(6*dt,e.yMag-e.yDone);e.yDone+=st;e.x+=-Math.sin(e.th)*e.yDir*st;e.z+=Math.cos(e.th)*e.yDir*st;}}if(e.veh)updVeh(e,dt);else updAc(e,dt);}
  collisions();separation();
  for(let i=G.ents.length-1;i>=0;i--)if(G.ents[i].dead){emit('remove',G.ents[i]);G.ents.splice(i,1);}
@@ -311,6 +322,8 @@ function updAc(a,dt){
  emergTick(a,dt);if(G.over)return;
  if(a.req){if(a.req.hold&&G.t-a.req.hold<45){a.req.t=G.t;}else{a.req.hold=0;a.waitSec+=dt;}const lim=(PH[a.req.kind].patience||50)*(a.req.n+1);if(G.t-a.req.t>lim&&!a.nordo){a.req.n++;remind(a);}}
  if(!a.req&&a.nextReq&&G.t>=a.nextReq.at){const n=a.nextReq;a.nextReq=null;request(a,n.kind,n.x);}
+ if(a.vis){visTick(a,dt);return;}
+ specTick(a,dt);
  if(a.err&&G.t>=a.err.at)applyErr(a);
  // incursion detector
  if(!a.rwyAuth&&(a.phase==='TAXI'||(a.phase==='LINEUP'&&a.rogue))&&Math.abs(a.z)<56&&Math.abs(a.x)<AP.half+20&&!a.incurred){
@@ -454,7 +467,7 @@ function appUpdate(a,dt){
  let vt;if(a.spdCmd&&Dnm>3.2)vt=a.spdCmd*KT;else vt=Dnm>6?160*KT:Dnm<2.2?vref:lerp(vref,160*KT,(Dnm-2.2)/3.8);
  vt=Math.max(vt,vref);if(a.hyd)vt=Math.max(vt,vref+16*KT);a.v+=clamp(vt-a.v,-1.3*dt,1.0*dt);
  a.D-=a.v*dt;placeApproach(a);a.pitch=a.y<20?lerp(-0.03,0.075,clamp(1-a.y/20,0,1)):-0.03-0.02*clamp((a.y-20)/60,0,1);if(a.engOut)a.bank=lerp(a.bank,0.09*(a.engSide||1),dt);if(a.dead_stick){a.sinkX=(a.sinkX||0)+5.2*dt;a.y=Math.max(0,a.y-a.sinkX);if(a.y<=1&&a.D>40){a.x=a.x;deadStickCrash(a);return;}}
- if((!a.req||a.req.kind==='CHECKIN')&&!a.nextReq&&!a.cleared&&a.D>0&&(!a.askedLand&&Dnm<4.2||a.askedLand&&Dnm<2.2&&G.t-(a.lastLR||0)>20)){a.askedLand=true;a.lastLR=G.t;request(a,'LANDREQ',{dist:Math.max(1,Math.round(Dnm))});}
+ if((!a.req||['CHECKIN','PRIO','DIVERT'].includes(a.req.kind))&&!a.nextReq&&!a.cleared&&a.D>0&&(!a.askedLand&&Dnm<4.2||a.askedLand&&Dnm<2.2&&G.t-(a.lastLR||0)>20)){a.askedLand=true;a.lastLR=G.t;request(a,'LANDREQ',{dist:Math.max(1,Math.round(Dnm))});}
  if(arrivalProblem(a,Dnm))return;
  if(a.D>0&&a.chk<1&&Dnm<0.62||a.D>0&&a.chk<2&&Dnm<0.27){
   a.chk=(a.chk||0)+1;

@@ -81,6 +81,22 @@ const RARE_OPS=[
 RARE_OPS.push(
  {icao:'BGA',rt:'Beluga',nm:'AIRBUS TRANSPORT',liv:'BEL',tail:0x1c4f9c,acc:0x1c4f9c,body:'#f3f5f7',voice:'Charon',accent:'French',fleet:['A3ST'],nums:['1','2','3','4','5'],w:2.5},
  {icao:'GTI',rt:'Giant',nm:'DREAMLIFTER',liv:'DRL',tail:0x1d3d73,acc:0x1d3d73,body:'#f3f5f7',voice:'Fenrir',accent:'American',fleet:['B74L'],nums:['4241','4242','4243'],w:2});
+/* visitors: helicopters, light aircraft, business jets (priority flights) and the flypast display team */
+Object.assign(TYPES,{
+ H145:{n:'H145',wing:10.8,len:13.6,wake:'L',vref:60,vr:50,acc:1.6,eng:2,rf:0.95,wide:false,vis:true,heli:true,name:'Airbus H145'},
+ C172:{n:'C172',wing:11.0,len:8.3,wake:'L',vref:62,vr:55,acc:1.4,eng:1,rf:0.6,wide:false,vis:true,light:true,name:'Cessna 172'},
+ BIZJ:{n:'BIZJ',wing:17.2,len:15.8,wake:'M',vref:105,vr:110,acc:2.4,eng:2,rf:0.95,wide:false,biz:true,name:'Cessna Citation'}
+});
+const VIS_OPS=[
+ {icao:'POL',rt:'Police',nm:'POLICE',body:'#f2c400',tail:0x1c3f94,acc:0x1c3f94,tailInk:'#fff',voice:'Puck',accent:'British',fleet:['H145'],nums:['21','32','99'],w:0,vis:'heli',role:'police'},
+ {icao:'HEM',rt:'Air Ambulance',nm:'AIR AMBULANCE',body:'#d92b2b',tail:0xf2c400,acc:0xf2c400,tailInk:'#fff',voice:'Charon',accent:'British',fleet:['H145'],nums:['1','2','7'],w:0,vis:'heli',role:'medevac'},
+ {icao:'SKY',rt:'Skyline',nm:'SKYLINE TOURS',body:'#f3f4f4',tail:0x0a7ea4,acc:0xff8a00,voice:'Orus',accent:'British',fleet:['H145'],nums:['4','12','18'],w:0,vis:'heli',role:'tour'},
+ {icao:'FLY',rt:'Flyer',nm:'MARLOW FLYING CLUB',body:'#f3f4f4',tail:0xc8102e,acc:0x1c3f94,voice:'Fenrir',accent:'British',fleet:['C172'],nums:['23','41','66','72'],w:0,vis:'light',role:'club'},
+ {icao:'LFG',rt:'Lifeguard',nm:'MEDICAL FLIGHT',body:'#f3f4f4',tail:0xc8102e,acc:0xc8102e,voice:'Algieba',accent:'British',fleet:['BIZJ'],nums:['1','2','5'],w:0,prio:'medevac'},
+ {icao:'GOV',rt:'Executive',nm:'EXECUTIVE TRANSPORT',body:'#dfe3e6',tail:0x1d2a44,acc:0xb8924a,voice:'Rasalgethi',accent:'British',fleet:['BIZJ'],nums:['1','2'],w:0,prio:'vip'},
+ {icao:'DSP',rt:'Display',nm:'DISPLAY TEAM',tail:0x2a2d31,acc:0xc8102e,voice:'Fenrir',accent:'American',fleet:['F14'],nums:['1','2','3'],w:0,vis:'fly'}
+];
+AIRLINES.push(...VIS_OPS);
 AIRLINES.push(...RARE_OPS);
 /* fleets for the original nine */
 const FLEET0={BAW:['A320','A321','A359','B789','B77W','A388'],DLH:['A320','A321','A359','A333'],AFR:['A320','A321','B77W','A359'],EZY:['A320','A321'],RYR:['B738'],KLM:['B738','E190','B789','B77W','A333'],VIR:['A333','A359','B789'],UAE:['B77W','A388','A359'],SAS:['A320','A359','E190']};
@@ -110,7 +126,7 @@ const FLEETX={
  ANZ:[['B772','B788','A20N'],['B744']],TRA:[['B38M','B738'],[]],SCO:[['B788','B789'],[]]
 };
 AIRLINES.forEach(a=>{const f=FLEETX[a.icao];if(f&&!a.sq&&!a.liv){a.fleet=a.fleet.concat(f[0]);a.rareFleet=f[1];}});
-const AL_BY=Object.fromEntries(AIRLINES.map(a=>[a.icao,a]));
+const AL_BY={};AIRLINES.forEach(a=>{if(!(a.icao in AL_BY))AL_BY[a.icao]=a;});   // first entry wins: the regular BAW/AFR must not be shadowed by their Concorde operators
 const SPK={BAW:'Speedbird'};
 
 const AIRPORTS={

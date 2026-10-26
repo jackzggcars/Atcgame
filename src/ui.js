@@ -45,13 +45,13 @@ const UI={
  /* ---------- start / stop ---------- */
  showStart(){
   const s=this.saved||{};
-  $('s-level').value=s.level||'cadet';$('s-mode').value=s.mode||'career';$('s-tod').value=s.tod||'day';$('s-wx').value=s.wx||'clear';$('s-fog').checked=!!s.fog;$('s-cells').checked=s.cells!==false;$('s-amb').checked=(typeof Amb==='undefined')?true:Amb.on;$('s-shift').value=s.shift||30;
+  $('s-level').value=s.level||'cadet';$('s-mode').value=s.mode||'career';$('s-tod').value=s.tod||'day';$('s-wx').value=s.wx||'clear';$('s-fog').checked=!!s.fog;$('s-cells').checked=s.cells!==false;$('s-vis').checked=s.vis!==false;$('s-amb').checked=(typeof Amb==='undefined')?true:Amb.on;$('s-shift').value=s.shift||30;
   $('s-key').value=Voice.key||'';$('s-gem').checked=Voice.gemini;$('s-voice').checked=Voice.on;
   $('start').hidden=false;$('over').hidden=true;
  },
  start(){
   Voice.ensureCtx();
-  const cfg={level:$('s-level').value,mode:$('s-mode').value,tod:$('s-tod').value,wx:$('s-wx').value,fog:$('s-fog').checked,cells:$('s-cells').checked,shift:+$('s-shift').value||30};
+  const cfg={level:$('s-level').value,mode:$('s-mode').value,tod:$('s-tod').value,wx:$('s-wx').value,fog:$('s-fog').checked,cells:$('s-cells').checked,vis:$('s-vis').checked,visitors:$('s-vis').checked,events:$('s-vis').checked,divert:$('s-vis').checked,spec:$('s-vis').checked?undefined:false,shift:+$('s-shift').value||30};
   try{Amb.on=$('s-amb').checked;localStorage.setItem('marlow.amb',Amb.on?'1':'0');}catch(e){}
   Voice.key=$('s-key').value.trim();Voice.gemini=$('s-gem').checked;Voice.on=$('s-voice').checked;Voice.save();
   this.saved=cfg;this.saveCfg();
@@ -143,7 +143,7 @@ const UI={
   return a.req?q:MAPV.phaseText(a);
  },
  unitOf(a){
-  if(!a)return'TWR';if(a.veh)return'GND';
+  if(!a)return'TWR';if(a.veh)return'GND';if(a.vis)return'TWR';
   if(a.req&&a.req.kind&&PH[a.req.kind]&&PH[a.req.kind].unit&&UNITS[PH[a.req.kind].unit])return PH[a.req.kind].unit;
   if(a.unit&&UNITS[a.unit]&&a.unit!=='OPS')return a.unit;
   const p=a.phase;
@@ -161,7 +161,7 @@ const UI={
  },
  atisText(){
   const w=G.wind;let wd=Math.round(WDM(w)/10)*10%360;if(wd===0)wd=360;
-  return '<b>'+AIRPORT.icao+' INFORMATION '+ATIS_L[G.atis].toUpperCase()+'</b>  '+this.clockStr(G.clock).slice(0,5).replace(':','')+'Z\n'+((G.wx&&G.wx!=='clear')?'WEATHER '+WX_NAMES[G.wx]+'\n':'')+(G.fog?'LOW VISIBILITY PROCEDURES IN OPERATION\n':'')+(G.cell&&G.cell.near?'CB OVERHEAD OR NEAR FIELD, LIGHTNING WITHIN 5 MILES, RAMP CLOSED\n':G.cell?'CB APPROACHING FROM THE '+compassOf(-G.cell.vx,-G.cell.vz).toUpperCase()+'\n':'')+'RUNWAY IN USE '+RWD()+'\nWIND '+pad(wd,3)+' DEGREES '+Math.round(w.spd)+' KNOTS\nVISIBILITY '+(G.fog?'800 METRES, FOG':'10 KILOMETRES OR MORE')+'\nQNH '+G.qnh+'\nTRANSITION LEVEL 60\n<b>ACKNOWLEDGE INFORMATION '+ATIS_L[G.atis].toUpperCase()+' ON FIRST CONTACT.</b>';
+  return '<b>'+AIRPORT.icao+' INFORMATION '+ATIS_L[G.atis].toUpperCase()+'</b>  '+this.clockStr(G.clock).slice(0,5).replace(':','')+'Z\n'+((G.wx&&G.wx!=='clear')?'WEATHER '+WX_NAMES[G.wx]+'\n':'')+(G.fog?'LOW VISIBILITY PROCEDURES IN OPERATION\n':'')+(G.fly?'FLYPAST RWY '+RWD()+' AT '+clkF(G.fly.t0)+'Z — RUNWAY CLOSED '+clkF(G.fly.t0-45)+'Z–'+clkF(G.fly.t0+40)+'Z\n':'')+(G.v&&G.v.open?'AIRPORT OPEN DAY: EXTRA HELICOPTER / LIGHT AIRCRAFT TRAFFIC\n':'')+(G.cell&&G.cell.near?'CB OVERHEAD OR NEAR FIELD, LIGHTNING WITHIN 5 MILES, RAMP CLOSED\n':G.cell?'CB APPROACHING FROM THE '+compassOf(-G.cell.vx,-G.cell.vz).toUpperCase()+'\n':'')+'RUNWAY IN USE '+RWD()+'\nWIND '+pad(wd,3)+' DEGREES '+Math.round(w.spd)+' KNOTS\nVISIBILITY '+(G.fog?'800 METRES, FOG':'10 KILOMETRES OR MORE')+'\nQNH '+G.qnh+'\nTRANSITION LEVEL 60\n<b>ACKNOWLEDGE INFORMATION '+ATIS_L[G.atis].toUpperCase()+' ON FIRST CONTACT.</b>';
  },
  talkingId(){
   if(typeof Voice!=='undefined'&&Voice.on&&Voice.now&&Voice.now.ent&&Voice.now.who==='pilot')return Voice.now.ent.id;
@@ -175,7 +175,7 @@ const UI={
  },
  bayOf(e){const k=e.veh?'GND':this.unitOf(e);return k;},
  renderStrips(force){
-  const L=G.ents.filter(e=>!e.dead&&e.phase!=='REMOVED');
+  const L=G.ents.filter(e=>!e.dead&&e.phase!=='REMOVED'&&!e.hidden);
   const rank=e=>(e.req?(PH[e.req.kind].urgent?0:1):e.err?2:e.emerg?2:e.nordo?2:3)+(e.veh?1:0);
   const BO={TWR:0,DEP:1,GND:2,DEL:3},BN={TWR:'Tower · runway / final',DEP:'Departure',GND:'Ground · apron / taxi',DEL:'Delivery · clearances'};
   L.sort((a,b)=>BO[this.bayOf(a)]-BO[this.bayOf(b)]||rank(a)-rank(b)||(a.req&&b.req?a.req.t-b.req.t:0)||a.id-b.id);

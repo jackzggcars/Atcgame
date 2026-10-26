@@ -286,9 +286,86 @@ function buildB2(a,M,body,dims){
 }
 
 /* ---------------------------------------------------------------------------
+   VISITORS: Airbus H145 helicopter, Cessna 172, Cessna Citation business jet
+   --------------------------------------------------------------------------- */
+const SIDEG=(parent,tx,w,h,x,y,tab)=>flankDecal(parent,tx,w,h,x,y,zAt(tab,x,y)+0.012);
+function buildH145(a,M,body,dims){
+ const al=a.al,bm=mat('h_b'+al.icao,al.body||'#f3f4f4',{roughness:0.34,metalness:0.14}),stM=mat('h_s'+al.icao,al.tail,{roughness:0.4}),acM=mat('h_a'+al.icao,al.acc,{roughness:0.4}),dk=mat('h_dk',0x1b1e22,{roughness:0.6}),gl=mat('h_gl',0x0e161d,{roughness:0.05,metalness:0.8,envMapIntensity:2});
+ const HB=[[-6.3,0.07,0.09,0.95],[-5.0,0.15,0.18,0.92],[-3.2,0.3,0.36,0.85],[-1.8,0.62,0.7,0.62],[-0.4,0.95,0.95,0.38],[1.3,0.95,0.95,0.30],[2.4,0.75,0.8,0.22],[3.0,0.4,0.5,0.15],[3.35,0.08,0.12,0.12]];
+ body.add(loft(stations(HB,-6.3,3.35,34,2.3),20,bm));
+ body.add(sph(1.15,0.46,0.84,gl,2.0,0.58,0));
+ for(const sd of[-1,1]){body.add(box(1.3,0.4,0.03,gl,0.9,0.55,sd*(zAt(HB,0.9,0.55)+0.005)));body.add(box(0.9,0.55,0.03,bm,-0.8,0.35,sd*(zAt(HB,-0.8,0.35)+0.004)));}
+ body.add(box(1.9,0.34,1.3,bm,0.2,1.2,0));
+ const mast=new THREE.Mesh(new THREE.CylinderGeometry(0.14,0.18,0.55,10),dk);mast.position.set(0.2,1.55,0);body.add(mast);
+ body.add(box(1.0,0.07,2.2,bm,-5.2,0.85,0));
+ for(const sd of[-1,1])body.add(box(0.9,0.62,0.05,stM,-5.2,0.85,sd*1.08));
+ body.add(box(1.25,1.5,0.1,stM,-6.15,1.6,0));
+ const ring=new THREE.Mesh(new THREE.TorusGeometry(0.52,0.06,8,20),bm);ring.position.set(-5.95,1.05,0);body.add(ring);
+ const fen=new THREE.Group();fen.position.set(-5.95,1.05,0);for(let k=0;k<5;k++){const b=box(0.04,0.46,0.14,dk,0,0.24,0);const g=new THREE.Group();g.rotation.z=k*TAU/5;g.add(b);fen.add(g);}body.add(fen);
+ const SK=mat('h_sk',0x23272b,{roughness:0.5,metalness:0.4});
+ for(const sd of[-1,1]){body.add(cylX(0.05,0.05,5.4,SK,0.5,-1.12,sd*1.0,8));strutBetween(body,new V3(1.3,-0.5,sd*0.72),new V3(1.3,-1.12,sd*1.0),0.04,SK);strutBetween(body,new V3(-0.7,-0.5,sd*0.72),new V3(-0.7,-1.12,sd*1.0),0.04,SK);}
+ const rot=new THREE.Group();rot.position.set(0.2,1.85,0);for(let k=0;k<4;k++){const g=new THREE.Group();g.rotation.y=k*Math.PI/2;g.add(box(5.1,0.05,0.32,dk,2.75,0,0));rot.add(g);}
+ const hub=new THREE.Mesh(new THREE.CylinderGeometry(0.22,0.22,0.16,10),dk);rot.add(hub);body.add(rot);
+ const disc=new THREE.Mesh(new THREE.CircleGeometry(5.35,40),new THREE.MeshBasicMaterial({color:0x101216,transparent:true,opacity:0.07,depthWrite:false,side:THREE.DoubleSide,fog:false}));disc.rotation.x=-Math.PI/2;disc.position.set(0.2,1.85,0);body.add(disc);
+ const txt=al.nm,cn=al.role==='police'?'POLICE':al.role==='medevac'?'AIR AMBULANCE':al.role==='tour'?'SKYLINE':'';
+ if(cn){SIDEG(body,textTex(cn,'bold 120px Arial, sans-serif',al.role==='medevac'?'#fff':al.role==='police'?'#1c3f94':'#0a7ea4',900,170),3.3,0.55,-3.6,0.55,HB);}
+ for(const sd of[-1,1])body.add(box(3.0,0.14,0.02,acM,0.3,0.05,sd*(zAt(HB,0.3,0.05)+0.01)));
+ const strobes=[lite(body,M,0xffffff,-6.2,2.3,0,0.1,3.2),lite(body,M,0xffffff,0.2,1.2,0,0.1,3.0)];
+ lite(body,M,0xff2a2a,2.2,0.2,-0.78,0.08,1.6);lite(body,M,0x2aff5a,2.2,0.2,0.78,0.08,1.6);
+ const beacon=lite(body,M,0xff1a1a,0.2,1.45,0,0.12,3.4),land=lite(body,M,0xfff6dc,3.2,-0.15,0,0.14,5);
+ const gear=new THREE.Group();body.add(gear);
+ return{strobes,beacon,land,gear,anim:(e,dt)=>{rot.rotation.y+=dt*(['BOARDING','PARKED'].includes(e.phase)?0:30);fen.rotation.z+=dt*40;disc.visible=true;},L:13.6,half:5.4,mainX:0.4,mz:1.0,lex:3,rootC:2};
+}
+function buildC172(a,M,body,dims){
+ const al=a.al,bm=mat('c_b'+al.icao,al.body||'#f3f4f4',{roughness:0.35,metalness:0.12}),stM=mat('c_s'+al.icao,al.tail,{roughness:0.4}),acM=mat('c_a'+al.icao,al.acc,{roughness:0.4}),dk=mat('c_dk',0x1b1e22,{roughness:0.6}),gl=mat('c_gl',0x0e161d,{roughness:0.05,metalness:0.8,envMapIntensity:2});
+ const HB=[[-5.8,0.05,0.08,0.55],[-4.4,0.17,0.24,0.55],[-2.2,0.4,0.52,0.42],[-0.3,0.55,0.62,0.30],[1.1,0.55,0.55,0.25],[2.0,0.5,0.5,0.2],[2.6,0.14,0.2,0.14]];
+ body.add(loft(stations(HB,-5.8,2.6,28,2.2),18,bm));
+ body.add(box(1.5,0.5,1.0,gl,0.55,0.78,0));
+ for(const sd of[-1,1]){body.add(box(1.7,0.42,0.03,gl,0.3,0.5,sd*(zAt(HB,0.3,0.5)+0.004)));body.add(box(0.5,0.3,0.03,gl,-1.7,0.55,sd*(zAt(HB,-1.7,0.55)+0.004)));body.add(box(4.6,0.12,0.02,acM,-1.6,0.1,sd*(zAt(HB,-1.6,0.1)+0.01)));}
+ const wsecs=[0.4,2.0,3.5,4.8,5.5].map((z,i,arr)=>{const t=z/5.5;return{x:lerp(1.0,0.85,t),y:1.0,z:z,c:lerp(1.65,1.15,t),tc:0.12,cam:0.03,tw:0,ny:1,nz:0,u:t};});
+ for(const sd of[-1,1]){const g=new THREE.Group();g.userData.part='wing';g.userData.side=sd;g.add(slab(wsecs,sd,mat('c_w'+al.icao,al.body||'#f3f4f4',{roughness:0.4}),10));body.add(g);strutBetween(body,new V3(0.5,0.1,sd*0.5),new V3(0.7,0.98,sd*3.3),0.045,mat('steel',0x9aa2a9,{metalness:0.8,roughness:0.38}));}
+ body.add(box(1.0,0.07,3.4,bm,-5.2,0.8,0));
+ const fin=new THREE.Mesh(new THREE.BoxGeometry(1.15,1.4,0.07),stM);fin.position.set(-5.35,1.35,0);fin.rotation.z=0.0;body.add(fin);
+ const sp=new THREE.Mesh(new THREE.ConeGeometry(0.17,0.5,12),dk);sp.rotation.z=-Math.PI/2;sp.position.set(2.85,0.14,0);body.add(sp);
+ const prop=new THREE.Group();prop.position.set(2.98,0.14,0);prop.add(box(0.05,1.95,0.16,dk,0,0,0));body.add(prop);
+ const SK=mat('steel',0x9aa2a9,{metalness:0.8,roughness:0.38});
+ strutBetween(body,new V3(1.5,-0.15,0),new V3(1.5,-0.93,0),0.05,SK);body.add(wheel(0.19,0.12,1.5,-0.93,0));
+ for(const sd of[-1,1]){strutBetween(body,new V3(-0.05,-0.1,sd*0.45),new V3(-0.2,-0.93,sd*1.05),0.05,SK);body.add(wheel(0.2,0.13,-0.2,-0.93,sd*1.05));}
+ const strobes=[lite(body,M,0xffffff,-5.9,1.9,0,0.08,2.6),lite(body,M,0xffffff,0.8,1.0,-5.5,0.08,2.6),lite(body,M,0xffffff,0.8,1.0,5.5,0.08,2.6)];
+ lite(body,M,0xff2a2a,0.9,1.0,-5.45,0.07,1.4);lite(body,M,0x2aff5a,0.9,1.0,5.45,0.07,1.4);
+ const beacon=lite(body,M,0xff1a1a,-5.4,2.0,0,0.1,2.6),land=lite(body,M,0xfff6dc,2.5,0.0,0.4,0.12,4);
+ const gear=new THREE.Group();body.add(gear);
+ return{strobes,beacon,land,gear,anim:null,props:[prop],L:8.3,half:5.5,mainX:-0.2,mz:1.05,lex:1.0,rootC:1.65};
+}
+function buildBIZJ(a,M,body,dims){
+ const al=a.al,bc=al.body||'#f3f4f4',bm=mat('z_b'+al.icao,bc,{roughness:0.3,metalness:0.14}),stM=mat('z_s'+al.icao,al.tail,{roughness:0.35}),dk=mat('z_dk',0x1b1e22,{roughness:0.6}),gl=mat('z_gl',0x0e161d,{roughness:0.05,metalness:0.8,envMapIntensity:2});
+ const HB=[[-7.9,0.08,0.12,0.45],[-6.5,0.22,0.3,0.5],[-4.5,0.5,0.6,0.35],[-2.5,0.78,0.85,0.2],[2.0,0.8,0.86,0.18],[4.5,0.7,0.76,0.14],[6.3,0.45,0.5,0.0],[7.2,0.2,0.24,-0.06],[7.9,0.05,0.07,-0.1]];
+ body.add(loft(stations(HB,-7.9,7.9,36,2.1),22,bm));
+ body.add(sph(0.8,0.3,0.62,gl,5.6,0.55,0));
+ {const[c,x]=cvs(2048,64);x.clearRect(0,0,2048,64);x.fillStyle='#0c1218';for(let i=0;i<7;i++){const px=60+i*165;x.beginPath();x.ellipse(px,32,28,18,0,0,TAU);x.fill();}
+  SIDEG(body,ctex(c),7.2,0.28,1.6,0.38,HB);
+  const[c2,x2]=cvs(2048,64);x2.clearRect(0,0,2048,64);x2.fillStyle=hexc(al.acc);x2.fillRect(0,10,2048,16);x2.fillStyle=hexc(al.tail);x2.fillRect(0,32,2048,10);SIDEG(body,ctex(c2),13.5,0.3,-0.2,0.0,HB);}
+ const wm=mat('z_w'+al.icao,bc,{roughness:0.4,metalness:0.1});
+ const zs=[0.8,2.4,4.4,6.4,8.6],secs=zs.map(z=>{const t=(z-0.8)/7.8;return{x:lerp(1.3,-0.9,t),y:lerp(-0.5,0.05,t),z:z,c:lerp(2.4,0.95,t),tc:lerp(0.13,0.09,t),cam:0.02,tw:0,ny:1,nz:0,u:z/8.6};});
+ for(const sd of[-1,1]){const g=new THREE.Group();g.userData.part='wing';g.userData.side=sd;g.add(slab(secs,sd,wm,12));body.add(g);
+  body.add(box(1.5,0.2,0.5,bm,-4.6,0.45,sd*0.98));const eg=new THREE.Group();eg.userData.part='eng';eg.userData.side=sd;eg.userData.eR=0.36;eg.userData.eL=2.2;eg.position.set(-5.0,0.65,sd*1.3);eg.add(cylX(0.38,0.33,2.4,mat('z_en',0xc9cdd1,{roughness:0.35,metalness:0.5}),0,0,0,16),cylX(0.2,0.2,0.3,dk,-1.25,0,0,10));body.userData.engs=body.userData.engs||[];body.userData.engs.push(eg);body.add(eg);}
+ const sh=new THREE.Shape();sh.moveTo(-1.7,0);sh.lineTo(1.4,0);sh.lineTo(0.5,2.7);sh.lineTo(-0.7,2.7);sh.closePath();
+ const fg=new THREE.ExtrudeGeometry(sh,{depth:0.12,bevelEnabled:false});fg.translate(0,0,-0.06);const fin=new THREE.Mesh(fg,stM);fin.position.set(-6.1,0.7,0);fin.castShadow=true;body.add(fin);
+ body.add(box(1.5,0.07,5.2,bm,-7.0,3.4,0));
+ body.userData.engs=body.userData.engs||[];
+ const gear=new THREE.Group(),gy=-dims.gearH,SK=null;
+ leg(gear,5.3,-0.55,gy,0,0.2,0.14,{n:1,rows:1});for(const sd of[-1,1])leg(gear,-0.2,-0.5,gy,sd*1.45,0.26,0.2,{n:1,rows:1});body.add(gear);
+ const strobes=[lite(body,M,0xffffff,-1.4,0.1,-8.6,0.1,3.4),lite(body,M,0xffffff,-1.4,0.1,8.6,0.1,3.4),lite(body,M,0xffffff,-7.6,3.5,0,0.1,3)];
+ lite(body,M,0xff2a2a,-1.2,0.08,-8.55,0.08,1.6);lite(body,M,0x2aff5a,-1.2,0.08,8.55,0.08,1.6);
+ const beacon=lite(body,M,0xff1a1a,0.5,0.9,0,0.12,3.2),land=lite(body,M,0xfff6dc,7.2,-0.3,0,0.14,5);
+ return{strobes,beacon,land,gear,anim:null,L:15.8,half:8.6,mainX:-0.2,mz:1.45,lex:1.3,rootC:2.4};
+}
+function hexc(n){return '#'+('000000'+(n>>>0).toString(16)).slice(-6);}
+
+/* ---------------------------------------------------------------------------
    dispatcher (same return contract as R3.buildAC)
    --------------------------------------------------------------------------- */
-const SPECS={CONC:{gearH:3.8,fn:buildConcorde},F14:{gearH:1.8,fn:buildF14},B2:{gearH:3.3,fn:buildB2}};
+const SPECS={CONC:{gearH:3.8,fn:buildConcorde},F14:{gearH:1.8,fn:buildF14},B2:{gearH:3.3,fn:buildB2},H145:{gearH:1.15,fn:buildH145},C172:{gearH:1.12,fn:buildC172},BIZJ:{gearH:1.5,fn:buildBIZJ}};
 const _b=R3.buildAC;
 R3.buildAC=function(a){
  const ty=a.type,sp=SPECS[ty.n];if(!sp)return _b.call(this,a);
@@ -300,7 +377,7 @@ R3.buildAC=function(a){
  const cone=new THREE.ConeGeometry(16,150,18,1,true);cone.translate(0,-75,0);cone.rotateZ(Math.PI/2);
  const beam=new THREE.Mesh(cone,new THREE.MeshBasicMaterial({color:0xfff2d0,transparent:true,opacity:0.07,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false}));
  beam.position.copy(out.land.position);beam.rotation.z=-0.05;beam.visible=false;body.add(beam);
- const U=root.userData;U.gear=out.gear;U.strobes=out.strobes;U.beacon=out.beacon;U.land=out.land;U.beam=beam;U.fans=[];U.fus=body;U.anim=out.anim;
+ const U=root.userData;U.gear=out.gear;U.strobes=out.strobes;U.beacon=out.beacon;U.land=out.land;U.beam=beam;U.fans=[];U.fus=body;U.anim=out.anim;if(out.props)U.props=out.props;
  U.dims={L:out.L,rf:ty.rf,gearH:sp.gearH,mainX:out.mainX,half:out.half,mz:out.mz,wy:0,lex:out.lex,rootC:out.rootC};
  const sh=new THREE.Mesh(new THREE.CircleGeometry(1,20),new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:0.16,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-4,polygonOffsetUnits:-4}));sh.rotation.x=-Math.PI/2;sh.position.y=0.12;
  const holder=new THREE.Group();holder.add(root);this.scene.add(holder);this.scene.add(sh);

@@ -2,6 +2,69 @@
 /* =====================================================================
    RADAR / MAP VIEW (canvas 2D)
    ===================================================================== */
+/* ---------- radar symbols: one outline per aircraft class (nose = +x, drawn mirrored about the axis) ---------- */
+const RSYM={
+ narrow:{p:[[1,0],[0.7,0.07],[0.35,0.1],[0.12,0.13],[-0.08,0.78],[-0.30,0.78],[-0.22,0.14],[-0.72,0.1],[-0.86,0.36],[-1,0.36],[-1,0]],eng:[[0.0,0.36]]},
+ reg:{p:[[1,0],[0.65,0.07],[0.2,0.1],[0.05,0.62],[-0.18,0.62],[-0.12,0.12],[-0.55,0.1],[-0.7,0.15],[-0.9,0.34],[-1,0.34],[-1,0]],eng:[[-0.62,0.24]]},
+ wide:{p:[[1,0],[0.72,0.1],[0.4,0.14],[0.15,0.17],[-0.12,0.95],[-0.34,0.95],[-0.25,0.19],[-0.7,0.14],[-0.84,0.42],[-1,0.42],[-1,0]],eng:[[0.0,0.42]]},
+ jumbo:{p:[[1,0],[0.78,0.1],[0.55,0.2],[0.3,0.22],[0.1,0.2],[-0.12,1.0],[-0.36,1.0],[-0.26,0.2],[-0.7,0.15],[-0.84,0.46],[-1,0.46],[-1,0]],eng:[[0.04,0.4],[-0.02,0.7]]},
+ frt:{p:[[1,0],[0.82,0.16],[0.55,0.3],[0.2,0.33],[-0.05,0.3],[-0.12,0.85],[-0.34,0.85],[-0.3,0.28],[-0.7,0.2],[-0.85,0.4],[-1,0.4],[-1,0]],eng:[[0.0,0.55]]},
+ conc:{p:[[1,0],[0.85,0.035],[0.4,0.12],[-0.1,0.38],[-0.55,0.62],[-0.92,0.66],[-0.92,0.3],[-1,0.1],[-1,0]],eng:[[-0.6,0.3]]},
+ f14:{p:[[1,0],[0.8,0.06],[0.5,0.09],[0.2,0.1],[0.0,0.14],[-0.35,0.78],[-0.5,0.78],[-0.46,0.28],[-0.7,0.3],[-0.82,0.42],[-0.95,0.42],[-0.92,0.2],[-1,0.14],[-1,0]],eng:[]},
+ b2:{p:[[0.6,0],[-0.45,1.0],[-0.6,0.9],[-0.45,0.62],[-0.72,0.45],[-0.62,0.22],[-0.8,0]],eng:[]},
+ light:{p:[[1,0],[0.65,0.1],[0.28,0.12],[0.25,0.95],[-0.1,0.95],[-0.1,0.14],[-0.85,0.07],[-0.9,0.38],[-1,0.38],[-1,0]],eng:[]},
+ biz:{p:[[1,0],[0.72,0.07],[0.3,0.1],[-0.05,0.14],[-0.15,0.72],[-0.35,0.72],[-0.32,0.13],[-0.75,0.1],[-0.9,0.26],[-1,0.4],[-1,0]],eng:[[-0.62,0.2]]}
+};
+function symClass(e){
+ const ty=e.type||{},n=ty.n;
+ if(ty.heli)return'heli';if(ty.light)return'light';if(ty.biz)return'biz';
+ if(n==='CONC')return'conc';if(n==='F14')return'f14';if(n==='B2')return'b2';
+ if(n==='A3ST'||n==='B74L')return'frt';
+ if(ty.eng===4)return'jumbo';if(ty.wide)return'wide';if(ty.rear||n==='E190')return'reg';return'narrow';
+}
+/* full-size silhouette; rotation already applied by the caller */
+function drawSym(ctx,e,size,fill,t){
+ const k=symClass(e);ctx.fillStyle=fill;ctx.strokeStyle='#000';ctx.lineWidth=1;
+ if(k==='heli'){
+  const s=size;ctx.beginPath();ctx.ellipse(s*0.1,0,s*0.55,s*0.28,0,0,6.283);ctx.fill();ctx.stroke();
+  ctx.fillRect(-s*1.0,-s*0.05,s*0.75,s*0.1);ctx.fillRect(-s*1.05,-s*0.2,s*0.12,s*0.4);
+  ctx.save();ctx.translate(s*0.1,0);ctx.rotate(t*9);ctx.strokeStyle=fill;ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(-s*0.95,0);ctx.lineTo(s*0.95,0);ctx.moveTo(0,-s*0.95);ctx.lineTo(0,s*0.95);ctx.stroke();ctx.globalAlpha=0.35;ctx.beginPath();ctx.arc(0,0,s*0.95,0,6.283);ctx.stroke();ctx.restore();ctx.globalAlpha=1;return;}
+ const Y=RSYM[k];ctx.beginPath();
+ Y.p.forEach((q,i)=>{i?ctx.lineTo(q[0]*size,q[1]*size):ctx.moveTo(q[0]*size,q[1]*size);});
+ for(let i=Y.p.length-2;i>=1;i--)ctx.lineTo(Y.p[i][0]*size,-Y.p[i][1]*size);
+ ctx.closePath();ctx.fill();ctx.stroke();
+ ctx.fillStyle='rgba(0,0,0,0.75)';for(const q of Y.eng)for(const sd of[-1,1]){ctx.beginPath();ctx.arc(q[0]*size,sd*q[1]*size,Math.max(1.1,size*0.07),0,6.283);ctx.fill();}
+ if(k==='frt'){ctx.fillStyle='rgba(0,0,0,0.35)';ctx.beginPath();ctx.ellipse(size*0.35,0,size*0.4,size*0.15,0,0,6.283);ctx.fill();}
+ if(k==='f14'||k==='b2'||k==='conc'){ctx.strokeStyle=fill;ctx.lineWidth=1;ctx.beginPath();ctx.arc(0,0,size*1.15,0,6.283);ctx.globalAlpha=0.35;ctx.stroke();ctx.globalAlpha=1;}
+}
+/* radar-scale (small, unrotated) symbol per class */
+function radarSym(ctx,e,px,pz,col,t){
+ const k=symClass(e);ctx.save();ctx.translate(px,pz);ctx.scale(1.3,1.3);ctx.translate(-px,-pz);ctx.strokeStyle=col;ctx.fillStyle=col;ctx.lineWidth=1.5;
+ const dia=r=>{ctx.beginPath();ctx.moveTo(px,pz-r);ctx.lineTo(px+r,pz);ctx.lineTo(px,pz+r);ctx.lineTo(px-r,pz);ctx.closePath();ctx.stroke();};
+ if(k==='narrow'||k==='reg'){dia(k==='reg'?4:5);ctx.fillRect(px-1,pz-1,2,2);}
+ else if(k==='wide'){dia(6);ctx.beginPath();ctx.moveTo(px-9,pz);ctx.lineTo(px-6,pz);ctx.moveTo(px+6,pz);ctx.lineTo(px+9,pz);ctx.stroke();ctx.fillRect(px-1,pz-1,2,2);}
+ else if(k==='jumbo'){dia(6);dia(9);ctx.fillRect(px-1,pz-1,2,2);}
+ else if(k==='frt'){dia(6);ctx.beginPath();ctx.arc(px,pz,2.2,0,6.283);ctx.stroke();}
+ else if(k==='biz'){dia(3.6);ctx.beginPath();ctx.moveTo(px,pz+3.6);ctx.lineTo(px,pz+8);ctx.stroke();}
+ else if(k==='light'){ctx.beginPath();ctx.arc(px,pz,3.4,0,6.283);ctx.stroke();ctx.beginPath();ctx.moveTo(px-6,pz);ctx.lineTo(px+6,pz);ctx.stroke();}
+ else if(k==='heli'){ctx.beginPath();ctx.arc(px,pz,3,0,6.283);ctx.stroke();ctx.save();ctx.translate(px,pz);ctx.rotate(t*7);ctx.beginPath();ctx.moveTo(-7,0);ctx.lineTo(7,0);ctx.moveTo(0,-7);ctx.lineTo(0,7);ctx.stroke();ctx.restore();}
+ else{ // military / SST: rotated shapes
+  ctx.save();ctx.translate(px,pz);ctx.rotate(e.th+MAPV.TH);ctx.beginPath();
+  if(k==='conc'){ctx.moveTo(9,0);ctx.lineTo(-7,-6);ctx.lineTo(-4,0);ctx.lineTo(-7,6);ctx.closePath();}
+  else if(k==='f14'){ctx.moveTo(8,0);ctx.lineTo(-6,-7);ctx.moveTo(8,0);ctx.lineTo(-6,7);ctx.moveTo(8,0);ctx.lineTo(-7,0);}
+  else{ctx.moveTo(6,0);ctx.lineTo(-6,-9);ctx.lineTo(-3,0);ctx.lineTo(-6,9);ctx.closePath();}
+  ctx.stroke();ctx.restore();}
+ ctx.restore();
+}
+/* manual pages: radar symbol guide + visitors / special flights */
+(function(){
+ const svg=k=>{if(k==='heli')return'<svg viewBox="-12 -12 24 24" width="38" height="38"><ellipse cx="1" rx="5.5" ry="2.8" fill="#38d6e6" stroke="#000" stroke-width=".5"/><rect x="-11" y="-.6" width="8" height="1.2" fill="#38d6e6"/><circle r="9.5" fill="none" stroke="#38d6e6" stroke-width=".7" stroke-dasharray="2 2"/><path d="M-9 0H9M0 -9V9" stroke="#38d6e6" stroke-width="1"/></svg>';
+  const Y=RSYM[k],P=Y.p.map(q=>[q[0]*10,q[1]*10]).concat(Y.p.slice(1,-1).reverse().map(q=>[q[0]*10,-q[1]*10]));
+  return'<svg viewBox="-12 -12 24 24" width="38" height="38"><polygon points="'+P.map(q=>q[0].toFixed(1)+','+q[1].toFixed(1)).join(' ')+'" fill="#38d6e6" stroke="#000" stroke-width=".5"/>'+Y.eng.map(q=>[1,-1].map(sd=>'<circle cx="'+q[0]*10+'" cy="'+sd*q[1]*10+'" r=".9" fill="#000" opacity=".75"/>').join('')).join('')+'</svg>';};
+ const rows=[['narrow','Narrow-body airliner','A320 / 737 family, 757'],['reg','Regional jet','E175 / E190: rear-mounted engines, short wings'],['wide','Wide-body twin','777, 787, A330, A350: long wings, bar on the radar diamond'],['jumbo','Four-engine heavy','747, A380, A340: fat nose, four engines, double diamond at radar scale'],['frt','Outsize freighter','Beluga and Dreamlifter: bulbous fuselage'],['biz','Business jet','Medevac "Lifeguard" and VIP "Executive" flights: rear engines, T-tail'],['light','Light aircraft','Flying-club Cessna: straight high wing'],['heli','Helicopter','Spinning rotor: police, air ambulance and tour flights'],['conc','Concorde','Slender delta, no tailplane'],['f14','F-14 Tomcat','Swept wings and twin tails: also the flypast display team'],['b2','B-2 Spirit','Flying wing with a sawtooth trailing edge']];
+ MAN_EXTRA.push({cat:'Reference',title:'Radar symbols by aircraft type',tags:'radar symbol map icon shape airliner helicopter concorde tomcat spirit heavy wide jumbo light business',html:'<p>Every target on the radar is drawn in the shape of its aircraft class, so you can tell a jumbo from a light aircraft at a glance. At wide radar scale the shapes shrink to marks: a plain diamond is a narrow-body, a diamond with a bar a wide-body, a double diamond a four-engine heavy, a circle with a cross a helicopter, and a pointed arrow the rare military and supersonic types.</p><table class="mt">'+rows.map(r=>'<tr><td>'+svg(r[0])+'</td><td><b>'+r[1]+'</b><br>'+r[2]+'</td></tr>').join('')+'</table>'});
+ MAN_EXTRA.push({cat:'Reference',title:'Visitors, flypasts and special flights',tags:'helicopter light aircraft zone transit flypast air show open day hijack 7500 medevac lifeguard vip executive diversion livery',html:'<p><b>Zone transits.</b> Helicopters and flying-club aircraft call up to cross the airfield. Northern and southern routes stay clear of the runway; a crossing route cuts across the final approach. Approve only when nothing is on short final, or tell them to orbit ("orbit, ' + 'remain outside the zone"). A crossing that forces an arrival around costs you an airprox.</p><p><b>Flypast / Open Day.</b> A NOTAM gives the time. The runway is closed for about 90 seconds: keep arrivals off final and nothing on or lined up on the runway, or the display aborts and you lose safety. A clean pass scores. On an Open Day expect more visitors and a special-livery guest arrival.</p><p><b>Hijack (squawk 7500).</b> Give an immediate, priority landing. Afterwards the aircraft stops where it vacated for about three minutes while police surround it, so keep that taxiway clear.</p><p><b>Medevac &amp; VIP.</b> "Lifeguard" and "Executive" flights ask for priority: approve and put them first. Delays and go-arounds cost points.</p><p><b>Diversions.</b> When a nearby airport closes, several aircraft arrive short of fuel. Keep them moving or they will declare a fuel emergency.</p><p><b>Special liveries.</b> Spot one-off paint jobs and heritage schemes: a "Spotter alert" appears in the messages.</p>'});
+})();
 const MAPV={
  cx:0,cz:-170,sc:0.34,w:100,h:100,sel:0,hits:[],hover:null,onPick:null,trails:new Map(),lastTrail:0,
  C:{bg:'#04080a',grid:'#0c1a14',tw:'#1b2a24',twc:'#3d5a4c',rw:'#161d1b',rwEdge:'#8fa89b',txt:'#b9d4c4',dim:'#587064',dep:'#ffc83a',arr:'#38d6e6',bad:'#ff4a4a',ok:'#5fe08d',veh:'#d7e2dc',mag:'#ff6bd6',hold:'#e9d23a',sel:'#ffffff'},
@@ -40,7 +103,7 @@ const MAPV={
  },
  phaseText(a){
   if(a.veh)return a.phase==='INSP'?'RWY INSP':a.phase==='REQ'?'WAITING':a.phase==='GO'?'RESPONDING':a.phase==='ONSCENE'?'ON SCENE':'RETURN';
-  const m={BOARDING:'BOARDING '+Math.round(a.board*100)+'%',AT_GATE:'STAND',PUSHBACK:'PUSHBACK',PUSH_TURN:'PUSHBACK',STOPPED:'HOLD POS',HOLDING:'HP '+(a.destNode?HPN[a.destNode]:''),TAXI:a.paused?'HOLDING':'TAXI',LINEUP:'LINING UP',ON_RWY:'LINED UP',ROLL:'TAKEOFF',RTO:'REJECT TO',RWY_STOP:'STOPPED RWY',CLIMB:'CLIMB',RETURN:'RETURN',APPROACH:'ILS '+RWD(),GOAROUND:'GO-AROUND',ROLLOUT:'LANDING',BLOCKED_ROLL:'TYRE BURST',VACATED:'VACATED',PARKED:'AT STAND'};
+  const m={BOARDING:'BOARDING '+Math.round(a.board*100)+'%',AT_GATE:'STAND',PUSHBACK:'PUSHBACK',PUSH_TURN:'PUSHBACK',STOPPED:'HOLD POS',HOLDING:'HP '+(a.destNode?HPN[a.destNode]:''),TAXI:a.paused?'HOLDING':'TAXI',LINEUP:'LINING UP',ON_RWY:'LINED UP',ROLL:'TAKEOFF',RTO:'REJECT TO',RWY_STOP:'STOPPED RWY',CLIMB:'CLIMB',RETURN:'RETURN',APPROACH:'ILS '+RWD(),GOAROUND:'GO-AROUND',ROLLOUT:'LANDING',BLOCKED_ROLL:'TYRE BURST',VACATED:'VACATED',PARKED:'AT STAND',TRANSIT:'ZONE TRANSIT',VHOLD:'HOLDING OUTSIDE',VLEAVE:'LEAVING',FLYPAST:'FLYPAST'};
   return m[a.phase]||a.phase;
  },
  draw(t){
@@ -105,7 +168,7 @@ const MAPV={
   const FONT=(b,sz)=>(b?'bold ':'')+(sz||11)+'px "JetBrains Mono","Consolas",monospace';
   const draw=(e)=>{
    let [px,pz]=this.P(e.x,e.z);const off=px<10||px>this.w-10||pz<10||pz>this.h-10;
-   const col=e.veh?(e.vt==='fire'?'#ff7a5a':C.veh):e.nordo?C.mag:(e.emerg?C.bad:(e.kind==='arr'?C.arr:C.dep));
+   const col=e.veh?(e.vt==='fire'?'#ff7a5a':C.veh):e.nordo?C.mag:(e.emerg?C.bad:(e.vis?'#b99cff':e.kind==='arr'?C.arr:C.dep));
    if(off){ if(e.veh||Math.hypot(e.x,e.z)<3000)return;
      const ex=clamp(px,14,this.w-14),ez=clamp(pz,14,this.h-14),ang=Math.atan2(pz-this.h/2,px-this.w/2);
      ctx.save();ctx.translate(ex,ez);ctx.rotate(ang);ctx.strokeStyle=col;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(8,0);ctx.lineTo(-5,-5);ctx.lineTo(-5,5);ctx.closePath();ctx.stroke();ctx.restore();
@@ -118,11 +181,11 @@ const MAPV={
    if(air&&e.v>20){const vx=px+Math.cos(e.th+TH)*e.v*45*sc,vz=pz+Math.sin(e.th+TH)*e.v*45*sc;ctx.strokeStyle=col;ctx.globalAlpha=0.55;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(px,pz);ctx.lineTo(vx,vz);ctx.stroke();ctx.globalAlpha=1;}
    const size=e.veh?Math.max(4,6*sc*3):Math.max(6,e.type.wing*sc*0.8);
    if(air&&sc<0.12){ // airborne at radar scale: hollow diamond (secondary radar return)
-    const r=5;ctx.strokeStyle=inConf?C.bad:col;ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(px,pz-r);ctx.lineTo(px+r,pz);ctx.lineTo(px,pz+r);ctx.lineTo(px-r,pz);ctx.closePath();ctx.stroke();ctx.fillStyle=inConf?C.bad:col;ctx.fillRect(px-1,pz-1,2,2);
+    radarSym(ctx,e,px,pz,inConf?C.bad:col,t);
    }else{
     ctx.save();ctx.translate(px,pz);ctx.rotate(e.th+TH);
     if(e.veh){ctx.fillStyle=col;ctx.fillRect(-size,-size*0.6,size*2,size*1.2);}
-    else{ctx.fillStyle=inConf?C.bad:col;ctx.strokeStyle='#000';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(size,0);ctx.lineTo(size*0.15,-size*0.16);ctx.lineTo(-size*0.1,-size*0.8);ctx.lineTo(-size*0.3,-size*0.8);ctx.lineTo(-size*0.15,-size*0.12);ctx.lineTo(-size*0.8,-size*0.08);ctx.lineTo(-size*0.9,-size*0.3);ctx.lineTo(-size,-size*0.3);ctx.lineTo(-size,size*0.3);ctx.lineTo(-size*0.9,size*0.3);ctx.lineTo(-size*0.8,size*0.08);ctx.lineTo(-size*0.15,size*0.12);ctx.lineTo(-size*0.3,size*0.8);ctx.lineTo(-size*0.1,size*0.8);ctx.lineTo(size*0.15,size*0.16);ctx.closePath();ctx.fill();ctx.stroke();}
+    else drawSym(ctx,e,Math.max(e.type&&(e.type.heli||e.type.light)?7:6,size),inConf?C.bad:col,t);
     ctx.restore();
    }
    if(inConf){ctx.strokeStyle=C.bad;ctx.globalAlpha=0.5+0.5*Math.sin(t*9);ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(px,pz,14,0,6.283);ctx.stroke();ctx.globalAlpha=1;}

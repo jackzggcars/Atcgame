@@ -80,6 +80,7 @@ function parseCmd(text,selId){
  for(const d of DESTS)if(m.includes(d.n.toLowerCase())||m.includes(d.c.toLowerCase()))c.destObj=d;
  let i=null;
  if(/go around|going around/.test(m))i='goaround';
+ else if(/\btransit\b|remain outside|\bzone\b|\borbit\b/.test(m))i='transit';
  else if(/cleared (for |to )?(immediate )?(take ?off|departure)|cleared take ?off/.test(m))i='takeoff';
  else if(/\blineup\b|\bline up\b/.test(m))i='lineup';
  else if(/cleared (to |for )?land|cleared for landing|land runway/.test(m))i='land';
@@ -357,7 +358,7 @@ const HANDLERS={
 /* ---------------- UI-facing helpers ---------------- */
 function buildReplies(a){
  const q=a.req;if(!q||a.dead)return null;
- const k=q.kind,ph=PH[k];const x={unit:UNITS[ph.unit].n};
+ const k=q.kind,ph=PH[k];const x=Object.assign({unit:UNITS[ph.unit].n},q.x||{});
  if(k==='CLR'){a.sqPlan=a.sqPlan||newSquawk();x.sq=a.sqPlan;}
  if(k==='PUSH')x.facing=facingFor(a);
  if(k==='TAXI'&&a.node){const p=planTaxi(a);x.hp=HPN[p.hp];x.via=p.via;}

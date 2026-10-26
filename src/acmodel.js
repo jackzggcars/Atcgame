@@ -371,6 +371,7 @@ function paintLivery(al,ty,lay,W,H){
  }
  // accent cheat line (tapering toward the nose)
  if(!redBody){x.fillStyle=acc;for(const u of[0.232,0.768]){const w0=Math.max(5,0.34*ppm),w1=Math.max(2,0.12*ppm);x.beginPath();x.moveTo(u*W-w0/2,Y(0.19));x.lineTo(u*W+w0/2,Y(0.19));x.lineTo(u*W+w1/2,Y(0.93));x.lineTo(u*W-w1/2,Y(0.93));x.closePath();x.fill();}}
+ if(al.deco)al.deco(x,W,H,ppm,X,Y);
  // radome / nose cap, cockpit surround
  x.fillStyle='rgba(58,64,70,0.9)';x.fillRect(0,0,W,Y(0.987));
  x.fillStyle='rgba(30,34,38,0.55)';x.fillRect(0,0,W,Y(0.992));
@@ -464,12 +465,14 @@ function finTexture(al,ty){
  const dark=(al.tail>>16&255)*0.3+(al.tail>>8&255)*0.59+(al.tail&255)*0.11<150,init=al.init||INIT[al.icao]||al.icao[0];
  for(let s=0;s<2;s++){const y0=s*hf;x.fillStyle=tail;x.fillRect(0,y0,W,hf);
   const gg=x.createLinearGradient(0,y0,W,y0);gg.addColorStop(0,'rgba(0,0,0,0.0)');gg.addColorStop(1,'rgba(255,255,255,0.05)');x.fillStyle=gg;x.fillRect(0,y0,W,hf);
+  if(al.finBase)al.finBase(x,W,hf,y0,s);
   // logo, drawn upright: fin "up" is +u (to the right)
   x.save();x.beginPath();x.rect(0,y0,W,hf);x.clip();x.translate(W*0.46,y0+hf*0.52);x.rotate(s===0?-Math.PI/2:Math.PI/2);
   const big=hf*0.36;
   if(al.icao==='KLM'||al.icao==='EZY'||al.icao==='TRA'||al.icao==='SWA'||al.icao==='SCO'||al.icao==='JBU'){x.fillStyle=al.tailInk||'#fff';x.font='800 '+big*1.05+'px Helvetica,Arial,sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(init,0,0);}
   else{x.fillStyle=ink==='#fff'?(dark?'#f6f6f6':'#ffffff'):ink;x.beginPath();x.arc(0,0,big*0.95,0,TAU);x.fill();x.fillStyle=al.icao==='RYR'?acc:(dark?tail:tail);if(!dark&&tail==='#ffffff')x.fillStyle=acc;x.font='800 '+big*0.8+'px Helvetica,Arial,sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(init.length>3?init.slice(0,3):init,0,big*0.04);}
   x.restore();
+  if(al.finTop)al.finTop(x,W,hf,y0,s);
   // accent stripes near the tip and root, rudder hinge, panel lines
   x.fillStyle=acc;x.globalAlpha=0.9;x.fillRect(W*0.9,y0,W*0.1,hf);x.globalAlpha=1;x.fillStyle='rgba(255,255,255,0.0)';
   x.strokeStyle='rgba(0,0,0,0.30)';x.lineWidth=2;x.beginPath();x.moveTo(0,y0+hf*0.70);x.lineTo(W*0.9,y0+hf*0.70);x.stroke();
@@ -538,7 +541,7 @@ function wingMat(ty,variant){
  return WM[k]=new THREE.MeshStandardMaterial({map:t.map,normalMap:t.normalMap,normalScale:new THREE.Vector2(0.9,0.9),roughness:1,roughnessMap:t.roughMap,metalness:0.18,aoMap:t.aoMap,envMapIntensity:1.0,side:THREE.FrontSide});
 }
 R3.acMaterials=function(a){
- const ty=a.type,al=a.al,variant=(a.id||0)%2,key=al.icao+'|'+ty.n+'|'+variant;if(LV[key])return LV[key];
+ const ty=a.type,al=a.al,variant=(a.id||0)%2,key=al.icao+(al.skey||'')+'|'+ty.n+'|'+variant;if(LV[key])return LV[key];
  initMP(this.mat);
  const sh=hullShared(ty,variant),lay=sh.lay,color=paintLivery(al,ty,lay,sh.W,sh.H),metal=al.icao==='AAL';
  const bodyM=new THREE.MeshStandardMaterial({map:tex(color),normalMap:sh.normalMap,normalScale:new THREE.Vector2(1,1),roughness:1,roughnessMap:sh.roughMap,metalness:metal?0.75:0.1,aoMap:sh.aoMap,aoMapIntensity:1,emissive:0xffffff,emissiveMap:sh.emiMap,emissiveIntensity:this.P?this.P.win*1.3:0,envMapIntensity:1.0});
