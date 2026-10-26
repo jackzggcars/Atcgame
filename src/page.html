@@ -68,6 +68,11 @@ canvas{display:block;touch-action:none}
 .strip .bar{position:absolute;left:0;top:0;bottom:0;width:6px;background:#8a8a8a}
 .strip.dep .bar{background:#c98a14}.strip.arr .bar{background:#1d86a8}
 .strip.req .bar{background:var(--amber);animation:blink 1s infinite}.strip.emg .bar{background:var(--bad);animation:blink .5s infinite}
+.strip.talking{box-shadow:0 0 0 2px #35e08a,0 0 14px 2px rgba(53,224,138,.55)}
+.strip.talking::after{content:"🔊 TRANSMITTING";position:absolute;right:8px;top:-1px;font:700 9.5px/1 "JetBrains Mono",monospace;letter-spacing:.06em;background:#35e08a;color:#04210f;padding:3px 6px 2px;border-radius:0 0 3px 3px;animation:tkpulse .7s infinite}
+@keyframes tkpulse{50%{opacity:.55}}
+#p-strips.tk h2>span{display:none}
+#talk-ind{margin-left:auto;font:700 11px "JetBrains Mono",monospace;color:#35e08a;animation:tkpulse .7s infinite}
 .strip.sel{outline:2px solid var(--amber);outline-offset:-2px}
 .strip:hover{filter:brightness(1.06)}
 .c1 b{font:700 14px var(--mono);display:block;letter-spacing:-.01em}.c1 em{font:700 9px var(--mono);background:var(--ink);color:#fff;padding:0 3px;margin-left:4px;border-radius:2px;font-style:normal;vertical-align:2px}
@@ -238,7 +243,7 @@ body.man-docked #app{padding-right:calc(min(460px,42vw) + 12px)}
    </div>
   </section>
   <aside id="side">
-   <section class="pan" id="p-strips"><h2>Flight strips <span>click to select · amber = waiting for you</span></h2><div id="strips"></div></section>
+   <section class="pan" id="p-strips"><h2>Flight strips <span>click to select · amber = waiting for you</span><b id="talk-ind" hidden></b></h2><div id="strips"></div></section>
    <section class="pan" id="p-sel"><h2>Selected aircraft</h2><div id="sel"></div></section>
    <section class="pan" id="p-log"><h2>Radio <span>118.100 · 121.800 · 121.700</span></h2><div id="log"></div></section>
   </aside>

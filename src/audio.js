@@ -40,18 +40,18 @@ const Voice={
   if(this.busy)return;this.busy=true;
   while(this.queue.length&&this.on){
    while(typeof Mic!=='undefined'&&(Mic.active||Mic.starting))await new Promise(r=>setTimeout(r,150));
-   const e=this.queue.shift();const spoken=toSpeech(e.text);
+   const e=this.queue.shift();const spoken=toSpeech(e.text);this.now=null;
    try{
     let done=false;
     if(this.gemini&&this.key&&this.fails<4){
-     try{const buf=await this.geminiBuffer(spoken,e.voice||'Charon',this.styleFor(e));if(buf){await this.playBuffer(buf);done=true;this.fails=0;this.status='gemini';this.nGemini++;}}
+     try{const buf=await this.geminiBuffer(spoken,e.voice||'Charon',this.styleFor(e));if(buf){this.now=e;await this.playBuffer(buf);done=true;this.fails=0;this.status='gemini';this.nGemini++;}}
      catch(err){this.fails++;this.lastErr=String(err&&err.message||err);this.status='error';if(window.UI&&UI.voiceStatus)UI.voiceStatus();}
     }
-    if(!done&&this.fallback)await this.browserSpeak(spoken,e);
+    if(!done&&this.fallback){await this.idle();this.now=e;await this._speak(spoken,e);}
    }catch(err){}
-   this.release(e);
+   this.now=null;this.release(e);
   }
-  while(this.queue.length)this.release(this.queue.shift());
+  this.now=null;while(this.queue.length)this.release(this.queue.shift());
   this.busy=false;
  },
  async geminiBuffer(text,voice,style){

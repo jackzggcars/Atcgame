@@ -61,6 +61,7 @@ const UI={
  /* ---------- events ---------- */
  onSay(e){
   this.appendLog(e);
+  if(e.who==='pilot'&&e.ent){const len=Math.min(9,1.2+e.text.length*0.055);this.talk={id:e.ent.id,until:Math.max((G.radioFree||0),G.t+len)};}
   if(e.who==='pilot'&&Voice.on&&this.speed>0&&!(this.speed>=4&&!e.urgent)){if(e.ent&&e.ent.req&&!e.ent.veh)e.ent.req.hold=G.t||0.001;Voice.speak(e);}
   if(e.who==='pilot'&&e.ent&&e.ent.req&&!this.sel&&e.ent.id){this.select(e.ent.id,true);}
  },
@@ -104,6 +105,7 @@ const UI={
   if(this.running){
    if(this.speed>0&&!G.over){let rem=dt*this.speed;while(rem>0){const s=Math.min(0.1,rem);step(s);rem-=s;}}
    this.uiAcc+=dt;if(this.uiAcc>0.25){this.uiAcc=0;this.syncTop();this.renderStrips();this.renderSel(true);}
+   this.markTalking();
    if(this.glOK&&$('v3d').offsetParent!==null)R3.sync(dt,t);
    if($('vmap').offsetParent!==null)MAPV.draw(t);
   }else{
@@ -127,6 +129,16 @@ const UI={
   const q=a.req?PH[a.req.kind].title:'';
   return a.req?q:MAPV.phaseText(a);
  },
+ talkingId(){
+  if(typeof Voice!=='undefined'&&Voice.on&&Voice.now&&Voice.now.ent&&Voice.now.who==='pilot')return Voice.now.ent.id;
+  if(typeof Voice!=='undefined'&&Voice.on&&(Voice.busy||Voice.queue.length))return 0;
+  return(this.talk&&G.t<this.talk.until)?this.talk.id:0;
+ },
+ markTalking(){
+  const id=this.talkingId();if(id===this._tk)return;this._tk=id;
+  document.querySelectorAll('#strips .strip').forEach(el=>el.classList.toggle('talking',+el.dataset.id===id));
+  const ps=$('p-strips');if(ps)ps.classList.toggle('tk',!!id);const t=$('talk-ind');if(t){const e=id&&G.ents.find(x=>x.id===id);t.hidden=!e;if(e)t.textContent='● '+(e.veh?e.rt:csName(e))+' transmitting';}
+ },
  renderStrips(force){
   const L=G.ents.filter(e=>!e.dead&&e.phase!=='REMOVED');
   const rank=e=>(e.req?(PH[e.req.kind].urgent?0:1):e.err?2:e.emerg?2:e.nordo?2:3)+(e.veh?1:0);
@@ -147,6 +159,7 @@ const UI={
    d.innerHTML='<i class="bar"></i><div class="c1"><b>'+esc(e.veh?e.rt:e.cs)+(e.heavy?'<em>H</em>':'')+'</b><span>'+esc(e.veh?'':e.type.n)+'</span></div><div class="c2"><span class="st">'+esc(this.statusText(e))+'</span><span class="dst">'+esc(dest)+'</span></div><div class="c3"><span class="sq'+(e.sqBad?' bad':'')+'">'+(e.squawk||'')+'</span>'+(e.err&&G.cfg.assist?'<span class="warn" title="Read-back differs from your instruction">⚠ RB</span>':'')+(e.nordo?'<span class="warn">NORDO</span>':'')+'</div><u class="wait" style="width:'+(e.req?Math.min(100,(G.t-e.req.t)/50*100):0)+'%"></u>';
    d.addEventListener('click',()=>this.select(e.id));box.appendChild(d);
   }
+  this._tk=-1;this.markTalking();
  },
  /* ---------- selected panel ---------- */
  renderSel(soft){
