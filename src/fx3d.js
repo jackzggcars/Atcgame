@@ -358,6 +358,22 @@ const FX={
    this.water(e.x+dx/L*2+rnd2(-0.3,0.3),4.8,e.z+dz/L*2+rnd2(-0.3,0.3),dx/L*sp*0.8+rnd2(-1,1),sp*0.62+rnd2(-1,1),dz/L*sp*0.8+rnd2(-1,1));
   }
  },
+ /* tyre smoke when the main gear touches down */
+ tdSmoke(e,m,dt){
+  if(e.tdT==null||e.y>1.5)return;const D=m.root.userData.dims;if(!D)return;
+  const st=m.fx||(m.fx={});if(st.tdSeen!==e.tdT){st.tdSeen=e.tdT;st.tdE=0;}
+  st.tdE+=dt;const k=st.tdE;if(k>2.2||(e.v||0)<22)return;
+  const hard=e.tdHard||0,w=(e.type&&e.type.wing)||30,big=Math.min(1.6,0.6+(e.type&&e.type.len||40)/70);
+  const rate=(k<0.25?1500:420*Math.pow(1-k/2.2,1.2))*(0.7+0.7*hard)*big;
+  const n=this.n('td'+e.id,rate,dt),c=Math.cos(e.th),s=Math.sin(e.th);
+  const sides=D.mz>0.5?[-1,1]:[0];
+  for(let i=0;i<n;i++){
+   const sd=sides[(Math.random()*sides.length)|0],f=rnd2(-1.5,1.5);
+   const bx=e.x+c*(D.mainX+f)-s*sd*D.mz,bz=e.z+s*(D.mainX+f)+c*sd*D.mz;
+   const v=e.v||0,sz=rnd2(1.2,2.2)*big;
+   psEmit(this.smoke,bx,rnd2(0.1,0.5),bz,c*v*0.12+rnd2(-0.8,0.8)+(-s*sd)*rnd2(0.2,1.4),rnd2(0.2,0.9),s*v*0.12+rnd2(-0.8,0.8)+(c*sd)*rnd2(0.2,1.4),rnd2(2.6,4.4),sz,sz*rnd2(3.6,5.2),[0.93,0.93,0.94],[0.72,0.73,0.75],rnd2(0.45,0.75)*(0.6+0.4*hard),0,1.4,0.35,0.5);
+  }
+ },
  frame(dt,t){
   if(!R3.ok)return;this.init();if(!this.ready)return;dt=Math.min(dt,0.1);
   const cam=R3.camera,hpx=R3.renderer.domElement.height||600,sc=hpx/(2*Math.tan(cam.fov*Math.PI/360));
@@ -367,6 +383,7 @@ const FX={
     const m=R3.meshes.get(e.id);if(!m)continue;
     if(e.veh){if(e.vt==='fire')this.truckFx(e,m,dt);continue;}
     if(e.crashed||m.holder.userData.wreck)continue;
+    this.tdSmoke(e,m,dt);
     try{this.entityFx(e,m,dt);}catch(er){if(!this._err){this._err=1;console.warn('fx',er);}}
    }
   }

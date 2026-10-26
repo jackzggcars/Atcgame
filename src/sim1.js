@@ -226,8 +226,10 @@ function blockGap(a,dx,dz,look){
 function follow(a,dt,o){
  const p=a.path;if(!p){a.v=0;return true;}
  const rem=p.len-a.s;let vt=o.vmax;
- const h0=sample(p,a.s).th,h1=sample(p,Math.min(p.len,a.s+22)).th;
- if(Math.abs(angDiff(h1,h0))>0.28)vt=Math.min(vt,o.vturn||5.5);
+ const P=a.pers||(a.pers={s:0.9+Math.random()*0.2,a:0.82+Math.random()*0.36,ph:Math.random()*6.28,w:0.3+Math.random()*0.5,l:0});
+ if(!o.fixed)vt*=P.s*(1+0.035*Math.sin(G.t*0.31+P.ph)+0.02*Math.sin(G.t*1.1+P.ph*2));
+ const h0=sample(p,a.s).th,la=10+a.v*2.4,h1=sample(p,Math.min(p.len,a.s+la)).th,turnA=Math.abs(angDiff(h1,h0));
+ if(turnA>0.1){const vtn=o.vturn||5.5;vt=Math.min(vt,vtn+Math.max(0,vt-vtn)*Math.max(0,1-turnA/0.85));}
  if(o.endStop!==false)vt=Math.min(vt,Math.sqrt(2*1.5*Math.max(0,rem-0.4))+0.2);
  let blocked=false;
  if(o.block!==false){
@@ -238,18 +240,20 @@ function follow(a,dt,o){
  // stuck behind a vehicle (or a vehicle behind anything)? after a short wait, resolve it
  if(blocked&&BGB&&(a.veh||BGB.veh)&&a.v<0.5){a.blkT=(a.blkT||0)+dt;
   if(a.blkT>9){a.blkT=0;
-   if(!a.veh&&BGB.veh){BGB.yieldFor=a;BGB.yieldT=40;BGB.yDir=((a.x-BGB.x)*Math.sin(a.th)-(a.z-BGB.z)*Math.cos(a.th)>0)?1:-1;BGB.yMag=a.r+BGB.r+12;BGB.yDone=0;}
+   if(!a.veh&&BGB.veh){BGB.yieldFor=a;BGB.yieldT=40;BGB.yDir=((a.x-BGB.x)*Math.sin(a.th)-(a.z-BGB.z)*Math.cos(a.th)>0)?1:-1;BGB.yMag=a.r+BGB.r+24;BGB.yDone=0;}
    else if(!(a.bypass>0)){a.bypass=24;a.latDir=(a.id%2)?1:-1;a.latMag=a.r+BGB.r+7;}
   }}else if(!blocked)a.blkT=0;
  if(a.bypass>0){a.bypass-=dt;if(vt<2.8)vt=Math.max(vt,2.8);}
- a.lat=(a.lat||0)+((a.bypass>0?(a.latDir||1)*(a.latMag||9):0)-(a.lat||0))*Math.min(1,dt*0.9);
+ const wnd=(o.back||turnA>0.1)?0:Math.sin(G.t*0.23+P.ph)*P.w*Math.min(1,a.v/4)*(a.veh?0.7:1);
+ a.lat=(a.lat||0)+((a.bypass>0?(a.latDir||1)*(a.latMag||9):wnd)-(a.lat||0))*Math.min(1,dt*(a.bypass>0?0.9:0.5));
  if(a.paused)vt=0;
  a.blocked=blocked;
- const acc=o.acc||1.1,dec=o.dec||2.2;
- if(vt>a.v)a.v=Math.min(vt,a.v+acc*dt);else a.v=Math.max(vt,a.v-dec*dt);
+ const acc=(o.acc||1.1)*P.a,dec=o.dec||2.2;
+ const da=clamp((vt-a.v)*1.4,-dec,acc);a.ac=(a.ac||0)+(da-(a.ac||0))*Math.min(1,dt*(da<(a.ac||0)?4:2.2));
+ a.v=Math.max(0,a.v+a.ac*dt);if(vt<=0.05&&a.v<0.15)a.v=0;
  a.s=Math.min(p.len,a.s+a.v*dt);
  const q=sample(p,a.s);a.x=q.x-Math.sin(q.th)*(a.lat||0);a.z=q.z+Math.cos(q.th)*(a.lat||0);
- if(!o.back){a.th=o.snap?q.th:turnTo(a.th,q.th,o.turn||0.9,dt);}
+ if(!o.back){const tg=sample(p,Math.min(p.len,a.s+2+a.v*0.45)).th,dd=angDiff(tg,a.th),rt=(o.snap?4:o.turn||0.9);a.th+=clamp(dd*Math.min(1,dt*(o.snap?5:2.6+a.v*0.2)),-rt*dt,rt*dt);}
  return a.s>=p.len-0.08&&a.v<0.6;
 }
 function rwyOccupied(except){
@@ -442,7 +446,7 @@ function appUpdate(a,dt){
  const d=dirOf(),ty=a.type,vref=ty.vref*KT,Dnm=a.D/NM;
  let vt;if(a.spdCmd&&Dnm>3.2)vt=a.spdCmd*KT;else vt=Dnm>6?160*KT:Dnm<2.2?vref:lerp(vref,160*KT,(Dnm-2.2)/3.8);
  vt=Math.max(vt,vref);if(a.hyd)vt=Math.max(vt,vref+16*KT);a.v+=clamp(vt-a.v,-1.3*dt,1.0*dt);
- a.D-=a.v*dt;placeApproach(a);a.pitch=-0.05;if(a.engOut)a.bank=lerp(a.bank,0.09*(a.engSide||1),dt);if(a.dead_stick){a.sinkX=(a.sinkX||0)+5.2*dt;a.y=Math.max(0,a.y-a.sinkX);if(a.y<=1&&a.D>40){a.x=a.x;deadStickCrash(a);return;}}
+ a.D-=a.v*dt;placeApproach(a);a.pitch=a.y<20?lerp(-0.03,0.075,clamp(1-a.y/20,0,1)):-0.03-0.02*clamp((a.y-20)/60,0,1);if(a.engOut)a.bank=lerp(a.bank,0.09*(a.engSide||1),dt);if(a.dead_stick){a.sinkX=(a.sinkX||0)+5.2*dt;a.y=Math.max(0,a.y-a.sinkX);if(a.y<=1&&a.D>40){a.x=a.x;deadStickCrash(a);return;}}
  if((!a.req||a.req.kind==='CHECKIN')&&!a.nextReq&&!a.cleared&&a.D>0&&(!a.askedLand&&Dnm<4.2||a.askedLand&&Dnm<2.2&&G.t-(a.lastLR||0)>20)){a.askedLand=true;a.lastLR=G.t;request(a,'LANDREQ',{dist:Math.max(1,Math.round(Dnm))});}
  if(a.D>0&&a.chk<1&&Dnm<0.62||a.D>0&&a.chk<2&&Dnm<0.27){
   a.chk=(a.chk||0)+1;
@@ -466,7 +470,7 @@ function startGoAround(a,why){
  emit('goaround',a);
 }
 function touchdown(a){
- a.phase='ROLLOUT';a.y=0;a.pitch=0;a.rwyAuth=true;a.z=0;const d=dirOf();
+ a.phase='ROLLOUT';a.y=0;a.pitch=0.07;a.tdT=G.t;a.tdHard=Math.random();a.rwyAuth=true;a.z=0;const d=dirOf();
  if(a.slideKind&&startSlide(a))return;
  if(G.flags.debris&&Math.random()<0.5){a.phase='BLOCKED_ROLL';say('pilot',a,'Tyre burst on landing, '+csName(a)+'!','urgent');return;}
  const ex=d>0?['D','E']:['C','B'];let pickX=null;
@@ -482,6 +486,7 @@ function rolloutUpdate(a,dt){
  if(a.s<a.sExit-35){
   const dd=clamp((a.v*a.v-121)/(2*Math.max(30,a.sExit-35-a.s)),0.7,3.4);a.v=Math.max(a.v-dd*dt,3);
  }else{let vt=Math.min(10.5,Math.sqrt(2*1.5*Math.max(0,rem-0.5))+0.3);const g=blockGap(a,Math.cos(a.th),Math.sin(a.th),70);if(g<1e8)vt=Math.min(vt,Math.max(0,g-14)*0.4);a.v+=clamp(vt-a.v,-3*dt,1.0*dt);if(a.v<0.2&&rem<1)a.v=0;}
+ a.pitch=a.pitch+(-0.012-a.pitch)*Math.min(1,dt*(a.v>35?0.7:1.5));if(a.v<45&&a.pitch<0)a.pitch*=Math.max(0,1-dt*0.8);
  a.s=Math.min(p.len,a.s+a.v*dt);const q=sample(p,a.s);a.x=q.x;a.z=q.z;a.th=turnTo(a.th,q.th,1.1,dt);
  if(a.s>=p.len-0.1){a.phase='VACATED';a.node=a.vacNode;a.rwyAuth=false;a.th=-Math.PI/2;a.v=0;a.nordo=false;if(a.mishap==='nordo')a.squawk='';request(a,'VAC');}
 }

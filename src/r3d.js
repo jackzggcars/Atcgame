@@ -227,6 +227,24 @@ const R3={
   }
   this.scene.add(g);return {holder:g,veh:true,v};
  },
+ /* ground dynamics: spring-damped nose dip / squat on accel+braking, lean in turns, touchdown bounce, rolling vibration */
+ dyn(m,e,dt,t){
+  const d=m.dy||(m.dy={x:0,w:0,r:0,pv:e.v||0,pth:e.th,ac:0,yr:0});
+  if(!(dt>0)||dt>0.25){d.pv=e.v||0;d.pth=e.th;return{p:d.x,r:d.r,y:0};}
+  const gnd=e.veh||e.y<1.5;
+  let ac=((e.v||0)-d.pv)/dt;d.pv=e.v||0;ac=clamp(ac,-6,4);d.ac+=(ac-d.ac)*Math.min(1,dt*6);
+  let yr=angDiff(e.th,d.pth)/dt;d.pth=e.th;yr=clamp(yr,-1.2,1.2);d.yr+=(yr-d.yr)*Math.min(1,dt*5);
+  const sc=e.veh?1:Math.min(1,(e.type&&e.type.len||40)/40);
+  const T=gnd?clamp(-d.ac*0.0055,-0.032,0.02)*sc:0;
+  d.w+=(60*(T-d.x)-6*d.w)*dt;d.x+=d.w*dt;
+  const sp=Math.min(1,(e.v||0)/9);
+  const R=gnd?clamp(-d.yr*(e.v||0)*0.0042,-0.07,0.07):0;
+  d.r+=(R-d.r)*Math.min(1,dt*4);
+  let y=0,vib=gnd?sp*(e.veh?0.004:0.0014)*Math.sin(t*(e.veh?29:19)+e.id*1.7):0;
+  let p=d.x+vib+(gnd?sp*0.0012*Math.sin(t*3.1+e.id):0);
+  if(!e.veh&&e.tdT!=null&&gnd){const k=G.t-e.tdT;if(k>=0&&k<4){const A=0.35+0.65*(e.tdHard||0),f=Math.exp(-2.6*k);p+=0.03*A*f*Math.sin(9*k);y=0.22*A*f*Math.abs(Math.sin(5.5*k));}}
+  return{p,r:d.r+(gnd?vib*0.7:0),y};
+ },
  /* ---------- per-frame ---------- */
  sync(dt,t){
   if(!this.ok)return;
@@ -235,8 +253,10 @@ const R3={
    seen.add(e.id);if(e.fxWreck)continue;let m=this.meshes.get(e.id);
    if(!m){m=e.veh?this.buildVeh(e):this.buildAC(e);this.meshes.set(e.id,m);}
    const h=m.holder;h.position.set(e.x,e.y,e.z);
-   if(e.veh){h.rotation.y=-e.th;if(h.userData.beacon)h.userData.beacon.visible=Math.sin(t*14)>0;continue;}
-   m.root.rotation.y=-e.th;m.body.rotation.z=e.pitch||0;m.body.rotation.x=e.bank||0;
+   const dy=this.dyn(m,e,dt,t);
+   if(e.veh){h.rotation.order='YXZ';h.rotation.y=-e.th;h.rotation.z=dy.p*1.8;h.rotation.x=dy.r*1.6;h.position.y=e.y+dy.y*0.5;if(h.userData.beacon)h.userData.beacon.visible=Math.sin(t*14)>0;continue;}
+   h.position.y=e.y+dy.y;
+   m.root.rotation.y=-e.th;m.body.rotation.z=(e.pitch||0)+dy.p;m.body.rotation.x=(e.bank||0)+dy.r;
    m.root.userData.gear.visible=e.y<14&&!(e.phase==='CLIMB'&&e.y>6);
    const ud=m.root.userData;
    ud.strobes.forEach((s,i)=>s.visible=((t*1.6+i*0.37)%1.4)<0.09);
