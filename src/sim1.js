@@ -149,9 +149,10 @@ function mkAc(kind){
   autoTO:false,blowHold:false,rwyAuth:false,incurred:false,emerg:null,priority:false,t0:G.t,blockT:0,veh:false,chk:0};
  return a;
 }
+function pickW(L){let t=0;L.forEach(x=>t+=x[1]);let r=Math.random()*t;for(const x of L){r-=x[1];if(r<=0)return x[0];}return L[0][0];}
 function pickMishap(kind){
  if(Math.random()>=G.cfg.mishap)return null;
- return kind==='dep'?pick(['rto','rto','engine','bird','bird','nordo']):pick(['panpan','panpan','lowfuel','nordo']);
+ return kind==='dep'?pickW([['rto',24],['engine',16],['bird',22],['nordo',8],['rtofire',6],['engfire_dep',7],['engsep',2.5],['birdeng',5]]):pickW([['panpan',22],['lowfuel',16],['nordo',7],['leak',10],['engfire',8],['gear',8],['hyd',6],['smoke',5]]);
 }
 function spawnDep(delay){
  const free=gatesFree();if(!free.length)return null;
@@ -170,6 +171,7 @@ function spawnArr(){
  if(a.mishap==='nordo'){a.nordo=true;a.squawk='7600';sysMsg('A '+a.cs+' squawking 7600: lost communications. Use the light gun.','warn');}
  else if(a.mishap==='panpan'){a.emerg='panpan';a.squawk='7700';G.stats.emerg++;request(a,'PANPAN',{dist:Math.round(D/NM)});}
  else if(a.mishap==='lowfuel'){a.fuel=rnd(9,11);request(a,'CHECKIN',{dist:Math.round(D/NM)});}
+ else if(EMKIND[a.mishap]){startArrEmerg(a,D);}
  else request(a,'CHECKIN',{dist:Math.round(D/NM)});
  a.checked=true;return a;
 }
@@ -210,6 +212,7 @@ function blockGap(a,dx,dz,look){
  let best=1e9;
  for(const b of G.ents){
   if(b===a||b.dead||b.y>6)continue;
+  if(a.veh&&b.veh&&(b.phase==='REQ'||b.phase==='WAIT'||a.vt===b.vt))continue;
   if(['BOARDING','AT_GATE','PARKED'].includes(b.phase)&&(b.gateFixed!==false)&&Math.abs(b.z-a.z)>25)continue;
   const rx=b.x-a.x,rz=b.z-a.z,d=Math.hypot(rx,rz);if(d<0.1)continue;
   const gap=d-a.r-b.r;
@@ -284,6 +287,7 @@ function spawnLogic(dt){
 
 /* ---------------- aircraft update ---------------- */
 function updAc(a,dt){
+ emergTick(a,dt);if(G.over)return;
  if(a.req){if(a.req.hold&&G.t-a.req.hold<45){a.req.t=G.t;}else{a.req.hold=0;a.waitSec+=dt;}const lim=(PH[a.req.kind].patience||50)*(a.req.n+1);if(G.t-a.req.t>lim&&!a.nordo){a.req.n++;remind(a);}}
  if(!a.req&&a.nextReq&&G.t>=a.nextReq.at){const n=a.nextReq;a.nextReq=null;request(a,n.kind,n.x);}
  if(a.err&&G.t>=a.err.at)applyErr(a);
@@ -333,16 +337,18 @@ function updAc(a,dt){
  case 'ROLL':rollUpdate(a,dt);break;
  case 'RTO':
   a.v=Math.max(0,a.v-3.0*dt);a.x+=dirOf()*a.v*dt;
-  if(a.v<=0.1){a.phase='RWY_STOP';a.stopT=G.t;request(a,'RTO');a.emerg='rto';G.stats.emerg++;sendFire(a.x);}
+  if(a.v<=0.1){a.phase='RWY_STOP';a.stopT=G.t;if(a.mishap==='rtofire'){a.mishap=null;igniteAc(a,0.55,'brakes');request(a,'EVAC',{why:'fire warning, rejected takeoff'});a.emerg='evac';later(7,()=>{if(!a.dead)startEvac(a);});}else request(a,'RTO');if(!a.emerg)a.emerg='rto';G.stats.emerg++;sendFire(a.x);}
+  if(a.mishap==='rtofire'&&a.v<45&&!a.dmg){a.dmg={brakes:true};}
   break;
  case 'RWY_STOP':
-  if(a.req==null&&!a.towAt&&a.ack){a.towAt=G.t+90;}
-  if(a.towAt&&G.t>a.towAt){sysMsg(a.cs+' towed clear of the runway.','ok');G.score+=60;a.emerg=null;finishAc(a,true);}
+  if(a.req==null&&!a.towAt&&a.ack){a.towAt=G.t+(a.belly?170:a.burned?200:90);}
+  if(a.towAt&&G.t>a.towAt&&(a.fire||0)<=0.02){sysMsg(a.cs+' towed clear of the runway.','ok');G.score+=60;a.emerg=null;finishAc(a,true);}
   break;
+ case 'SLIDE':slideUpdate(a,dt);break;
  case 'CLIMB':climbUpdate(a,dt);break;
  case 'RETURN':
   a.v=Math.min(a.v+0.5*dt,80);a.x+=Math.cos(a.th)*a.v*dt;a.z+=Math.sin(a.th)*a.v*dt;a.y=Math.min(450,a.y+4*dt);
-  if(G.t-a.retT>55){a.kind='arr';a.phase='APPROACH';a.D=rnd(5.2,6)*NM;a.v=95;a.decided=false;a.chk=0;placeApproach(a);a.cleared=false;}
+  if(G.t-a.retT>55){a.kind='arr';a.phase='APPROACH';a.D=rnd(5.2,6)*NM;a.v=95;a.decided=false;a.chk=0;placeApproach(a);a.cleared=!!a.preCleared;}
   break;
  case 'APPROACH':appUpdate(a,dt);break;
  case 'GOAROUND':{
@@ -363,7 +369,7 @@ function updAc(a,dt){
   a.fuel-=dt/60;
   if(a.fuel<12&&!a.lowCalled&&!a.emerg){a.lowCalled=true;a.emerg='fuel';G.stats.emerg++;request(a,'LOWFUEL');}
   if(a.fuel<4&&!a.maydayFuel){a.maydayFuel=true;a.squawk='7700';say('pilot',a,'Mayday, mayday, mayday, '+csName(a)+', fuel emergency, we must land now.','urgent');}
-  if(a.fuel<=0&&!G.over){crash([a],'FUEL EXHAUSTION: '+a.cs+' ran out of fuel on approach.');}
+  if(a.fuel<=0&&!a.dead_stick&&!G.over){a.dead_stick=true;a.engOut=true;a.dmg=a.dmg||{};a.dmg.engL='out';a.dmg.engR='out';say('pilot',a,'Mayday mayday mayday, '+csName(a)+', flame out, both engines, we are gliding!','urgent');}
  }
 }
 function applyErr(a){
@@ -393,7 +399,7 @@ function startRoll(a){
 }
 function rollUpdate(a,dt){
  const d=dirOf(),ty=a.type;
- if(a.mishap==='rto'&&!a.mDone&&a.v>=a.rtoSpeed){a.mDone=true;say('pilot',a,'Stopping, stopping! '+csName(a)+'.','urgent');a.phase='RTO';return;}
+ if((a.mishap==='rto'||a.mishap==='rtofire')&&!a.mDone&&a.v>=a.rtoSpeed){a.mDone=true;say('pilot',a,'Stopping, stopping! '+csName(a)+'.','urgent');a.phase='RTO';return;}
  const tail=Math.max(0,-G.head||0);
  a.v+=ty.acc*(a.v<8?0.85:1)*(1-tail*0.01)*dt;
  a.x+=d*a.v*dt;a.z=0;a.th=d>0?0:Math.PI;
@@ -410,12 +416,12 @@ function rollUpdate(a,dt){
  if(Math.abs(a.x)>AP.half+60){crash([a],'RUNWAY OVERRUN: '+a.cs+' ran out of runway before rotating. Heavy aircraft need the full length.');}
 }
 function climbUpdate(a,dt){
- a.v=Math.min(a.v+1.1*dt,84);a.vs=Math.min(a.vs+2.6*dt,11);a.y+=a.vs*dt;a.pitch=lerp(a.pitch,0.13,dt);
+ a.v=Math.min(a.v+1.1*dt,a.engOut?77:84);a.vs=Math.min(a.vs+2.6*dt,a.engOut?4.6:11);if(a.engOut){a.th+=0.011*(a.engSide||1)*dt;a.bank=lerp(a.bank,0.12*(a.engSide||1),dt);}a.y+=a.vs*dt;a.pitch=lerp(a.pitch,0.13,dt);
  if(a.y>110)a.th=turnTo(a.th,a.outTh,0.05,dt);
- a.bank=lerp(a.bank,clamp(angDiff(a.outTh,a.th)*3,-0.35,0.35),dt);
+ if(!a.engOut)a.bank=lerp(a.bank,clamp(angDiff(a.outTh,a.th)*3,-0.35,0.35),dt);
  a.x+=Math.cos(a.th)*a.v*dt;a.z+=Math.sin(a.th)*a.v*dt;
  if(a.y>28&&!a.airCalled){a.airCalled=true;
-  if(a.mishap==='engine'){a.mishap=null;a.emerg='mayday';a.squawk='7700';G.stats.emerg++;a.engOut=true;request(a,'MAYDAY');a.rwyAuth=false;a.phase='RETURN';a.retT=G.t;a.handed=true;a.kind='arr';a.fuel=30;sendFire(0);return;}
+  if(a.mishap==='engine'||a.mishap==='engfire_dep'||a.mishap==='engsep'||a.mishap==='birdeng'){climbEngFail(a);return;}
   if(a.mishap==='bird'){a.mishap=null;G.flags.debris=true;request(a,'BIRD',{});a.birdCall=true;spawnOps(true);return;}
   request(a,'AIRB');
  }
@@ -425,8 +431,8 @@ function climbUpdate(a,dt){
 function appUpdate(a,dt){
  const d=dirOf(),ty=a.type,vref=ty.vref*KT,Dnm=a.D/NM;
  let vt;if(a.spdCmd&&Dnm>3.2)vt=a.spdCmd*KT;else vt=Dnm>6?160*KT:Dnm<2.2?vref:lerp(vref,160*KT,(Dnm-2.2)/3.8);
- vt=Math.max(vt,vref);a.v+=clamp(vt-a.v,-1.3*dt,1.0*dt);
- a.D-=a.v*dt;placeApproach(a);a.pitch=-0.05;
+ vt=Math.max(vt,vref);if(a.hyd)vt=Math.max(vt,vref+16*KT);a.v+=clamp(vt-a.v,-1.3*dt,1.0*dt);
+ a.D-=a.v*dt;placeApproach(a);a.pitch=-0.05;if(a.engOut)a.bank=lerp(a.bank,0.09*(a.engSide||1),dt);if(a.dead_stick){a.sinkX=(a.sinkX||0)+5.2*dt;a.y=Math.max(0,a.y-a.sinkX);if(a.y<=1&&a.D>40){a.x=a.x;deadStickCrash(a);return;}}
  if((!a.req||a.req.kind==='CHECKIN')&&!a.nextReq&&!a.cleared&&a.D>0&&(!a.askedLand&&Dnm<4.2||a.askedLand&&Dnm<2.2&&G.t-(a.lastLR||0)>20)){a.askedLand=true;a.lastLR=G.t;request(a,'LANDREQ',{dist:Math.max(1,Math.round(Dnm))});}
  if(a.D>0&&a.chk<1&&Dnm<0.62||a.D>0&&a.chk<2&&Dnm<0.27){
   a.chk=(a.chk||0)+1;
@@ -451,6 +457,7 @@ function startGoAround(a,why){
 }
 function touchdown(a){
  a.phase='ROLLOUT';a.y=0;a.pitch=0;a.rwyAuth=true;a.z=0;const d=dirOf();
+ if(a.slideKind&&startSlide(a))return;
  if(G.flags.debris&&Math.random()<0.5){a.phase='BLOCKED_ROLL';say('pilot',a,'Tyre burst on landing, '+csName(a)+'!','urgent');return;}
  const ex=d>0?['D','E']:['C','B'];let pickX=null;
  for(const k of ex){const sx=Math.abs(NODES['R'+k].x-a.x);if(a.v*a.v-121<=6.5*sx&&sx>0){pickX=k;break;}}
@@ -477,11 +484,14 @@ function spawnOps(urgent){
  later(urgent?14:2,()=>{if(!v.dead){v.req={kind:'INSP',t:G.t,n:0,x:{}};v.unit='GND';const t=fmt(PH.INSP.pilot[0],V(null,{unit:UNITS.GND.n,rwy:RWD()}));say('pilot',v,t,'');emit('req',v);}});
 }
 function sendFire(x){
- if(G.ents.some(e=>e.veh&&e.vt==='fire'&&!e.dead))return;
+ const ex=G.ents.filter(e=>e.veh&&e.vt==='fire'&&!e.dead);
+ if(ex.length){ex.forEach((v,i)=>{v.target=x;v.off=(i?-1:1)*(55+i*8);v.until=G.t+160;});return;}
  for(let k=0;k<2;k++){
-  const v=mkVeh('fire',(k?20:-20),-112);v.phase='GO';v.rt='Fire '+(k+1);v.fireIdx=k;
+  const v=mkVeh('fire',(k?20:-20),-112);v.phase='GO';v.rt='Fire '+(k+1);v.fireIdx=k;v.target=x;v.off=(k?-1:1)*(55+k*8);
   const hk='H'+nearestConn(x);const r=route('DP',hk);
-  v.path=pathFromNodes(r.ids,{x:v.x,z:v.z},30);v.s=0;v.until=G.t+160;G.ents.push(v);emit('spawn',v);
+  const hn=NODES[hk];const ids=r.ids.slice(0,-1);const pts=[{x:v.x,z:v.z}];ids.forEach(id=>pts.push({x:NODES[id].x,z:NODES[id].z}));pts.push({x:hn.x,z:-62});pts.push({x:x+v.off,z:-62});
+  v.path=buildPath(pts,30);if(k){v.paused=true;v.startAfter=G.t+7;}
+  v.s=0;v.until=G.t+160;G.ents.push(v);emit('spawn',v);
  }
  sysMsg('Emergency services rolling.','warn');
 }
@@ -510,12 +520,14 @@ function updVeh(v,dt){
   if(done){v.dead=true;}
   break;}
  case 'GO':{
+  if(v.startAfter&&G.t>=v.startAfter){v.paused=false;v.startAfter=0;}
   const done=follow(v,dt,{vmax:16,snap:true,acc:3,dec:6,turn:3});
   if(done){v.phase='ONSCENE';}
   break;}
  case 'ONSCENE':
-  if(G.t>v.until&&!G.ents.some(e=>e.emerg&&!e.dead&&['RWY_STOP','ROLLOUT','BLOCKED_ROLL','APPROACH','RTO'].includes(e.phase))){
-   const hk=nearestConn(v.x);const r=route('H'+hk,'DP');v.path=pathFromNodes(r.ids,{x:v.x,z:v.z},30);v.s=0;v.phase='BACK';
+  if(v.target!==undefined&&Math.abs(v.x-(v.target+v.off))>25&&Math.abs(v.z+62)<10){v.path=buildPath([{x:v.x,z:v.z},{x:v.target+v.off,z:-62}],20);v.s=0;v.phase='GO';break;}
+  if(G.t>v.until&&!G.ents.some(e=>(e.emerg||e.fire>0)&&!e.dead&&['RWY_STOP','ROLLOUT','BLOCKED_ROLL','APPROACH','RTO','SLIDE','RETURN'].includes(e.phase))){
+   const hk=nearestConn(v.x);const r=route('H'+hk,'DP');v.path=pathFromNodes(r.ids,{x:v.x,z:-62},30);v.s=0;v.phase='BACK';v.spray=0;
   }
   break;
  case 'BACK':{const done=follow(v,dt,{vmax:v.fast?30:16,snap:true,acc:3,dec:8,turn:3});if(done)v.dead=true;break;}
@@ -525,12 +537,12 @@ function updVeh(v,dt){
 /* ---------------- collisions & separation ---------------- */
 function crash(list,reason){
  if(G.over)return;
- const pos=list[0];emit('accident',{x:pos.x,z:pos.z,y:pos.y,list,reason});
+ const pos=list[0];list.forEach(e=>{e.crashV=e.v;e.crashVs=e.vs||0;});emit('accident',{x:pos.x,z:pos.z,y:pos.y,list,reason});
  if(G.cfg.mode==='training'){
   list.forEach(e=>{if(!e.veh){e.dead=true;if(e.gate&&G.gates[e.gate]===e.id)delete G.gates[e.gate];}else e.dead=true;});
   incident('crash','ACCIDENT (training mode): '+reason,35);return;
  }
- list.forEach(e=>{e.crashed=true;e.v=0;});
+ list.forEach(e=>{e.crashed=true;e.crashV=e.v;e.crashVs=e.vs||0;e.v=0;});
  G.crashed=list;endGame('accident',reason);
 }
 function collisions(){

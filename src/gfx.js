@@ -484,7 +484,7 @@ R3.buildAC=function(a){
  const half=W/2,z0=rf*0.45,lex=sp.lex*L,wy=sp.wy*rf,tanS=Math.tan(sp.sweep*Math.PI/180),tanD=Math.tan(sp.dih*Math.PI/180),rootC=sp.rootC*L,tipC=sp.tipC*L;
  const wLE=z=>lex-tanS*(z-z0),wY=z=>wy+(z-z0)*tanD;
  const secs=(sp.rake?[0,0.5,0.9,1]:[0,0.5,1]).map(f=>{const z=z0+(half-z0)*f;const rk=sp.rake&&f>0.95?1:0;return{z,uf:f,le:wLE(z)-rk*L*0.05,ch:rootC*(f===0?1.1:1)*(1-f)+tipC*f*(rk?1.6:1),y:wY(z)+rk*rf*0.18,th:0.135-0.05*f};});
- for(const s of[-1,1]){const w=new THREE.Mesh(wingGeo(secs,s),mats.wingM);w.castShadow=true;w.receiveShadow=true;body.add(w);}
+ for(const s of[-1,1]){const w=new THREE.Mesh(wingGeo(secs,s),mats.wingM);w.castShadow=true;w.receiveShadow=true;w.userData.part='wing';w.userData.side=s;body.add(w);}
  if(!prop){const bf=new THREE.Mesh(new THREE.SphereGeometry(1,18,10),mats.bodyM);bf.scale.set(rootC*1.15,rf*0.3,rf*1.04);bf.position.set(lex-rootC*0.52,-rf*0.80,0);bf.castShadow=true;body.add(bf);}
  // winglets
  const tipZ=half-0.03,tipLE=wLE(half),tipY=wY(half);
@@ -508,7 +508,7 @@ R3.buildAC=function(a){
    const fan=new THREE.Mesh(new THREE.CircleGeometry(R*0.78,24),new THREE.MeshStandardMaterial({map:fanT,roughness:0.5,metalness:0.6}));fan.rotation.y=Math.PI/2;fan.position.x=Ln*0.3;gE.add(fan);
    const cone=new THREE.Mesh(new THREE.ConeGeometry(R*0.36,R*1.1,16),mats.engM);cone.rotation.z=-Math.PI/2;cone.position.x=-Ln*0.5-R*0.35;cone.rotateZ(Math.PI);gE.add(cone);
    const ph=(yW-0.35)-(yE+R*0.85);if(ph>0.05){const py=new THREE.Mesh(new THREE.BoxGeometry(Ln*0.62,ph+0.2,0.36),mats.wingM);py.position.set(Ln*0.1,R*0.85+ph/2-0.1,0);py.castShadow=true;gE.add(py);}
-   body.add(gE);}}
+   gE.userData.part='eng';gE.userData.side=s;gE.userData.eR=R;gE.userData.eL=Ln;(body.userData.engs=body.userData.engs||[]).push(gE);body.add(gE);}}
  }else{
   const R=rf*0.34,Ln=L*0.13,yE=wY(zE)-R*0.3,xc=leE+1.1-Ln/2;
   const eprof=[[-0.5,0.5],[-0.35,0.8],[-0.1,1],[0.25,1],[0.42,0.78],[0.5,0.45]].map(p=>new THREE.Vector2(p[1]*R,p[0]*Ln));
@@ -517,18 +517,18 @@ R3.buildAC=function(a){
    const sp1=new THREE.Mesh(new THREE.ConeGeometry(R*0.5,R*1.6,12),M.steel);sp1.rotation.z=-Math.PI/2;sp1.position.x=Ln*0.5+R*0.8;gE.add(sp1);
    const pr=new THREE.Group();pr.position.x=Ln*0.5+R*0.2;for(let b=0;b<6;b++){const bl=new THREE.Mesh(new THREE.BoxGeometry(0.1,rf*1.5,0.34),M.dark);bl.position.y=rf*0.75;const bg=new THREE.Group();bg.rotation.x=b*Math.PI/3;bg.add(bl);pr.add(bg);}
    const disc=new THREE.Mesh(new THREE.CircleGeometry(rf*1.5,24),new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:0.1,depthWrite:false,side:THREE.DoubleSide}));disc.rotation.y=Math.PI/2;pr.add(disc);
-   gE.add(pr);props.push(pr);body.add(gE);}
+   gE.add(pr);props.push(pr);gE.userData.part='eng';gE.userData.side=s;(body.userData.engs=body.userData.engs||[]).push(gE);body.add(gE);}
  }
  // tail
  const fh=sp.fin*rf,leF=-L*0.275,cF=(wide?0.17:0.19)*L,tF=0.075*L,swF=Math.tan(0.63),baseY=rf*0.6;
  const fs=[0,0.5,1].map(f=>({z:fh*f,le:leF-swF*fh*f,ch:cF*(1-f)+tF*f,y:0,th:0.085}));
- const fg2=wingGeo(fs,1);fg2.rotateX(-Math.PI/2);const fin=new THREE.Mesh(fg2,mats.tailM);fin.position.set(0,baseY,0);fin.castShadow=true;body.add(fin);
+ const fg2=wingGeo(fs,1);fg2.rotateX(-Math.PI/2);const fin=new THREE.Mesh(fg2,mats.tailM);fin.position.set(0,baseY,0);fin.castShadow=true;fin.userData.part='tail';body.add(fin);
  const mid=0.42,cm=cF*(1-mid)+tF*mid,lm=leF-swF*fh*mid;
  for(const s of[-1,1]){const d=new THREE.Mesh(new THREE.PlaneGeometry(cm*0.62,cm*0.62),mats.decal);d.position.set(lm-cm*0.5,baseY+fh*mid,s*0.19);if(s<0)d.rotation.y=Math.PI;body.add(d);}
  const hh=(prop?0.30:0.35)*W/2,hz0=rf*0.25,tT=!!prop;
  const hLE=tT?(leF-swF*fh):-L*0.385,hY=tT?baseY+fh:rf*0.2,hC=0.09*L,hTC=0.034*L,hSw=Math.tan(0.5);
  const hs=[0,1].map(f=>({z:hz0+(hh-hz0)*f,le:hLE-hSw*(hh-hz0)*f,ch:hC*(1-f)+hTC*f,y:hY+f*(hh-hz0)*0.05,th:0.09}));
- for(const s of[-1,1]){const m=new THREE.Mesh(wingGeo(hs,s),mats.wingM);m.castShadow=true;body.add(m);}
+ for(const s of[-1,1]){const m=new THREE.Mesh(wingGeo(hs,s),mats.wingM);m.castShadow=true;m.userData.part='tail';body.add(m);}
  // airframe detail: SATCOM dome, antennas, APU exhaust, flap-track fairings, pitot
  if(!prop){
   const dome=new THREE.Mesh(new THREE.SphereGeometry(1,14,8),mats.wingM);dome.scale.set(rf*0.85,rf*0.22,rf*0.4);dome.position.set(L*0.04,rf*0.98,0);body.add(dome);
@@ -564,6 +564,7 @@ R3.buildAC=function(a){
  if(props.length)root.userData.props=props;
  const sh=new THREE.Mesh(new THREE.CircleGeometry(1,20),new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:0.16,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-4,polygonOffsetUnits:-4}));sh.rotation.x=-Math.PI/2;sh.position.y=0.12;root.userData.shadow=sh;
  const holder=new THREE.Group();holder.add(root);this.scene.add(holder);this.scene.add(sh);
+ root.userData.fus=body;root.userData.dims={L,rf,gearH,mainX,half,mz:prop?zE:rf*1.7,wy,lex,rootC};
  return{holder,root,body:pivot,sh,a};
 };
 

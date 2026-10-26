@@ -223,7 +223,7 @@ const HANDLERS={
   readback(a,'GNDTAXI','Accept',{gate:String(g),via:viaNames(r.edges).join(', ')||'Alpha'});
  },
  holdpos(a,c){
-  if(a.req&&['RTO','BURST'].includes(a.req.kind)){const k=a.req.kind;a.req=null;a.ack=true;readback(a,k,'Accept');sendFire(a.x);return;}
+  if(a.req&&['RTO','BURST','DISABLED','EVAC'].includes(a.req.kind)){const k=a.req.kind;a.req=null;a.ack=true;readback(a,k,'Accept');sendFire(a.x);return;}
   if(a.phase==='ROLL'||a.phase==='RTO'){return HANDLERS.stop(a,c);}
   if(a.req&&['CLR','PUSH','TAXI','READY','TKOF','GNDTAXI','INSP','AIRB','GAREQ'].includes(a.req.kind)&&!['AIRB','GAREQ'].includes(a.req.kind)){handleDeny(a);return;}
   if(['TAXI','PUSHBACK','LINEUP'].includes(a.phase))a.paused=true;
@@ -272,15 +272,17 @@ const HANDLERS={
   later(rnd(2.6,3.8),()=>{if(!a.dead&&a.phase==='ON_RWY')startRoll(a);});
  },
  land(a,c){
+  if(a.phase==='RETURN'&&a.emerg){a.preCleared=true;a.req=null;a.nextReq=null;a.priority=true;readback(a,EMKEY[a.emerg]||'MAYDAY','Accept');a.bonus=(a.bonus||0)+150;return;}
   if(!['APPROACH','GOAROUND'].includes(a.phase)){sayAgain(a);return;}
   if(c.rwy&&c.rwy!==G.rwy){pilotReply(a,'Negative, we are lined up for runway '+RWD()+', '+csName(a)+'.');return;}
   if(a.phase==='GOAROUND'){pilotReply(a,'We are going around, '+csName(a)+'.');return;}
   a.cleared=true;a.priority=!!a.emerg;
-  const key=a.emerg==='panpan'?'PANPAN':a.emerg==='fuel'?'LOWFUEL':a.emerg==='mayday'?'MAYDAY':'LANDREQ';
+  const key=EMKEY[a.emerg]||'LANDREQ';
   if(a.req)a.req=null;a.nextReq=null;
   readback(a,key,'Accept');
   if(a.emerg==='panpan')a.bonus=(a.bonus||0)+200;
-  if(a.emerg==='mayday'||a.emerg==='fuel')a.bonus=(a.bonus||0)+150;
+  if(a.emerg&&a.emerg!=='panpan')a.bonus=(a.bonus||0)+150;
+  if(a.emerg&&a.emerg!=='fuel'&&a.emerg!=='panpan')sendFire(0);
  },
  contapp(a,c){
   if(a.phase!=='APPROACH'){sayAgain(a);return;}
@@ -344,7 +346,7 @@ const HANDLERS={
  roger(a,c){
   if(c.wait&&a.req){handleWait(a);return;}
   const k=a.req?a.req.kind:null;
-  if(k==='RTO'||k==='BURST'){a.req=null;a.ack=true;readback(a,k,'Accept');sendFire(a.x);return;}
+  if(k==='RTO'||k==='BURST'||k==='DISABLED'||k==='EVAC'){a.req=null;a.ack=true;readback(a,k,'Accept');sendFire(a.x);return;}
   if(k==='GAREQ'){a.req=null;readback(a,'GAREQ','Accept');return;}
   if(k==='BIRD'){a.req=null;a.handed=true;readback(a,'BIRD','Accept',{freq:UNITS.DEP.f});return;}
   if(k&&PH[k].urgent){handleWait(a);return;}

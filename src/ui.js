@@ -31,7 +31,7 @@ const UI={
    const M={'not-allowed':'Microphone blocked. Click the lock / camera icon in the address bar, allow the microphone, then try again.','service-not-allowed':'Speech recognition is blocked in this browser or page. Use Chrome or Edge on the downloaded or deployed (https) page.','no-microphone':'No microphone found.','audio-capture':'No microphone found.','network':'Speech recognition needs an internet connection.','insecure-context':'The microphone needs a secure (https) page.','unsupported':'This page cannot access the microphone (it may be embedded; open it in its own tab).','no-speech':"Didn't hear anything. Hold Space and speak."};
    if(err&&err!=='end'&&err!=='aborted')this.toast(M[err]||('Microphone: '+err),'warn');};
   on('say',e=>this.onSay(e));on('incident',i=>this.banner(i.text,'bad'));on('over',o=>this.onOver(o));
-  on('accident',e=>{R3.boom(e.x,e.y,e.z,G.cfg.mode==='training'?25:0);this.alarm();});
+  on('accident',e=>{R3.boom(e.x,e.y,e.z,G.cfg.mode==='training'?25:0);this.alarm();try{FX.crash(e.list);}catch(er){console.warn('crash fx',er);}});
   on('score',s=>{this.sysLine('✓ '+s.a.cs+(s.a.kind==='dep'?' departed':' parked')+' · +'+Math.max(10,s.pts));});
   on('light',l=>R3.beam(l.a,{green:0x30ff60,red:0xff3030,white:0xffffff}[l.color],l.color!=='green'));
   on('atis',()=>this.syncTop());
@@ -66,7 +66,7 @@ const UI={
    $('o-stats').innerHTML=[['Score',Math.round(G.score)],['Safety rating',G.safety],['Departures',s.dep],['Arrivals',s.arr],['Go-arounds',s.goArounds],['Runway incursions',s.incursion||0],['Separation losses',s.los||0],['Emergencies handled',s.emerg||0],['Read-back errors missed',s.readback||0],['Shift length',this.clockStr(G.t)]].map(r=>'<div><span>'+r[0]+'</span><b>'+r[1]+'</b></div>').join('');
    const gr=o.kind==='shift'?(G.safety>=85&&G.score>1200?'S':G.safety>=70?'A':G.safety>=50?'B':'C'):'—';$('o-grade').textContent=gr;
    $('over').hidden=false;
-  },o.kind==='accident'?2800:600);
+  },o.kind==='accident'?7500:600);
  },
  /* ---------- events ---------- */
  onSay(e){

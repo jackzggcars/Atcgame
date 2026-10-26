@@ -232,7 +232,7 @@ const R3={
   if(!this.ok)return;
   const seen=new Set();
   for(const e of G.ents){
-   seen.add(e.id);let m=this.meshes.get(e.id);
+   seen.add(e.id);if(e.fxWreck)continue;let m=this.meshes.get(e.id);
    if(!m){m=e.veh?this.buildVeh(e):this.buildAC(e);this.meshes.set(e.id,m);}
    const h=m.holder;h.position.set(e.x,e.y,e.z);
    if(e.veh){h.rotation.y=-e.th;if(h.userData.beacon)h.userData.beacon.visible=Math.sin(t*14)>0;continue;}
@@ -252,6 +252,7 @@ const R3={
   // selection ring
   const se=G.ents.find(e=>e.id===this.sel);
   if(se&&!se.dead){this.selRing.visible=true;const r=Math.max(14,(se.type.wing||8)*0.7)*(1+0.05*Math.sin(t*5));this.selRing.scale.set(r,r,1);this.selRing.position.set(se.x,Math.max(0.5,Math.min(se.y,0)+0.6),se.z);if(se.y>2)this.selRing.position.y=0.6;}else this.selRing.visible=false;
+  if(this.preRender)this.preRender(dt,t);
   this.updateCam(dt);this.renderer.render(this.scene,this.camera);this.updateLabels();
  },
  gateSync(dt,t){
