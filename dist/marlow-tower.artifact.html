@@ -2576,7 +2576,7 @@ R3.buildAC=function(a){
   if(t<0.17){const u=t/0.17;r=rf*(0.09+0.91*Math.sin(u*Math.PI/2));}
   else if(t>0.87){const u=(t-0.87)/0.13;r=rf*Math.pow(Math.max(0,1-u*u),0.52);}else r=rf;
   prof.push(new THREE.Vector2(Math.max(r,0.001),(t-0.5)*L));}
- const fg=new THREE.LatheGeometry(prof,36);fg.rotateZ(-Math.PI/2);
+ const fg=new THREE.LatheGeometry(prof,36);fg.rotateZ(-Math.PI/2);fg.rotateX(-Math.PI/2);   // spin the body so the livery's belly (u=0.5) is underneath and the window lines sit on the sides
  {const p=fg.attributes.position;for(let i=0;i<p.count;i++){const x=p.getX(i);if(x<-0.33*L){const u=(-0.33*L-x)/(0.17*L);p.setY(i,p.getY(i)+rf*0.55*u*u);}}}
  const fus=new THREE.Mesh(fg,mats.bodyM);fus.castShadow=true;fus.receiveShadow=true;body.add(fus);
  // wing
