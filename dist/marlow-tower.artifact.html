@@ -293,7 +293,7 @@ body.man-docked #app{padding-right:calc(min(460px,42vw) + 12px)}
    <label class="chk"><input id="k-voice" type="checkbox"> Pilot voices on</label>
    <label class="chk"><input id="k-fb" type="checkbox"> Browser voice fallback</label>
    <label class="chk"><input id="k-fx" type="checkbox"> Radio static filter</label>
-   <label class="chk"><input id="k-style" type="checkbox"> Accent / mood prompts (may be read aloud)</label>
+   <label class="chk"><input id="k-style" type="checkbox"> Accent &amp; mood styling (sent as separate instructions)</label>
    <label class="chk"><input id="k-mic" type="checkbox"> Hold Space to talk</label>
    <label class="chk"><input id="k-assist" type="checkbox"> Highlight wrong read-backs</label>
    <label class="wide">Volume<input id="k-vol" type="range" min="0" max="1" step="0.05" style="width:100%;accent-color:#ffb22e"></label>
@@ -1484,14 +1484,14 @@ function snapshotATIS(){const w=G.wind;let wd=Math.round(w.dir/10)*10%360;if(wd=
    VOICE — Gemini TTS for pilots (with radio filter), browser-voice fallback, mic input
    ===================================================================== */
 const Voice={
- key:'',model:'gemini-3.8-flash-tts',on:true,gemini:true,fallback:true,fx:true,vol:0.9,micOn:true,style:false,
+ key:'',model:'gemini-3.8-flash-tts',on:true,gemini:true,fallback:true,fx:true,vol:0.9,micOn:true,styleOn:true,
  ctx:null,queue:[],busy:false,cache:new Map(),fails:0,status:'idle',lastErr:'',nGemini:0,
- models:['gemini-3.8-flash-tts','gemini-3.1-flash-tts-preview','gemini-2.5-flash-preview-tts'],
+ models:['gemini-3.8-flash-tts','gemini-3.8-flash-lite-tts','gemini-2.5-flash-preview-tts'],
  load(){
   try{const s=JSON.parse(localStorage.getItem('marlow.voice')||'{}');Object.assign(this,s);}catch(e){}
  },
  save(){
-  try{localStorage.setItem('marlow.voice',JSON.stringify({key:this.key,model:this.model,on:this.on,gemini:this.gemini,fallback:this.fallback,fx:this.fx,vol:this.vol,micOn:this.micOn,style:this.style}));}catch(e){}
+  try{localStorage.setItem('marlow.voice',JSON.stringify({key:this.key,model:this.model,on:this.on,gemini:this.gemini,fallback:this.fallback,fx:this.fx,vol:this.vol,micOn:this.micOn,styleOn:this.styleOn}));}catch(e){}
  },
  ensureCtx(){
   if(!this.ctx){try{this.ctx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){this.ctx=null;}}
@@ -1499,9 +1499,9 @@ const Voice={
   return this.ctx;
  },
  styleFor(e){
-  if(!this.style)return '';
-  const acc=e.accent&&e.accent!=='international'?'with a '+e.accent+' accent, ':'';
-  return e.urgent?'Say tensely and urgently, as an airline pilot on a VHF radio, '+acc+'clipped and fast':'Say calmly, as an airline pilot on a VHF radio, '+acc+'clipped and professional';
+  if(!this.styleOn)return '';
+  const acc=e.accent&&e.accent!=='international'?e.accent+' accent, ':'';
+  return (e.urgent?'tense and urgent, clipped and fast, ':'calm and professional, clipped, ')+'airline pilot on a VHF radio, '+acc.replace(/, $/,'');
  },
  speak(e){
   if(!this.on||G.over&&false)return;
@@ -1530,23 +1530,27 @@ const Voice={
   const base='https://generativelanguage.googleapis.com/v1beta/';
   const list=[this.model].concat(this.models.filter(m=>m!==this.model));
   let lastErr=null;
-  const tryFetch=async(url,body)=>{
-   const ctl=new AbortController();const to=setTimeout(()=>ctl.abort(),15000);
-   try{const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:ctl.signal});
-    if(!r.ok){let t='';try{t=(await r.text()).slice(0,200);}catch(_){}throw new Error('HTTP '+r.status+' '+t);}
+  const post=async(url,body)=>{
+   const ctl=new AbortController();const to=setTimeout(()=>ctl.abort(),20000);
+   try{const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':this.key},body:JSON.stringify(body),signal:ctl.signal});
+    if(!r.ok){let t='';try{t=(await r.text()).slice(0,240);}catch(_){}throw new Error('HTTP '+r.status+' '+t);}
     return await r.json();}finally{clearTimeout(to);}
   };
   for(const m of list){
    try{
-    const j=await tryFetch(base+'models/'+m+':generateContent?key='+encodeURIComponent(this.key),{contents:[{parts:[{text:style?style+': '+text:text}]}],generationConfig:{responseModalities:['AUDIO'],speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:voice}}}}});
-    const a=this.findAudio(j);if(a){const b=await this.decode(a);this.cache.set(ck,b);if(m!==this.model){this.model=m;this.save();}return b;}
+    let j;
+    if(/^gemini-3/.test(m)){
+     // Gemini 3.x TTS: the spoken text and the style instructions are SEPARATE fields (style goes in speech_metadata, never in the text)
+     const part={type:'text',text};if(style)part.annotations=[{type:'speech_metadata',style}];
+     j=await post(base+'interactions',{model:m,input:[{type:'user_input',content:[part]}],response_format:{type:'audio'},generation_config:{speech_config:[{voice}]}});
+    }else{
+     // 2.5 models have a single text field, so send only the words (no style prefix that could be read aloud)
+     j=await post(base+'models/'+m+':generateContent',{contents:[{parts:[{text}]}],generationConfig:{responseModalities:['AUDIO'],speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:voice}}}}});
+    }
+    const au=this.findAudio(j);if(au){const b=await this.decode(au);this.cache.set(ck,b);if(m!==this.model&&list.indexOf(m)===1&&/^gemini-3/.test(m)){this.model=m;this.save();}return b;}
     lastErr=new Error('no audio in response');
    }catch(err){lastErr=err;if(/API key|403|401|PERMISSION|API_KEY/i.test(String(err.message)))break;if(/Failed to fetch|abort|NetworkError/i.test(String(err.message)))break;}
   }
-  try{ // newer Interactions API
-   const j=await tryFetch(base+'interactions?key='+encodeURIComponent(this.key),{model:this.model,input:[{type:'user_input',content:[{type:'text',text:style?style+': '+text:text}]}],response_format:{type:'audio',mime_type:'audio/l16',sample_rate:24000},generation_config:{speech_config:[{voice}]}});
-   const a=this.findAudio(j);if(a){const b=await this.decode(a);this.cache.set(ck,b);return b;}
-  }catch(err){lastErr=lastErr||err;}
   throw lastErr||new Error('Gemini TTS failed');
  },
  findAudio(o,depth){
@@ -2852,11 +2856,11 @@ const UI={
  setLayout(l){this.layout=l;$('views').className='lay-'+l;document.querySelectorAll('#layout button').forEach(b=>b.classList.toggle('on',b.dataset.l===l));setTimeout(()=>this.resize(),30);},
  /* ---------- settings ---------- */
  syncSettings(){
-  $('k-key').value=Voice.key||'';$('k-model').value=Voice.model;$('k-gem').checked=Voice.gemini;$('k-voice').checked=Voice.on;$('k-fb').checked=Voice.fallback;$('k-fx').checked=Voice.fx;$('k-style').checked=Voice.style;$('k-vol').value=Voice.vol;$('k-mic').checked=Voice.micOn;
+  $('k-key').value=Voice.key||'';$('k-model').value=Voice.model;$('k-gem').checked=Voice.gemini;$('k-voice').checked=Voice.on;$('k-fb').checked=Voice.fallback;$('k-fx').checked=Voice.fx;$('k-style').checked=Voice.styleOn;$('k-vol').value=Voice.vol;$('k-mic').checked=Voice.micOn;
   if(G.cfg){$('k-assist').checked=!!G.cfg.assist;}
  },
  saveSettings(){
-  Voice.key=$('k-key').value.trim();Voice.model=$('k-model').value.trim()||'gemini-3.8-flash-tts';Voice.gemini=$('k-gem').checked;Voice.on=$('k-voice').checked;Voice.fallback=$('k-fb').checked;Voice.fx=$('k-fx').checked;Voice.style=$('k-style').checked;Voice.vol=+$('k-vol').value;Voice.micOn=$('k-mic').checked;Voice.fails=0;Voice.save();
+  Voice.key=$('k-key').value.trim();Voice.model=$('k-model').value.trim()||'gemini-3.8-flash-tts';Voice.gemini=$('k-gem').checked;Voice.on=$('k-voice').checked;Voice.fallback=$('k-fb').checked;Voice.fx=$('k-fx').checked;Voice.styleOn=$('k-style').checked;Voice.vol=+$('k-vol').value;Voice.micOn=$('k-mic').checked;Voice.fails=0;Voice.save();
   if(G.cfg)G.cfg.assist=$('k-assist').checked;this.voiceStatus();
  },
  voiceStatus(){
