@@ -1289,7 +1289,7 @@ function resolveErr(a,c){
  const e=a.err;
  const good=()=>{a.err=null;G.safety=Math.min(100,G.safety+1);G.score+=8;sysMsg('Good catch — '+a.cs+' read-back corrected.','ok');};
  if(e.kind==='sq'){
-  if(c.squawk===e.real){good();a.squawk=e.real;pilotReply(a,'Squawk '+e.real+', '+csName(a)+'.');return true;}
+  if(c.squawk===e.real){good();a.squawk=e.real;a.sqAckT=G.t;pilotReply(a,'Squawk '+e.real+', '+csName(a)+'.');return true;}
   if(c.neg){sayAgain(a);return true;}return false;
  }
  if(e.kind==='hold'){
@@ -1469,7 +1469,10 @@ const HANDLERS={
  },
  squawk(a,c){
   if(!c.squawk||/[89]/.test(c.squawk)){sayAgain(a);return;}
-  a.squawk=c.squawk;pilotReply(a,'Squawk '+c.squawk+', '+csName(a)+'.');
+  if(a.squawk===c.squawk&&a.sqAckT&&G.t-a.sqAckT<90){ // already confirmed: don't parrot it again
+   if(!a.sqNote){a.sqNote=true;sysMsg(a.cs+' already confirmed squawk '+c.squawk+' — nothing more to do here.','ok');}
+   pilotReply(a,'Roger, '+csName(a)+'.');return;}
+  a.squawk=c.squawk;a.sqAckT=G.t;a.sqNote=false;pilotReply(a,'Squawk '+c.squawk+', '+csName(a)+'.');
  },
  radiocheck(a,c){pilotReply(a,'Loud and clear, '+csName(a)+'.');},
  inspect(a,c){
