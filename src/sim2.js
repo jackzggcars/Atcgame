@@ -323,7 +323,8 @@ function buildReplies(a){
  if(k==='VAC')x.freq=UNITS.GND.f;
  if(k==='INSP'){x.rwy=G.rwy;}
  const v=V(a,x);
- return{kind:k,accept:fmt(acceptOverride||ph.accept,v),deny:fmt(ph.deny,v),wait:fmt(ph.wait,v),urgent:!!ph.urgent,
+ const rbOf=w=>ph['rb'+w]?fmt(ph['rb'+w],v):'';
+ return{kind:k,title:ph.title,note:ph.note||'',accept:fmt(acceptOverride||ph.accept,v),deny:fmt(ph.deny,v),wait:fmt(ph.wait,v),rbAccept:acceptOverride?'':rbOf('Accept'),rbDeny:rbOf('Deny'),rbWait:rbOf('Wait'),urgent:!!ph.urgent,
   labels:(k==='CHECKIN'?{accept:'CONTINUE APPROACH',deny:'GO AROUND',wait:'REDUCE SPEED'}:k==='LANDREQ'?{accept:'CLEARED TO LAND',deny:'GO AROUND',wait:'CONTINUE APPROACH'}:null)};
 }
 function quickCmds(a){
