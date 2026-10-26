@@ -155,7 +155,10 @@ R3.applyTOD=function(mode){
   dusk:{top:0x1b2a5c,hor:0xe9a46c,fog:0xa58b8e,sun:[-0.9,0.12,-0.42],sunCol:0xff9d57,si:2.4,hemi:[0x7d8fd0,0x3a3340,0.45],exp:1.05,lights:0.85,win:0.7,cloud:0xffb88a,co:0.7,glow:1.7,night:0,env:0.8},
   night:{top:0x02050f,hor:0x101a33,fog:0x0b1428,sun:[0.4,0.55,0.35],sunCol:0x9db2ee,si:0.5,hemi:[0x4a5f9a,0x141a28,0.4],exp:1.15,lights:1,win:1,cloud:0x233050,co:0.0,glow:0.15,night:1,env:0.5}
  };
- const P=T[mode];if(!P)return;this.tod=mode;this.P=P;const U=this.skyU;
+ this.TODT=T;const P=T[mode];if(!P)return;this.applyP(P,mode,true);
+};
+R3.applyP=function(P,mode,heavy){
+ this.tod=mode;this.P=P;const U=this.skyU;
  U.top.value.copy(lin(P.top));U.hor.value.copy(lin(P.hor));U.ground.value.copy(lin(P.fog));U.sunCol.value.copy(lin(P.sunCol));U.night.value=P.night;U.glow.value=P.glow;
  this.sunDir.set(P[ 'sun'][0],P.sun[1],P.sun[2]).normalize();U.sunDir.value.copy(this.sunDir);
  this.fogHex=P.fog;this.setFog(!!(window.G&&G.fog));
@@ -165,10 +168,25 @@ R3.applyTOD=function(mode){
  if(this.lightMat)this.lightMat.forEach(m=>m.opacity=P.lights);
  this.litMats.forEach(m=>{m.emissiveIntensity=(m.userData.k||1)*P.win;});this.acMats.forEach(m=>m.emissiveIntensity=P.win*1.3);
  if(this.lampMat)this.lampMat.color.copy(lin(0xffe2a8)).multiplyScalar(0.25+P.lights*4);
+ if(!heavy){this.scene.environmentIntensity=P.env;return;}
  try{
   if(!this.pmrem)this.pmrem=new THREE.PMREMGenerator(this.renderer);
   const rt=this.pmrem.fromScene(this.envScene,0.02,1,100);if(this.envRT)this.envRT.dispose();this.envRT=rt;this.scene.environment=rt.texture;this.scene.environmentIntensity=P.env;
  }catch(e){console.warn('env map failed',e);}
+};
+/* continuous day/night cycle driven by the sim clock (dawn and dusk blend between the presets) */
+R3.todAuto=function(dt){
+ if(!this.P||!this.TODT||typeof G==='undefined'||!G.clock)return;this._ta=(this._ta||0)-dt;if(this._ta>0)return;this._ta=2.5;
+ const h=(G.clock/3600)%24,K=[[0,'night'],[4.6,'night'],[6.3,'dusk'],[7.8,'day'],[17.0,'day'],[18.9,'dusk'],[20.6,'night'],[24,'night']];
+ let i=0;while(i<K.length-2&&h>K[i+1][0])i++;const f=clamp((h-K[i][0])/(K[i+1][0]-K[i][0]),0,1),A=this.TODT[K[i][1]],B=this.TODT[K[i+1][1]];
+ const cl=(a,b)=>new THREE.Color(a).lerp(new THREE.Color(b),f).getHex(),nm=(a,b)=>a+(b-a)*f;
+ const P={top:cl(A.top,B.top),hor:cl(A.hor,B.hor),fog:cl(A.fog,B.fog),sunCol:cl(A.sunCol,B.sunCol),cloud:cl(A.cloud,B.cloud),
+  hemi:[cl(A.hemi[0],B.hemi[0]),cl(A.hemi[1],B.hemi[1]),nm(A.hemi[2],B.hemi[2])],sun:[nm(A.sun[0],B.sun[0]),nm(A.sun[1],B.sun[1]),nm(A.sun[2],B.sun[2])]};
+ for(const k of['si','exp','lights','win','co','glow','night','env'])P[k]=nm(A[k],B[k]);
+ if(h>6&&h<19){const ph=clamp((h-6)/13,0,1)*Math.PI;P.sun=[Math.cos(ph)*0.9,Math.max(0.1,Math.sin(ph)*0.85),-0.45];}
+ const wN=(K[i][1]==='night'?1-f:0)+(K[i+1][1]==='night'?f:0),wD=(K[i][1]==='day'?1-f:0)+(K[i+1][1]==='day'?f:0);
+ this.applyP(P,wN>0.55?'night':wD>0.5?'day':'dusk',false);this.setFog(!!G.fog);
+ if(typeof WX!=='undefined')WX.apply(WX.kind);
 };
 R3.setFog=function(low){
  if(!this.P)return;const P=this.P;let col=lin(P.fog),d=this.tod==='night'?0.00005:0.000058;

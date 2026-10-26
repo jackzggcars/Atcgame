@@ -397,6 +397,8 @@ select,input[type=text],input[type=password],input[type=number]{border-radius:0;
    <label>Time of day<select id="s-tod"><option value="day">Day</option><option value="dusk">Dusk</option><option value="night">Night</option></select></label>
    <label>Shift length (min)<input id="s-shift" type="number" min="5" max="120" value="30"></label>
    <label class="chk"><input id="s-fog" type="checkbox"> Low visibility (fog)</label>
+   <label class="chk"><input id="s-cells" type="checkbox" checked> Thunderstorm cells</label>
+   <label class="chk"><input id="s-amb" type="checkbox" checked> Ambient sound</label>
    <label class="chk"><input id="s-voice" type="checkbox" checked> Pilot voices</label>
    <label class="wide">Google AI Studio / Gemini API key (optional)<input id="s-key" type="password" placeholder="AIza… — kept in this browser only" autocomplete="off"></label>
    <label class="chk wide"><input id="s-gem" type="checkbox" checked> Use Gemini for pilot voices (falls back to browser voices)</label>
@@ -1003,6 +1005,27 @@ const NEWTYPES={
  A388:{n:'A388',wing:79.8,len:72.7,wake:'H',vref:145,vr:155,acc:1.45,eng:4,rf:3.55,wide:true}
 };
 Object.assign(TYPES,NEWTYPES);
+/* more Boeing / Airbus types (wake class, speeds and dimensions from the real aircraft) */
+Object.assign(TYPES,{
+ A319:{n:'A319',wing:35.8,len:33.8,wake:'M',vref:132,vr:137,acc:2.1,eng:2,rf:2.1,wide:false},
+ A20N:{n:'A20N',wing:35.8,len:37.6,wake:'M',vref:133,vr:138,acc:2.0,eng:2,rf:2.1,wide:false},
+ A21N:{n:'A21N',wing:35.8,len:44.5,wake:'M',vref:138,vr:143,acc:1.9,eng:2,rf:2.1,wide:false},
+ B38M:{n:'B38M',wing:35.9,len:39.5,wake:'M',vref:138,vr:143,acc:2.0,eng:2,rf:2.1,wide:false},
+ B752:{n:'B752',wing:38.0,len:47.3,wake:'M',vref:137,vr:145,acc:1.9,eng:2,rf:2.1,wide:false},
+ B763:{n:'B763',wing:47.6,len:54.9,wake:'H',vref:140,vr:147,acc:1.7,eng:2,rf:2.55,wide:true},
+ B772:{n:'B772',wing:60.9,len:63.7,wake:'H',vref:143,vr:150,acc:1.6,eng:2,rf:3.1,wide:true},
+ B788:{n:'B788',wing:60.1,len:56.7,wake:'H',vref:142,vr:148,acc:1.7,eng:2,rf:3.0,wide:true},
+ A332:{n:'A332',wing:60.3,len:58.8,wake:'H',vref:138,vr:146,acc:1.7,eng:2,rf:2.95,wide:true},
+ A339:{n:'A339',wing:64.0,len:63.7,wake:'H',vref:141,vr:149,acc:1.65,eng:2,rf:2.95,wide:true},
+ A35K:{n:'A35K',wing:64.8,len:73.8,wake:'H',vref:143,vr:153,acc:1.6,eng:2,rf:3.1,wide:true},
+ B744:{n:'B744',wing:64.4,len:70.7,wake:'H',vref:153,vr:160,acc:1.4,eng:4,rf:3.25,wide:true},
+ B748:{n:'B748',wing:68.4,len:76.3,wake:'H',vref:152,vr:160,acc:1.4,eng:4,rf:3.25,wide:true},
+ B742:{n:'B742',wing:59.6,len:70.7,wake:'H',vref:152,vr:158,acc:1.3,eng:4,rf:3.25,wide:true,rare:true},
+ A343:{n:'A343',wing:60.3,len:63.7,wake:'H',vref:140,vr:150,acc:1.45,eng:4,rf:2.95,wide:true,rare:true},
+ A346:{n:'A346',wing:63.5,len:75.4,wake:'H',vref:143,vr:153,acc:1.4,eng:4,rf:2.95,wide:true,rare:true},
+ A3ST:{n:'A3ST',wing:44.8,len:56.2,wake:'H',vref:132,vr:140,acc:1.7,eng:2,rf:2.85,wide:true,rare:true,name:'Airbus Beluga'},
+ B74L:{n:'B74L',wing:64.4,len:71.7,wake:'H',vref:153,vr:160,acc:1.35,eng:4,rf:3.25,wide:true,rare:true,name:'Boeing 747 Dreamlifter'}
+});
 /* ---- rare visitors: Concorde, Grumman F-14 Tomcat, Northrop B-2 Spirit (dimensions & speeds from the real aircraft) ---- */
 Object.assign(TYPES,{
  CONC:{n:'CONC',wing:25.6,len:61.66,wake:'H',vref:162,vr:195,acc:2.5,eng:4,rf:1.5,wide:false,rare:true,name:'Aérospatiale/BAC Concorde'},
@@ -1047,10 +1070,38 @@ const RARE_OPS=[
  {icao:'SPIRT',rt:'Spirit',nm:'509TH BOMB WING',liv:'B2',tail:0x2a2d31,acc:0x2a2d31,voice:'Algieba',accent:'American',fleet:['B2'],nums:['11','12','21','22','31','32'],w:4,
   names:[['Spirit of America','82-1066'],['Spirit of Arizona','82-1067'],['Spirit of Missouri','82-1070']]}
 ];
+RARE_OPS.push(
+ {icao:'BGA',rt:'Beluga',nm:'AIRBUS TRANSPORT',liv:'BEL',tail:0x1c4f9c,acc:0x1c4f9c,body:'#f3f5f7',voice:'Charon',accent:'French',fleet:['A3ST'],nums:['1','2','3','4','5'],w:2.5},
+ {icao:'GTI',rt:'Giant',nm:'DREAMLIFTER',liv:'DRL',tail:0x1d3d73,acc:0x1d3d73,body:'#f3f5f7',voice:'Fenrir',accent:'American',fleet:['B74L'],nums:['4241','4242','4243'],w:2});
 AIRLINES.push(...RARE_OPS);
 /* fleets for the original nine */
 const FLEET0={BAW:['A320','A321','A359','B789','B77W','A388'],DLH:['A320','A321','A359','A333'],AFR:['A320','A321','B77W','A359'],EZY:['A320','A321'],RYR:['B738'],KLM:['B738','E190','B789','B77W','A333'],VIR:['A333','A359','B789'],UAE:['B77W','A388','A359'],SAS:['A320','A359','E190']};
 AIRLINES.forEach(a=>{if(!a.fleet)a.fleet=FLEET0[a.icao]||['A320'];});
+/* extra regular types per airline (listed twice = more common) and rare types seen ~5% of the time */
+const FLEETX={
+ BAW:[['A319','A20N','A21N','B772','B788','A35K','A332','B744','B744'],['B742','B744','A346']],
+ DLH:[['A319','A20N','A21N','A332','A346','B748','B744'],['A343','A346','B742']],
+ AFR:[['A319','A332','B772','A359','A388'],['A343','B742']],
+ EZY:[['A319','A20N','A21N'],[]],RYR:[['B38M','B38M','B738'],[]],
+ KLM:[['B772','B788','A332','B744'],['B742','B744']],
+ VIR:[['A339','B788','A333'],['B744','A346','B744']],
+ UAE:[['B772','B77W'],['B744']],
+ SAS:[['A319','A20N','A333'],['A343']],
+ QTR:[['B772','A332','A35K','B788'],['A346','B748']],ETD:[['B772','B788','A332'],['A346']],
+ THY:[['A319','A20N','A21N','B38M','B772','A332'],['A343','B742']],
+ SWR:[['A319','A20N','A21N','B772'],['A343','A346']],
+ IBE:[['A319','A20N','A21N','A332','A339'],['A346','A343']],
+ SIA:[['B772','A35K','B788'],['A388','B744']],
+ AAL:[['B752','B763','B772','B788','B38M','A319','A20N'],['B744']],
+ DAL:[['B752','B763','B772','A332','A339','A319','B38M'],['B744','B742']],
+ UAL:[['B752','B763','B772','B788','B38M','A319'],['B744','B742']],
+ SWA:[['B38M','B38M'],[]],JBU:[['A21N','A20N'],[]],ASA:[['B38M'],[]],
+ ACA:[['A319','A332','B763','B772','B788','B38M'],['B742']],FDB:[['B38M','B38M'],[]],
+ JAL:[['B763','B772','B788','A35K'],['B744','B742']],ANA:[['B763','B772','B788','A388'],['B744']],
+ QFA:[['A332','B788','B772'],['B744','B742']],JST:[['A320','B788'],[]],VOZ:[['B738'],[]],
+ ANZ:[['B772','B788','A20N'],['B744']],TRA:[['B38M','B738'],[]],SCO:[['B788','B789'],[]]
+};
+AIRLINES.forEach(a=>{const f=FLEETX[a.icao];if(f&&!a.sq&&!a.liv){a.fleet=a.fleet.concat(f[0]);a.rareFleet=f[1];}});
 const AL_BY=Object.fromEntries(AIRLINES.map(a=>[a.icao,a]));
 const SPK={BAW:'Speedbird'};
 
@@ -1304,16 +1355,18 @@ function endGame(kind,reason,ents){G.over={kind,reason,t:G.t};emit('over',G.over
 function newGame(cfg){
  const base=Object.assign({},PRESETS[cfg.level||'controller'],cfg);
  G.cfg=Object.assign({level:'controller',mode:'career',shift:30,tod:'day',fog:false},base);
- G.t=0;G.clock=6*3600+10*60;G.rwy=Math.random()<0.5?'09':'27';
+ G.t=0;G.clock=({day:10*3600+20*60,dusk:18*3600+30*60,night:23*3600+10*60}[G.cfg.tod])||6*3600+10*60;G.rwy=Math.random()<0.5?'09':'27';
  const wd=G.rwy==='09'?rnd(60,120):rnd(240,300);
  G.wind={dir:wd,spd:rnd(6,12),target:wd,base:rnd(6,12)};G.qnh=rint(1004,1024);G.atis=rint(0,25);
  G.wx=G.cfg.wx||'clear';G.gust=G.wx==='storm'?9:G.wx==='rain'?4:0;if(G.wx==='storm'){G.wind.base+=11;G.qnh=rint(988,1002);}else if(G.wx==='rain'){G.wind.base+=4;G.qnh=rint(996,1010);}
  G.windShiftAt=rnd(480,780);G.fog=!!G.cfg.fog;
+ G.cellNext=undefined;G.cell=null;G.rampClosed=false;G.cellGust=0;
  G.ents=[];G.log=[];G.q=[];G.score=0;G.safety=100;G.over=null;G.nextId=1;G.gates={};G.flags={debris:false};
  G.stats={dep:0,arr:0,goArounds:0,incursion:0,los:0,wake:0,emerg:0,delay:0,readback:0};
  G.acc={dep:0,arr:0};G.opsNext=200;G.pairs={};G.lastTO={t:-999,heavy:false};G.sqUsed={};G.scoreLog=[];G.rwyWarn=0;
  spawnDep(rnd(6,10));spawnDep(rnd(22,32));later(rnd(12,18),()=>spawnArr());
  sysMsg('Shift started. Runway '+RWD()+' in use. ATIS '+ATIS_L[G.atis]+', QNH '+G.qnh+'.','ok');
+ if(G.fog)sysMsg('Low visibility procedures in force: slower taxi, wider spacing on final, expect delays.','warn');
  emit('new',G);
 }
 
@@ -1328,7 +1381,7 @@ function wpickAl(){const L=AIRPORT.airlines;let t=0;L.forEach(x=>t+=x[1]);let r=
 function mkAc(kind){
  let al=wpickAl(),rare=false;
  if(kind==='arr'&&Math.random()<(G.cfg.rare!==undefined?G.cfg.rare:0.05)){let t=0;RARE_OPS.forEach(x=>t+=x.w);let r=Math.random()*t;for(const x of RARE_OPS){r-=x.w;if(r<=0){al=x;break;}}rare=true;}
- const ty=TYPES[pick(al.fleet)]||TYPES.A320;
+ const ty=TYPES[(al.rareFleet&&al.rareFleet.length&&Math.random()<0.05)?pick(al.rareFleet):pick(al.fleet)]||TYPES.A320;
  let num=uniqueNum(al);if(rare){const f=al.nums.filter(n=>!G.ents.some(e=>e.al===al&&e.num===n));num=pick(f.length?f:al.nums);}
  const a={id:G.nextId++,kind,al,type:ty,num,cs:al.icao+num,rt:al.rt+' '+num,heavy:ty.wake==='H',
   x:0,z:0,y:0,th:0,v:0,pitch:0,bank:0,vs:0,phase:'',req:null,nextReq:null,waitSec:0,dead:false,r:0.32*Math.max(ty.wing,ty.len),
@@ -1340,32 +1393,33 @@ function mkAc(kind){
 function pickW(L){let t=0;L.forEach(x=>t+=x[1]);let r=Math.random()*t;for(const x of L){r-=x[1];if(r<=0)return x[0];}return L[0][0];}
 function pickMishap(kind){
  if(Math.random()>=G.cfg.mishap)return null;
- return kind==='dep'?pickW([['rto',24],['engine',16],['bird',22],['nordo',8],['rtofire',6],['engfire_dep',7],['engsep',2.5],['birdeng',5]]):pickW([['panpan',22],['lowfuel',16],['nordo',7],['leak',10],['engfire',8],['gear',8],['hyd',6],['smoke',5]]);
+ return kind==='dep'?pickW([['rto',24],['engine',16],['bird',22],['nordo',8],['rtofire',6],['engfire_dep',7],['engsep',2.5],['birdeng',5]]):pickW([['panpan',22],['lowfuel',16],['bstrike',7],['fuelhid',8],['nordo',7],['leak',10],['engfire',8],['gear',8],['hyd',6],['smoke',5]]);
 }
 function spawnDep(delay){
  const free=gatesFree();if(!free.length)return null;
  const n=pick(free);const a=mkAc('dep');a.gate=String(n);G.gates[n]=a.id;a.x=GATE_X[n-1];a.z=-350;a.th=-Math.PI/2;
- a.phase='BOARDING';a.board=0;a.boardTime=delay!==undefined?delay:rnd(30,55);a.mishap=pickMishap('dep');a.rtoSpeed=rnd(48,64);
+ assignSlot(a);a.phase='BOARDING';a.board=0;a.boardTime=delay!==undefined?delay:rnd(30,55);a.mishap=pickMishap('dep');a.rtoSpeed=rnd(48,64);
  G.ents.push(a);emit('spawn',a);return a;
 }
 function spawnArr(){
  const air=G.ents.filter(e=>!e.dead&&['APPROACH','GOAROUND'].includes(e.phase)).length;
  if(air>=G.cfg.maxAir)return null;
- const d=dirOf();let D=rnd(8.3,9.6)*NM;
- G.ents.forEach(e=>{if(e.phase==='APPROACH'&&Math.abs(e.D-D)<4.6*NM)D=Math.max(D,e.D+4.7*NM);});
+ const d=dirOf();let D=rnd(8.3,9.6)*NM;const SP=G.fog?6.2:4.6;
+ G.ents.forEach(e=>{if(e.phase==='APPROACH'&&Math.abs(e.D-D)<SP*NM)D=Math.max(D,e.D+(SP+0.1)*NM);});
  const a=mkAc('arr');a.phase='APPROACH';a.D=D;a.v=150*KT;a.mishap=pickMishap('arr');a.th=d>0?0:Math.PI;placeApproach(a);
  a.checked=false;
  G.ents.push(a);emit('spawn',a);
  if(a.mishap==='nordo'){a.nordo=true;a.squawk='7600';sysMsg('A '+a.cs+' squawking 7600: lost communications. Use the light gun.','warn');}
  else if(a.mishap==='panpan'){a.emerg='panpan';a.squawk='7700';G.stats.emerg++;request(a,'PANPAN',{dist:Math.round(D/NM)});}
+ else if(a.mishap==='fuelhid'){a.fuel=rnd(8,10);request(a,'CHECKIN',{dist:Math.round(D/NM)});}
  else if(a.mishap==='lowfuel'){a.fuel=rnd(9,11);request(a,'CHECKIN',{dist:Math.round(D/NM)});}
  else if(EMKIND[a.mishap]){startArrEmerg(a,D);}
  else request(a,'CHECKIN',{dist:Math.round(D/NM)});
  a.checked=true;return a;
 }
 function placeApproach(a){
- const d=dirOf();a.x=thrX()-d*a.D;a.z=0;a.th=d>0?0:Math.PI;
- a.y=a.D>0?a.D*TAN3+15:15*clamp(1+a.D/300,0,1);
+ const d=dirOf();a.x=thrX()-d*a.D;a.z=0;const th0=d>0?0:Math.PI;
+ a.y=a.D>0?a.D*TAN3+15:15*clamp(1+a.D/300,0,1);a.th=crabTh(a,th0);
 }
 
 /* ---------------- requests & reminders ---------------- */
@@ -1419,6 +1473,7 @@ function follow(a,dt,o){
  const h0=sample(p,a.s).th,la=10+a.v*2.4,h1=sample(p,Math.min(p.len,a.s+la)).th,turnA=Math.abs(angDiff(h1,h0));
  if(turnA>0.1){const vtn=o.vturn||5.5;vt=Math.min(vt,vtn+Math.max(0,vt-vtn)*Math.max(0,1-turnA/0.85));}
  if(o.endStop!==false)vt=Math.min(vt,Math.sqrt(2*1.5*Math.max(0,rem-0.4))+0.2);
+ if(G.fog)vt*=0.72;
  let blocked=false;
  if(o.block!==false){
   const q=sample(p,a.s);const sg=o.back?-1:1;
@@ -1464,7 +1519,7 @@ function step(dt){
  if(G.over)return;
  G.t+=dt;G.clock+=dt;
  for(let i=G.q.length-1;i>=0;i--){if(G.q[i].t<=G.t){const f=G.q[i].fn;G.q.splice(i,1);try{f();}catch(e){console.error(e);}}}
- weather(dt);spawnLogic(dt);
+ weather(dt);cellUpdate(dt);wakeUpdate(dt);spawnLogic(dt);
  for(const e of G.ents){if(e.dead)continue;if(e.yieldT>0){e.yieldT-=dt;if(e.yDone<e.yMag){const st=Math.min(6*dt,e.yMag-e.yDone);e.yDone+=st;e.x+=-Math.sin(e.th)*e.yDir*st;e.z+=Math.cos(e.th)*e.yDir*st;}}if(e.veh)updVeh(e,dt);else updAc(e,dt);}
  collisions();separation();
  for(let i=G.ents.length-1;i>=0;i--)if(G.ents[i].dead){emit('remove',G.ents[i]);G.ents.splice(i,1);}
@@ -1474,7 +1529,7 @@ function weather(dt){
  const w=G.wind;
  if(G.t>G.windShiftAt&&!G.shifted){G.shifted=true;w.target=G.rwy==='09'?rnd(240,290):rnd(70,110);G.atis=(G.atis+1)%26;sysMsg('Wind is shifting. New ATIS '+ATIS_L[G.atis]+' — a runway change may be needed.','warn');emit('atis',G);}
  const dd=angDiff(w.target*D2R,w.dir*D2R)*R2D;w.dir=(w.dir+clamp(dd,-0.6*dt,0.6*dt)+360)%360;
- w.spd=Math.max(2,w.base+Math.sin(G.t/17)*2.2+Math.sin(G.t/5.3)*1.2+(G.gust||0)*Math.max(0,Math.sin(G.t*1.3)*Math.sin(G.t/2.9)));
+ w.spd=Math.max(2,w.base+Math.sin(G.t/17)*2.2+Math.sin(G.t/5.3)*1.2+(G.gust||0)*Math.max(0,Math.sin(G.t*1.3)*Math.sin(G.t/2.9))+(G.cellGust||0)*(0.5+0.5*Math.sin(G.t*1.9)*Math.sin(G.t*0.7+1)));
  const hr=(G.rwy==='09'?90:270),head=w.spd*Math.cos((w.dir-hr)*D2R);G.head=head;
  G.rwyBetter=null;const other=G.rwy==='09'?270:90,ho=w.spd*Math.cos((w.dir-other)*D2R);
  if(head<-6&&ho>head+8)G.rwyBetter=G.rwy==='09'?'27':'09';
@@ -1499,7 +1554,7 @@ function updAc(a,dt){
  }
  switch(a.phase){
  case 'BOARDING':
-  a.board+=dt/a.boardTime;if(a.board>=1){a.board=1;a.phase='AT_GATE';if(!a.clrOk)request(a,'CLR');}break;
+  if(!G.rampClosed)a.board+=dt/a.boardTime;if(a.board>=1){a.board=1;a.phase='AT_GATE';if(!a.clrOk)request(a,'CLR');}break;
  case 'AT_GATE':
   if(a.clrOk&&!a.req&&!a.nextReq&&!a.pushAsked){a.pushAsked=true;a.nextReq={kind:'PUSH',at:G.t+rnd(7,14)};}
   break;
@@ -1609,9 +1664,9 @@ function rollUpdate(a,dt){
  if(a.v>=ty.vr*KT)a.pitch=Math.min(0.12,a.pitch+0.045*dt);
  if(G.flags.debris&&!a.debrisChk&&a.v>30){a.debrisChk=true;if(Math.random()<0.5){a.phase='RTO';say('pilot',a,'Tyre burst! Stopping, stopping!','urgent');a.mishap=null;return;}}
  if(a.v>=(ty.vr+6)*KT){
-  a.phase='CLIMB';a.y=0.6;a.vs=0.5;
+  a.phase='CLIMB';a.y=0.6;a.vs=0.5;checkSlot(a);
   const prev=G.lastTO;const need=prev.heavy?120:60;
-  if(G.t-prev.t<need&&G.t-prev.t>0){incident('wake','WAKE TURBULENCE: '+a.cs+' departed only '+Math.round(G.t-prev.t)+' s behind '+(prev.heavy?'a heavy':'another aircraft')+' (need '+need+' s)',5);}
+  if(G.t-prev.t<need&&G.t-prev.t>0){a.wakeT=9;incident('wake','WAKE TURBULENCE: '+a.cs+' departed only '+Math.round(G.t-prev.t)+' s behind '+(prev.heavy?'a heavy':'another aircraft')+' (need '+need+' s)',5);}
   G.lastTO={t:G.t,heavy:a.heavy};a.rwyAuth=false;a.outTh=(a.dest.th-AP.hdg)*D2R;a.tkLift=G.t;
   return;
  }
@@ -1636,6 +1691,7 @@ function appUpdate(a,dt){
  vt=Math.max(vt,vref);if(a.hyd)vt=Math.max(vt,vref+16*KT);a.v+=clamp(vt-a.v,-1.3*dt,1.0*dt);
  a.D-=a.v*dt;placeApproach(a);a.pitch=a.y<20?lerp(-0.03,0.075,clamp(1-a.y/20,0,1)):-0.03-0.02*clamp((a.y-20)/60,0,1);if(a.engOut)a.bank=lerp(a.bank,0.09*(a.engSide||1),dt);if(a.dead_stick){a.sinkX=(a.sinkX||0)+5.2*dt;a.y=Math.max(0,a.y-a.sinkX);if(a.y<=1&&a.D>40){a.x=a.x;deadStickCrash(a);return;}}
  if((!a.req||a.req.kind==='CHECKIN')&&!a.nextReq&&!a.cleared&&a.D>0&&(!a.askedLand&&Dnm<4.2||a.askedLand&&Dnm<2.2&&G.t-(a.lastLR||0)>20)){a.askedLand=true;a.lastLR=G.t;request(a,'LANDREQ',{dist:Math.max(1,Math.round(Dnm))});}
+ if(arrivalProblem(a,Dnm))return;
  if(a.D>0&&a.chk<1&&Dnm<0.62||a.D>0&&a.chk<2&&Dnm<0.27){
   a.chk=(a.chk||0)+1;
   const occ=rwyOccupied(a);const tail=Math.max(0,-G.head||0);
@@ -2279,6 +2335,115 @@ function emergTick(a,dt){
 ;
 'use strict';
 /* =====================================================================
+   REALISM LAYER — drifting thunderstorm cells, crosswind crab, low-visibility procedures,
+   wake-turbulence encounters, departure slot times, bird-strike go-arounds, late fuel declarations.
+   ===================================================================== */
+const COMPASS8=['north','north-east','east','south-east','south','south-west','west','north-west'];
+function compassOf(dx,dz){const b=(Math.atan2(dx,-dz)*180/Math.PI+360)%360;return COMPASS8[Math.round(b/45)%8];}
+
+/* ---------- thunderstorm cells ---------- */
+function cellUpdate(dt){
+ if(G.cellNext===undefined){G.cellNext=G.cfg.cells===false?1e9:(G.wx==='storm'?90:G.wx==='rain'?260:G.cfg.level==='trainee'?1e9:rnd(420,900));G.cell=null;}
+ let c=G.cell;
+ if(!c&&G.t>=G.cellNext){
+  const w=G.wind,to=(w.dir+180)*D2R,ux=Math.sin(to),uz=-Math.cos(to);   // unit vector the wind blows towards (x east, z south)
+  const sp=clamp(w.spd*KT*1.8,7,13),r=rnd(1300,2100),off=(Math.random()<0.6?rnd(-600,600):rnd(-3200,3200));
+  const px=-uz,pz=ux;                                  // perpendicular
+  c=G.cell={x:-ux*9500+px*off,z:-uz*9500+pz*off,vx:ux*sp,vz:uz*sp,r,age:0,hot:0,warned:false,near:false,over:false};
+  G.stats.cells=(G.stats.cells||0)+1;
+  sysMsg('Weather radar: thunderstorm cell approaching from the '+compassOf(-ux,-uz)+' ('+Math.round(sp*1.94)+' kt). Expect gusts, lightning, and go-arounds if it crosses the approach.','warn');
+  emit('cell',c);
+ }
+ if(!c)return;
+ c.age+=dt;c.x+=c.vx*dt;c.z+=c.vz*dt;
+ const d=Math.hypot(c.x,c.z);
+ c.near=d<c.r+2800;c.over=d<c.r*0.9;
+ G.cellGust=c.over?15:d<c.r+1500?7:0;
+ const wasRamp=G.rampClosed;G.rampClosed=c.near;
+ if(c.near&&!wasRamp)sysMsg('Lightning within 5 nm: ramp closed — boarding and ground services suspended.','warn');
+ if(!c.near&&wasRamp&&d>c.r+2800)sysMsg('Lightning has moved away: ramp reopened.','ok');
+ // arrivals whose final approach runs through the cell
+ for(const a of G.ents){
+  if(a.dead||a.phase!=='APPROACH'||a.D<-250)continue;
+  const dd=Math.hypot(a.x-c.x,a.z-c.z),Dnm=a.D/NM;
+  if(!a.cellWarn&&Dnm<9.5&&dd<c.r*1.15+1200){a.cellWarn=true;say('pilot',a,fmt('Tower, {cs}, weather radar shows heavy returns ahead on the approach. We may have to go around.',V(a)),'');}
+  if(!a.cellGA&&a.D>0&&Dnm<1.6&&dd<c.r*0.95){a.cellGA=true;if(Math.random()<0.85){startGoAround(a,'storm cell on final');}}
+ }
+ // departures lined up inside the storm get hit by windshear
+ for(const a of G.ents){
+  if(a.dead||a.phase!=='ROLL'||a.windshear||!c.over)continue;
+  if(a.v>25&&Math.random()<0.02){a.windshear=true;say('pilot',a,'Windshear, windshear! Stopping, stopping, '+csName(a)+'!','urgent');a.phase='RTO';}
+ }
+ if(d>c.r+14000&&c.age>300){G.cell=null;G.cellNext=G.t+rnd(900,1500);G.cellGust=0;G.rampClosed=false;sysMsg('The storm cell has passed.','ok');emit('cell',null);}
+}
+
+/* ---------- crosswind crab (nose points into the wind on final, kicked straight at touchdown) ---------- */
+function crabTh(a,th0){
+ const w=G.wind;if(!w||!a.type)return th0;
+ const wz=w.spd*KT*Math.cos(w.dir*D2R);                 // wind component along +z (blowing south positive)
+ const vapp=Math.max(55,a.v||70);
+ const s=clamp(-wz/vapp,-0.5,0.5)*clamp((a.y-3)/10,0,1);
+ return Math.atan2(s,Math.cos(th0)*Math.sqrt(1-s*s));
+}
+
+/* ---------- wake turbulence ---------- */
+function wakeUpdate(dt){
+ for(const a of G.ents){if(a.wakeT>0)a.wakeT-=dt;}
+ const L=G.ents.filter(e=>!e.dead&&!e.veh&&e.phase==='APPROACH'&&e.D>0).sort((p,q)=>p.D-q.D);
+ for(let i=0;i<L.length-1;i++){
+  const lead=L[i],tr=L[i+1],gap=(tr.D-lead.D)/NM;
+  if(lead.type.wake==='H'&&tr.type.wake!=='H'&&gap<3.6&&!tr.wakeHit&&tr.D<5.5*NM){
+   tr.wakeHit=true;tr.wakeT=9;
+   const sev=gap<2.6?0.7:0.35;
+   if(Math.random()<sev+0.1){
+    say('pilot',tr,fmt('Wake turbulence! {cs} is encountering the wake of the heavy ahead.',V(tr)),'urgent');
+    sysMsg(tr.cs+' hit the wake of '+lead.cs+' ('+gap.toFixed(1)+' nm spacing, heavy needs 4+).','warn');
+    G.stats.wake=(G.stats.wake||0)+1;
+    if(gap<2.8&&Math.random()<0.55)startGoAround(tr,'wake turbulence');
+    if(gap<2.2)incident('wake','WAKE ENCOUNTER: '+tr.cs+' behind '+lead.cs+' at '+gap.toFixed(1)+' nm',4);
+   }
+  }
+ }
+ // in-flight lead aircraft shed wake energy visually; handled in fx3d via type.wake
+}
+
+/* ---------- departure slots ---------- */
+function assignSlot(a){
+ if(Math.random()>0.38)return;
+ const base=G.t+(a.boardTime||40)+rnd(150,330);
+ a.slot={t:base,open:-300,close:600};
+}
+function checkSlot(a){
+ if(!a.slot)return;const dt=G.t-a.slot.t;
+ if(dt<a.slot.open){G.score=Math.max(0,G.score-5);sysMsg(a.cs+' departed '+Math.round(-dt/60)+' min before its slot time — flow control not happy (−5).','warn');}
+ else if(dt>a.slot.close){G.score=Math.max(0,G.score-8);G.stats.delay+=2;sysMsg(a.cs+' missed its departure slot by '+Math.round((dt-a.slot.close)/60)+' min — the airline loses the slot (−8).','warn');}
+ else{G.score+=10;sysMsg(a.cs+' departed inside its slot window (+10).','ok');}
+ a.slotDone=true;
+}
+function slotText(a){
+ if(!a.slot)return '';
+ const c=G.clock-G.t;const f=t=>{const s=Math.floor(c+t)%86400;return String(Math.floor(s/3600)%24).padStart(2,'0')+String(Math.floor(s/60)%60).padStart(2,'0');};
+ return 'SLOT '+f(a.slot.t)+'Z  ('+f(a.slot.t+a.slot.open)+'–'+f(a.slot.t+a.slot.close)+')';
+}
+
+/* ---------- new arrival problems ---------- */
+function arrivalProblem(a,Dnm){
+ if(a.mishap==='bstrike'&&a.D>0&&Dnm<2.4){
+  a.mishap=null;G.flags.debris=true;a.emerg=null;
+  say('pilot',a,'Bird strike! Bird strike on short final — going around, '+csName(a)+'.','urgent');
+  sysMsg(a.cs+' hit birds on final: runway inspection needed.','warn');
+  startGoAround(a,'bird strike');later(25,()=>spawnOps(true));return true;
+ }
+ if(a.mishap==='fuelhid'&&!a.fuelCalled&&Dnm<5.6){
+  a.fuelCalled=true;a.mishap=null;a.emerg='fuel';a.squawk='7700';G.stats.emerg++;
+  request(a,'LOWFUEL',{dist:Math.max(1,Math.round(Dnm))});return true;
+ }
+ return false;
+}
+
+;
+'use strict';
+/* =====================================================================
    VOICE — Gemini TTS for pilots (with radio filter), browser-voice fallback, mic input
    ===================================================================== */
 const Voice={
@@ -2581,7 +2746,10 @@ const R3={
   this.scene.add(this.clouds);
  },
  applyTOD(mode){
-  this.tod=mode;const P={
+  this.tod=mode;this.TODP={
+   day:{top:0x4f86d1,hor:0xcfe3f3,fog:0xc4d8e8,hemi:[0xffffff,0x4f6840,0.95],sun:[0xfff6e3,1.15],lights:0.12,win:0},
+   dusk:{top:0x2b3a6e,hor:0xf0a56a,fog:0x7b6f86,hemi:[0xffd7b0,0x3a4430,0.55],sun:[0xff9a55,0.6],lights:0.85,win:0.6},
+   night:{top:0x050a18,hor:0x172544,fog:0x0a1226,hemi:[0x6577aa,0x1a2230,0.28],sun:[0x7f90c8,0.12],lights:1,win:1}};const P={
    day:{top:0x4f86d1,hor:0xcfe3f3,fog:0xc4d8e8,hemi:[0xffffff,0x4f6840,0.95],sun:[0xfff6e3,1.15],lights:0.12,win:0},
    dusk:{top:0x2b3a6e,hor:0xf0a56a,fog:0x7b6f86,hemi:[0xffd7b0,0x3a4430,0.55],sun:[0xff9a55,0.6],lights:0.85,win:0.6},
    night:{top:0x050a18,hor:0x172544,fog:0x0a1226,hemi:[0x6577aa,0x1a2230,0.28],sun:[0x7f90c8,0.12],lights:1,win:1}}[mode]||null;
@@ -2774,7 +2942,9 @@ const R3={
   let y=0,vib=gnd?sp*(e.veh?0.004:0.0014)*Math.sin(t*(e.veh?29:19)+e.id*1.7):0;
   let p=d.x+vib+(gnd?sp*0.0012*Math.sin(t*3.1+e.id):0);
   if(!e.veh&&e.tdT!=null&&gnd){const k=G.t-e.tdT;if(k>=0&&k<4){const A=0.35+0.65*(e.tdHard||0),f=Math.exp(-2.6*k);p+=0.03*A*f*Math.sin(9*k);y=0.22*A*f*Math.abs(Math.sin(5.5*k));}}
-  return{p,r:d.r+(gnd?vib*0.7:0),y};
+  let wr=0;if(e.wakeT>0){const k=Math.min(1,e.wakeT/3);wr=Math.sin(t*7.3+e.id)*0.20*k+Math.sin(t*13)*0.05*k;p+=Math.sin(t*5.1)*0.03*k;}
+  if(e.cellWx||G.cell&&G.cell.over&&e.y>3){wr+=Math.sin(t*3.1+e.id)*0.04+Math.sin(t*8.7)*0.02;}
+  return{p,r:d.r+(gnd?vib*0.7:0)+wr,y};
  },
  /* ---------- per-frame ---------- */
  sync(dt,t){
@@ -3077,7 +3247,10 @@ R3.applyTOD=function(mode){
   dusk:{top:0x1b2a5c,hor:0xe9a46c,fog:0xa58b8e,sun:[-0.9,0.12,-0.42],sunCol:0xff9d57,si:2.4,hemi:[0x7d8fd0,0x3a3340,0.45],exp:1.05,lights:0.85,win:0.7,cloud:0xffb88a,co:0.7,glow:1.7,night:0,env:0.8},
   night:{top:0x02050f,hor:0x101a33,fog:0x0b1428,sun:[0.4,0.55,0.35],sunCol:0x9db2ee,si:0.5,hemi:[0x4a5f9a,0x141a28,0.4],exp:1.15,lights:1,win:1,cloud:0x233050,co:0.0,glow:0.15,night:1,env:0.5}
  };
- const P=T[mode];if(!P)return;this.tod=mode;this.P=P;const U=this.skyU;
+ this.TODT=T;const P=T[mode];if(!P)return;this.applyP(P,mode,true);
+};
+R3.applyP=function(P,mode,heavy){
+ this.tod=mode;this.P=P;const U=this.skyU;
  U.top.value.copy(lin(P.top));U.hor.value.copy(lin(P.hor));U.ground.value.copy(lin(P.fog));U.sunCol.value.copy(lin(P.sunCol));U.night.value=P.night;U.glow.value=P.glow;
  this.sunDir.set(P[ 'sun'][0],P.sun[1],P.sun[2]).normalize();U.sunDir.value.copy(this.sunDir);
  this.fogHex=P.fog;this.setFog(!!(window.G&&G.fog));
@@ -3087,10 +3260,25 @@ R3.applyTOD=function(mode){
  if(this.lightMat)this.lightMat.forEach(m=>m.opacity=P.lights);
  this.litMats.forEach(m=>{m.emissiveIntensity=(m.userData.k||1)*P.win;});this.acMats.forEach(m=>m.emissiveIntensity=P.win*1.3);
  if(this.lampMat)this.lampMat.color.copy(lin(0xffe2a8)).multiplyScalar(0.25+P.lights*4);
+ if(!heavy){this.scene.environmentIntensity=P.env;return;}
  try{
   if(!this.pmrem)this.pmrem=new THREE.PMREMGenerator(this.renderer);
   const rt=this.pmrem.fromScene(this.envScene,0.02,1,100);if(this.envRT)this.envRT.dispose();this.envRT=rt;this.scene.environment=rt.texture;this.scene.environmentIntensity=P.env;
  }catch(e){console.warn('env map failed',e);}
+};
+/* continuous day/night cycle driven by the sim clock (dawn and dusk blend between the presets) */
+R3.todAuto=function(dt){
+ if(!this.P||!this.TODT||typeof G==='undefined'||!G.clock)return;this._ta=(this._ta||0)-dt;if(this._ta>0)return;this._ta=2.5;
+ const h=(G.clock/3600)%24,K=[[0,'night'],[4.6,'night'],[6.3,'dusk'],[7.8,'day'],[17.0,'day'],[18.9,'dusk'],[20.6,'night'],[24,'night']];
+ let i=0;while(i<K.length-2&&h>K[i+1][0])i++;const f=clamp((h-K[i][0])/(K[i+1][0]-K[i][0]),0,1),A=this.TODT[K[i][1]],B=this.TODT[K[i+1][1]];
+ const cl=(a,b)=>new THREE.Color(a).lerp(new THREE.Color(b),f).getHex(),nm=(a,b)=>a+(b-a)*f;
+ const P={top:cl(A.top,B.top),hor:cl(A.hor,B.hor),fog:cl(A.fog,B.fog),sunCol:cl(A.sunCol,B.sunCol),cloud:cl(A.cloud,B.cloud),
+  hemi:[cl(A.hemi[0],B.hemi[0]),cl(A.hemi[1],B.hemi[1]),nm(A.hemi[2],B.hemi[2])],sun:[nm(A.sun[0],B.sun[0]),nm(A.sun[1],B.sun[1]),nm(A.sun[2],B.sun[2])]};
+ for(const k of['si','exp','lights','win','co','glow','night','env'])P[k]=nm(A[k],B[k]);
+ if(h>6&&h<19){const ph=clamp((h-6)/13,0,1)*Math.PI;P.sun=[Math.cos(ph)*0.9,Math.max(0.1,Math.sin(ph)*0.85),-0.45];}
+ const wN=(K[i][1]==='night'?1-f:0)+(K[i+1][1]==='night'?f:0),wD=(K[i][1]==='day'?1-f:0)+(K[i+1][1]==='day'?f:0);
+ this.applyP(P,wN>0.55?'night':wD>0.5?'day':'dusk',false);this.setFog(!!G.fog);
+ if(typeof WX!=='undefined')WX.apply(WX.kind);
 };
 R3.setFog=function(low){
  if(!this.P)return;const P=this.P;let col=lin(P.fog),d=this.tod==='night'?0.00005:0.000058;
@@ -3579,13 +3767,33 @@ const TS={
  A359:{k:'wide',nl:0.130,tl:0.190,p:1.95,nd:0.24,hr:1.00,upw:0.48,wl:'curved',eng:'xwb',R:0.60,fin:2.55,stab:0.33,win:0.58,gear:3,mzf:1.7},
  B789:{k:'wide',nl:0.128,tl:0.190,p:2.00,nd:0.18,hr:1.00,upw:0.52,wl:'raked',eng:'gen',R:0.60,fin:2.55,stab:0.33,win:0.58,gear:3,mzf:1.7},
  B77W:{k:'wide',nl:0.120,tl:0.185,p:2.15,nd:0.12,hr:1.00,upw:0.60,wl:'raked',eng:'ge90',R:0.68,fin:2.50,stab:0.33,win:0.56,gear:3,mzf:1.7},
- A388:{k:'super',nl:0.115,tl:0.190,p:1.90,nd:0.10,hr:1.20,upw:0.30,wl:'fence',eng:'trent',R:0.50,fin:2.55,stab:0.30,win:0.55,gear:2,mzf:3.5}
+ A388:{k:'super',nl:0.115,tl:0.190,p:1.90,nd:0.10,hr:1.20,upw:0.30,wl:'fence',eng:'trent',R:0.50,fin:2.55,stab:0.30,win:0.55,gear:2,mzf:3.5},
+ // ---- later additions (cloned / tuned from the benchmark types)
+ A319:{k:'narrow',nl:0.122,tl:0.225,p:2.15,nd:0.20,hr:1.035,upw:0.62,wl:'sharklet',eng:'cfm',R:0.53,fin:3.0,stab:0.36,win:0.60,gear:1,mzf:1.7},
+ A20N:{k:'narrow',nl:0.118,tl:0.225,p:2.15,nd:0.20,hr:1.035,upw:0.62,wl:'sharklet',eng:'cfm',R:0.58,fin:3.0,stab:0.36,win:0.60,gear:1,mzf:1.7},
+ A21N:{k:'narrow',nl:0.105,tl:0.205,p:2.15,nd:0.20,hr:1.035,upw:0.60,wl:'sharklet',eng:'cfm',R:0.58,fin:3.0,stab:0.36,win:0.60,gear:1,mzf:1.7},
+ B38M:{k:'narrow',nl:0.120,tl:0.230,p:2.30,nd:0.14,hr:1.00,upw:0.55,wl:'blended',eng:'cfm737',R:0.53,fin:2.95,stab:0.35,win:0.62,gear:1,mzf:1.7},
+ B752:{k:'narrow',nl:0.105,tl:0.200,p:2.20,nd:0.15,hr:1.00,upw:0.50,wl:'blended',eng:'cfm737',R:0.56,fin:2.9,stab:0.34,win:0.62,gear:1,mzf:1.8},
+ B763:{k:'wide',nl:0.120,tl:0.200,p:2.10,nd:0.14,hr:1.00,upw:0.48,wl:'blended',eng:'ge90',R:0.54,fin:2.5,stab:0.33,win:0.58,gear:2,mzf:1.6},
+ B772:{k:'wide',nl:0.120,tl:0.185,p:2.15,nd:0.12,hr:1.00,upw:0.58,wl:null,eng:'ge90',R:0.66,fin:2.5,stab:0.33,win:0.56,gear:3,mzf:1.7},
+ B788:{k:'wide',nl:0.130,tl:0.195,p:2.00,nd:0.18,hr:1.00,upw:0.52,wl:'raked',eng:'gen',R:0.58,fin:2.55,stab:0.33,win:0.58,gear:3,mzf:1.7},
+ A332:{k:'wide',nl:0.125,tl:0.195,p:2.05,nd:0.20,hr:1.03,upw:0.52,wl:'fence',eng:'trent',R:0.56,fin:2.55,stab:0.33,win:0.58,gear:2,mzf:1.7},
+ A339:{k:'wide',nl:0.125,tl:0.195,p:2.05,nd:0.20,hr:1.03,upw:0.52,wl:'raked',eng:'trent',R:0.62,fin:2.55,stab:0.33,win:0.58,gear:2,mzf:1.7},
+ A35K:{k:'wide',nl:0.125,tl:0.185,p:1.95,nd:0.24,hr:1.00,upw:0.48,wl:'curved',eng:'xwb',R:0.62,fin:2.55,stab:0.33,win:0.58,gear:3,mzf:1.7},
+ B744:{k:'wide',ws:'jumbo',nl:0.115,tl:0.190,p:2.10,nd:0.12,hr:1.00,upw:0.62,wl:'small',eng:'ge90',R:0.55,fin:2.5,stab:0.33,win:0.56,gear:3,mzf:1.7,hump:0.52,h0:0.60,hp:0.855,h1:0.915},
+ B748:{k:'wide',ws:'jumbo',nl:0.112,tl:0.185,p:2.10,nd:0.12,hr:1.00,upw:0.62,wl:'raked',eng:'gen',R:0.58,fin:2.5,stab:0.33,win:0.56,gear:3,mzf:1.7,hump:0.52,h0:0.60,hp:0.86,h1:0.915},
+ B742:{k:'wide',ws:'jumbo',nl:0.115,tl:0.190,p:2.10,nd:0.12,hr:1.00,upw:0.62,wl:null,eng:'ge90',R:0.55,fin:2.4,stab:0.33,win:0.56,gear:3,mzf:1.7,hump:0.50,h0:0.66,hp:0.88,h1:0.925},
+ A343:{k:'wide',nl:0.125,tl:0.195,p:2.05,nd:0.20,hr:1.03,upw:0.52,wl:'fence',eng:'cfm',R:0.50,fin:2.55,stab:0.33,win:0.58,gear:2,mzf:1.7},
+ A346:{k:'wide',nl:0.115,tl:0.185,p:2.05,nd:0.20,hr:1.03,upw:0.52,wl:'fence',eng:'trent',R:0.54,fin:2.45,stab:0.33,win:0.58,gear:3,mzf:1.7},
+ A3ST:{k:'wide',nl:0.115,tl:0.225,p:2.10,nd:0.12,hr:1.00,upw:0.30,wl:null,eng:'ge90',R:0.50,fin:2.0,stab:0.33,win:0.56,gear:2,mzf:1.7,hump:1.15,h0:0.10,hp:0.62,h1:0.93,humpw:0.35},
+ B74L:{k:'wide',ws:'jumbo',nl:0.115,tl:0.190,p:2.10,nd:0.12,hr:1.00,upw:0.62,wl:'small',eng:'ge90',R:0.55,fin:2.5,stab:0.33,win:0.56,gear:3,mzf:1.7,hump:0.95,h0:0.14,hp:0.52,h1:0.84,humpw:0.40}
 };
 const WSPEC={ // planform; same numbers gfx.js used so gear / engine placement stays consistent
  narrow:{rootC:0.158,tipC:0.04,sweep:25,dih:5,wy:-0.45,lex:0.16,eng:0.32,kink:0.36,kc:0.60,tw:-3,tr:0.10},
  regional:{rootC:0.15,tipC:0.042,sweep:23,dih:5,wy:-0.42,lex:0.15,eng:0.33,kink:0.38,kc:0.62,tw:-3,tr:0.11},
  wide:{rootC:0.172,tipC:0.03,sweep:32,dih:6,wy:-0.42,lex:0.14,eng:0.31,kink:0.34,kc:0.58,tw:-4,tr:0.105},
  super:{rootC:0.172,tipC:0.03,sweep:33,dih:5,wy:-0.42,lex:0.14,eng:0.31,kink:0.34,kc:0.58,tw:-4,tr:0.115},
+ jumbo:{rootC:0.18,tipC:0.028,sweep:37.5,dih:6,wy:-0.42,lex:0.13,eng:0.31,kink:0.36,kc:0.58,tw:-4,tr:0.105},
  prop:{rootC:0.115,tipC:0.066,sweep:3,dih:1.5,wy:0.80,lex:0.10,eng:0.30,kink:0.45,kc:0.82,tw:-2,tr:0.15}
 };
 
@@ -3602,6 +3810,7 @@ function secAt(t,L,rf,S){
  else if(t<tl){const v=t/tl,q=1-v,r=0.055+0.945*Math.pow(Math.max(0,1-Math.pow(q,2.15)),0.72);
   s={y0:rf*S.upw*q*q*(S.k==='prop'?1.15:1),w:rf*r*(1-0.16*q),h:rf*S.hr*r,n:2.2};}
  else s={y0:S.k==='super'?rf*0.05:0,w:rf,h:rf*S.hr,n:S.k==='super'?2.45:2.15};
+ if(S.hump&&t>S.h0&&t<S.h1){let b=t<S.hp?(t-S.h0)/(S.hp-S.h0):(S.h1-t)/(S.h1-S.hp);b=b*b*(3-2*b);const d=rf*S.hump*b;s.y0+=d*0.5;s.h+=d*0.5;if(S.humpw)s.w+=rf*S.humpw*b;}
  return s;
 }
 function fusPoint(t,th,L,rf,S,out,off){
@@ -3728,6 +3937,24 @@ const HULLD={
  A359:{doors:[0.875,0.78,0.60,0.345,0.185],exits:[],w0:0.09,w1:0.9,cargo:[0.69,0.30],pitch:0.53},
  B789:{doors:[0.885,0.795,0.60,0.335,0.18],exits:[],w0:0.09,w1:0.9,cargo:[0.70,0.30],pitch:0.55},
  B77W:{doors:[0.885,0.80,0.585,0.315,0.185],exits:[],w0:0.085,w1:0.9,cargo:[0.71,0.30],pitch:0.55},
+ A319:{doors:[0.835,0.215],exits:[0.50],w0:0.19,w1:0.83,cargo:[0.72,0.30],pitch:0.53},
+ A20N:{doors:[0.845,0.225],exits:[0.505],w0:0.19,w1:0.83,cargo:[0.735,0.31],pitch:0.53},
+ A21N:{doors:[0.87,0.715,0.275,0.145],exits:[0.535,0.465],w0:0.115,w1:0.855,cargo:[0.775,0.2],pitch:0.53},
+ B38M:{doors:[0.83,0.215],exits:[0.495,0.55],w0:0.185,w1:0.81,cargo:[0.72,0.30],pitch:0.55},
+ B752:{doors:[0.865,0.17],exits:[0.52,0.585],w0:0.14,w1:0.84,cargo:[0.74,0.26],pitch:0.55},
+ B763:{doors:[0.875,0.72,0.43,0.15],exits:[],w0:0.10,w1:0.89,cargo:[0.66,0.28],pitch:0.55},
+ B772:{doors:[0.885,0.78,0.60,0.34,0.185],exits:[],w0:0.09,w1:0.90,cargo:[0.69,0.30],pitch:0.55},
+ B788:{doors:[0.885,0.79,0.60,0.34,0.18],exits:[],w0:0.09,w1:0.90,cargo:[0.70,0.30],pitch:0.55},
+ A332:{doors:[0.875,0.775,0.585,0.395,0.185],exits:[],w0:0.095,w1:0.895,cargo:[0.69,0.30],pitch:0.53},
+ A339:{doors:[0.875,0.775,0.585,0.395,0.185],exits:[],w0:0.095,w1:0.895,cargo:[0.69,0.30],pitch:0.53},
+ A35K:{doors:[0.885,0.80,0.62,0.37,0.19],exits:[],w0:0.09,w1:0.905,cargo:[0.71,0.30],pitch:0.53},
+ B744:{doors:[0.915,0.80,0.665,0.47,0.30,0.145],exits:[],w0:0.07,w1:0.92,cargo:[0.74,0.31],pitch:0.55},
+ B748:{doors:[0.92,0.81,0.68,0.49,0.32,0.15],exits:[],w0:0.07,w1:0.92,cargo:[0.75,0.31],pitch:0.55},
+ B742:{doors:[0.915,0.80,0.665,0.47,0.30,0.145],exits:[],w0:0.07,w1:0.92,cargo:[0.74,0.31],pitch:0.55},
+ A343:{doors:[0.875,0.775,0.585,0.395,0.185],exits:[],w0:0.095,w1:0.895,cargo:[0.69,0.30],pitch:0.53},
+ A346:{doors:[0.895,0.80,0.68,0.52,0.36,0.185],exits:[],w0:0.085,w1:0.905,cargo:[0.72,0.31],pitch:0.53},
+ A3ST:{doors:[0.90,0.06],exits:[],w0:0.5,w1:0.5,cargo:[0.40],pitch:0.55},
+ B74L:{doors:[0.915,0.06],exits:[],w0:0.5,w1:0.5,cargo:[0.40],pitch:0.55},
  A388:{doors:[0.905,0.835,0.665,0.415,0.225],exits:[],w0:0.085,w1:0.925,cargo:[0.74,0.33],pitch:0.55,deck2:true}
 };
 const LAYC={};
@@ -3882,7 +4109,7 @@ function paintLivery(al,ty,lay,W,H){
 const WTEX={};
 function wingTextures(ty,variant){
  const key=ty.n+variant;if(WTEX[key])return WTEX[key];
- const S=TS[ty.n]||TS.A320,WS=WSPEC[S.k],R=mul(seedOf('w'+key)),W=2048,H=1024,hf=H/2;
+ const S=TS[ty.n]||TS.A320,WS=WSPEC[S.ws||S.k],R=mul(seedOf('w'+key)),W=2048,H=1024,hf=H/2;
  const[c,x]=cv(W,H),[hc,h]=cv(W,H),[rc,r]=cv(W,H),[ac,a]=cv(W,H);
  const prop=S.k==='prop',half=ty.wing/2,zE=half*WS.eng;
  for(let s=0;s<2;s++){const y0=s*hf;const g=x.createLinearGradient(0,y0,0,y0+hf);if(s===0){g.addColorStop(0,'#dde1e4');g.addColorStop(1,'#cfd5d9');}else{g.addColorStop(0,'#c3c9ce');g.addColorStop(1,'#b6bdc3');}x.fillStyle=g;x.fillRect(0,y0,W,hf);}
@@ -4020,7 +4247,7 @@ R3.acMaterials=function(a){
  const fairM=new THREE.MeshStandardMaterial({color:lin(0xdadee1),roughness:0.42,metalness:0.1});
  return LV[key]={bodyM,wingM:wingMat(ty,variant),engM,finM,tailM,fairM,lay};
 };
-const ENGTXT={A320:'CFM56-5B / V2500',A321:'CFM56-5B / V2500',B738:'CFM56-7B27',E190:'GE CF34-10E',E175:'GE CF34-8E',A333:'ROLLS-ROYCE TRENT 700',A359:'ROLLS-ROYCE TRENT XWB',B789:'GEnx-1B',B77W:'GE90-115B',A388:'ROLLS-ROYCE TRENT 900',DH8D:'PW150A'};
+const ENGTXT={A320:'CFM56-5B / V2500',A321:'CFM56-5B / V2500',B738:'CFM56-7B27',E190:'GE CF34-10E',E175:'GE CF34-8E',A333:'ROLLS-ROYCE TRENT 700',A359:'ROLLS-ROYCE TRENT XWB',B789:'GEnx-1B',B77W:'GE90-115B',A388:'ROLLS-ROYCE TRENT 900',A319:'CFM56-5B / V2500',A20N:'LEAP-1A / PW1100G',A21N:'LEAP-1A / PW1100G',B38M:'LEAP-1B',B752:'ROLLS-ROYCE RB211-535',B763:'GE CF6-80C2',B772:'GE90-94B',B788:'GEnx-1B',A332:'ROLLS-ROYCE TRENT 700',A339:'ROLLS-ROYCE TRENT 7000',A35K:'ROLLS-ROYCE TRENT XWB-97',B744:'GE CF6-80C2',B748:'GEnx-2B',B742:'PRATT & WHITNEY JT9D',A343:'CFM56-5C',A346:'ROLLS-ROYCE TRENT 500',A3ST:'GE CF6-80C2',B74L:'GE CF6-80C2',DH8D:'PW150A'};
 
 /* =====================================================================
    COMPONENT BUILDERS
@@ -4194,7 +4421,7 @@ function wingletSecs(P,last,h,cant0,cant1,cTip,sweep,n){
  return out;
 }
 R3.buildAC=function(a){
- const ty=a.type,L=ty.len,W=ty.wing,rf=ty.rf,S=TS[ty.n]||TS.A320,WS=WSPEC[S.k],prop=S.k==='prop',big=S.k==='wide'||S.k==='super';
+ const ty=a.type,L=ty.len,W=ty.wing,rf=ty.rf,S=TS[ty.n]||TS.A320,WS=WSPEC[S.ws||S.k],prop=S.k==='prop',big=S.k==='wide'||S.k==='super';
  const mats=this.acMaterials(a),M=this.mat,variant=(a.id||0)%2;
  if(!M.glowM)M.glowM=new THREE.SpriteMaterial({map:this.glow,color:0xffffff,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false});
  const root=new THREE.Group(),pivot=new THREE.Group(),body=new THREE.Group(),detail=new THREE.Group();
@@ -4676,8 +4903,35 @@ const WX={
   this.rain=new THREE.LineSegments(g,new THREE.LineBasicMaterial({color:0xb7c4d4,transparent:true,opacity:0.32,depthWrite:false,fog:false}));
   this.rain.frustumCulled=false;this.rain.visible=false;R3.scene.add(this.rain);
  },
+ ensureCell(){
+  if(this.cellG)return;const g=new THREE.Group(),m=new THREE.MeshLambertMaterial({color:0x4b5159,transparent:true,opacity:0.96,fog:true,emissive:0x000000});
+  const add=(r,x,y,z,sy)=>{const s=new THREE.Mesh(new THREE.SphereGeometry(r,16,12),m);s.position.set(x,y,z);s.scale.set(1,sy||0.8,1);g.add(s);};
+  for(let i=0;i<30;i++){const a=Math.random()*6.283,rr=Math.sqrt(Math.random())*1050,h=300+Math.random()*3600*(1-rr/1500);add(520+Math.random()*420-h*0.03,Math.cos(a)*rr,h,Math.sin(a)*rr,0.9);}
+  const an=new THREE.Mesh(new THREE.CylinderGeometry(2300,1100,500,28),m);an.position.y=4300;g.add(an);
+  const dm=new THREE.MeshBasicMaterial({color:0x2d3239,transparent:true,opacity:0.8,fog:true});const base=new THREE.Mesh(new THREE.CylinderGeometry(1500,1250,380,28,1,true),dm);base.position.y=420;base.material.side=THREE.DoubleSide;g.add(base);
+  const rm=new THREE.MeshBasicMaterial({color:0x8d99a9,transparent:true,opacity:0.2,side:THREE.DoubleSide,depthWrite:false,fog:true});
+  const shaft=new THREE.Mesh(new THREE.CylinderGeometry(1250,1450,640,28,1,true),rm);shaft.position.y=320;g.add(shaft);
+  g.userData={mat:m};g.visible=false;R3.scene.add(g);this.cellG=g;
+  const bg=new THREE.BufferGeometry();bg.setAttribute('position',new THREE.BufferAttribute(new Float32Array(14*3),3));
+  this.bolt=new THREE.Line(bg,new THREE.LineBasicMaterial({color:0xe8efff,transparent:true,opacity:1,fog:false}));this.bolt.frustumCulled=false;this.bolt.visible=false;R3.scene.add(this.bolt);this.boltT=0;this.cellNextBolt=2;
+ },
+ updateCell(dt,t){
+  const c=G.cell;if(!c){if(this.cellG)this.cellG.visible=false;if(this.bolt)this.bolt.visible=false;return;}
+  this.ensureCell();const g=this.cellG;g.visible=true;g.position.set(c.x,0,c.z);const sc=c.r/1500;g.scale.set(sc,sc*1.15,sc);
+  const dark=R3.tod==='night'?0.4:1;g.userData.mat.color.setRGB(0.18*dark+0.02,0.2*dark+0.02,0.23*dark+0.03);
+  g.userData.mat.emissive.setRGB(this.flash*0.7,this.flash*0.75,this.flash);
+  // lightning bolts hitting the ground inside the cell
+  this.cellNextBolt-=dt;
+  if(this.cellNextBolt<=0&&c.near){this.cellNextBolt=2.5+Math.random()*9;this.flash=1;this.thunderAt=t+0.5+Math.random()*3;
+   const a=Math.random()*6.283,rr=Math.random()*c.r*0.8,bx=c.x+Math.cos(a)*rr,bz=c.z+Math.sin(a)*rr,P=this.bolt.geometry.attributes.position.array;let x=bx,z=bz;
+   for(let i=0;i<14;i++){const y=700*(1-i/13);P[i*3]=x;P[i*3+1]=y;P[i*3+2]=z;x+=(Math.random()-0.5)*90;z+=(Math.random()-0.5)*90;}
+   this.bolt.geometry.attributes.position.needsUpdate=true;this.bolt.visible=true;this.boltT=0.18;}
+  if(this.boltT>0){this.boltT-=dt;if(this.boltT<=0)this.bolt.visible=false;}
+ },
  update(dt,t){
   const k=this.kind;
+  this.updateCell(dt,t);
+  if(this.rain){const want=(k==='rain'||k==='storm')||!!(G.cell&&G.cell.over);if(this.rain.visible!==want){this.rain.visible=want;this.rainN=want?(k==='storm'||(G.cell&&G.cell.over)?1:0.6):0;}}
   if(this.rain&&this.rain.visible){
    const a=this.rain.geometry.attributes.position,arr=a.array,sp=(k==='storm'?62:48)*dt,sl=k==='storm'?0.28:0.18;
    const wd=G.wind?G.wind.spd*0.06:0.3;
@@ -4686,11 +4940,11 @@ const WX={
    a.needsUpdate=true;const c=R3.camera.position;this.rain.position.set(c.x,c.y>90?c.y-90:0,c.z);
    this.rain.material.opacity=(k==='storm'?0.42:0.3)*(R3.tod==='night'?0.7:1);
   }
-  if(k==='storm'){
-   this.nextFlash-=dt;
+  if(k==='storm'||(G.cell&&G.cell.near)){
+   if(k==='storm')this.nextFlash-=dt;
    if(this.nextFlash<=0){this.flash=1;this.nextFlash=5+Math.random()*14;this.thunderAt=t+0.4+Math.random()*3.5;if(Math.random()<0.35)this.nextFlash=0.18+Math.random()*0.25;}
    if(this.flash>0){this.flash=Math.max(0,this.flash-dt*4.5);const f=this.flash*this.flash;R3.hemi.intensity=R3.P.hemi[2]*(1+0.9)+f*3.2;R3.skyU.top.value.copy(lin(0x9aa6c8)).lerp(lin(0x2a3140),1-f);R3.skyU.hor.value.copy(lin(0xc9d0e4)).lerp(lin(0x59616b),1-f);
-    if(this.flash===0)this.apply('storm');}
+    if(this.flash===0)this.apply(this.kind);}
    if(this.thunderAt>0&&t>this.thunderAt){this.thunderAt=-1;this.thunder();}
   }
  },
@@ -4735,10 +4989,86 @@ const SVC={list:[],built:false,
   }
  }
 };
+
+/* ---------------- airside traffic: buses, catering, crew vans, sweeper drive the service lane behind the stands ---------------- */
+const ROAM={list:[],built:false,
+ mesh(kind){
+  const g=new THREE.Group(),M=(c,r)=>new THREE.MeshStandardMaterial({color:lin(c),roughness:r||0.6,metalness:0.15});
+  const box=(w,h,d,m,x,y,z)=>{const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);b.position.set(x,y,z);b.castShadow=true;g.add(b);return b;};
+  const wh=(xs,zs,r)=>{const m=M(0x141517,0.9);for(const x of xs)for(const z of zs){const w=new THREE.Mesh(new THREE.CylinderGeometry(r,r,0.3,12),m);w.rotation.x=Math.PI/2;w.position.set(x,r,z);g.add(w);}};
+  const beacon=col=>{const b=box(0.5,0.18,0.3,new THREE.MeshBasicMaterial({color:col}),0,0,0);g.userData.beacon=b;return b;};
+  if(kind==='bus'){box(11,0.5,2.7,M(0x2b2f35),0,0.75,0);box(11,2.1,2.7,M(0xe6b422),0,2.0,0);box(10.4,0.9,2.76,M(0x1b2630,0.2),0,2.2,0);wh([-3.6,3.6],[-1.2,1.2],0.52);const b=beacon(0xffaa00);b.position.set(0,3.2,0);}
+  else if(kind==='cater'){box(6.5,1.2,2.4,M(0x2d3136),-1,0.9,0);box(5.4,2.8,2.5,M(0xf2f3f4),-1.1,2.8,0);box(1.7,1.8,2.3,M(0xd8232a),2.7,1.7,0);box(0.2,1.0,1.9,M(0x1b2630,0.2),3.6,2.0,0);wh([-3,0.6,2.8],[-1.1,1.1],0.5);const b=beacon(0xffaa00);b.position.set(2.6,2.7,0);}
+  else if(kind==='van'){box(4.4,1.0,1.9,M(0xe6d422),0,0.95,0);box(2.6,0.9,1.8,M(0xe6d422),-0.4,1.85,0);box(1.0,0.7,1.78,M(0x1b2630,0.2),0.7,1.8,0);wh([-1.4,1.4],[-0.8,0.8],0.36);const b=beacon(0xff8a00);b.position.set(-0.4,2.4,0);}
+  else{box(5.2,1.0,2.2,M(0xd8e0e6),0,1.0,0);box(1.5,1.0,2.0,M(0x3a8a4a),1.8,2.0,0);box(2.4,0.5,2.4,M(0x2d3136),-2.4,1.4,0);wh([-1.8,1.8],[-1.0,1.0],0.4);const b=beacon(0xffaa00);b.position.set(1.8,2.7,0);}
+  return g;},
+ build(){
+  if(this.built||!R3.ok)return;this.built=true;
+  const gx=typeof GATE_X!=='undefined'?GATE_X:[-300,-180,-60,60,180,300];const x0=Math.min(...gx)-160,x1=Math.max(...gx)+160;this.x0=x0;this.x1=x1;
+  [['bus',-408,1],['cater',-402,-1],['van',-414,1],['sweep',-396,-1],['van',-420,-1]].forEach((d,i)=>{
+   const m=this.mesh(d[0]);const x=x0+(x1-x0)*(0.12+0.2*i);m.position.set(x,0,d[1]);R3.scene.add(m);
+   this.list.push({m,kind:d[0],x,z:d[1],dir:d[2],th:d[2]>0?0:Math.PI,v:0,hold:Math.random()*6,sp:5+Math.random()*3,bt:Math.random()*6});});
+ },
+ update(dt,t){
+  if(!this.built||!G.ents)return;const closed=!!G.rampClosed;
+  for(const r of this.list){
+   const wantStop=closed||r.hold>0;if(r.hold>0)r.hold-=dt;
+   const tv=wantStop?0:r.sp*(r.kind==='sweep'?0.6:1);r.v+=(tv-r.v)*Math.min(1,dt*1.2);
+   r.x+=Math.cos(r.th)*r.v*dt;
+   if(r.dir>0&&r.x>this.x1||r.dir<0&&r.x<this.x0){r.dir=-r.dir;r.hold=1+Math.random()*4;}
+   if(!closed&&r.v>2&&Math.random()<dt*0.04)r.hold=3+Math.random()*7;   // pull up beside a stand for a bit
+   const tgt=r.dir>0?0:Math.PI;let d=tgt-r.th;while(d>Math.PI)d-=6.283;while(d<-Math.PI)d+=6.283;r.th+=d*Math.min(1,dt*(1.6+r.v*0.12));
+   r.m.position.set(r.x,0.02+Math.sin(t*14+r.x)*0.006*Math.min(1,r.v/4),r.z);r.m.rotation.y=-r.th;r.m.rotation.z=-Math.min(0.03,r.v*0.0015)*Math.sign(d)*0;
+   if(r.m.userData.beacon)r.m.userData.beacon.visible=Math.sin(t*9+r.bt)>0;
+  }
+ }
+};
+/* ---------------- ambient tower sound: HVAC hum, wind, rain, aircraft engines by distance, tyre chirp ---------------- */
+const Amb={on:(()=>{try{return localStorage.getItem('marlow.amb')!=='0';}catch(e){return true;}})(),ready:false,t:0,
+ init(){
+  if(this.ready||typeof Voice==='undefined')return;const ac=Voice.ctx;if(!ac||ac.state!=='running')return;
+  this.ac=ac;const n=ac.sampleRate*3,buf=ac.createBuffer(1,n,ac.sampleRate),d=buf.getChannelData(0);let b0=0,b1=0,b2=0;
+  for(let i=0;i<n;i++){const w=Math.random()*2-1;b0=0.99765*b0+w*0.099;b1=0.963*b1+w*0.2965;b2=0.57*b2+w*1.05;d[i]=(b0+b1+b2+w*0.18)*0.16;}   // pink-ish
+  this.buf=buf;this.master=ac.createGain();this.master.gain.value=0;this.master.connect(ac.destination);
+  const src=(type,f,q)=>{const s=ac.createBufferSource();s.buffer=buf;s.loop=true;s.loopStart=Math.random()*1.5;const fl=ac.createBiquadFilter();fl.type=type;fl.frequency.value=f;fl.Q.value=q||0.7;const g=ac.createGain();g.gain.value=0;s.connect(fl);fl.connect(g);s.start(0,Math.random()*2);return{s,fl,g};};
+  this.hum=src('lowpass',160,0.5);this.wind=src('bandpass',420,0.5);this.rain=src('highpass',1800,0.6);this.jet=src('bandpass',420,0.8);this.whine=src('bandpass',2600,3);
+  this.pan=ac.createStereoPanner?ac.createStereoPanner():null;
+  for(const k of['hum','wind','rain'])this[k].g.connect(this.master);
+  if(this.pan){this.jet.g.connect(this.pan);this.whine.g.connect(this.pan);this.pan.connect(this.master);}else{this.jet.g.connect(this.master);this.whine.g.connect(this.master);}
+  const o=ac.createOscillator();o.frequency.value=100;const og=ac.createGain();og.gain.value=0.004;o.connect(og);og.connect(this.master);o.start();
+  this.ready=true;
+ },
+ touch(e){
+  if(!this.ready||!this.on)return;const c=R3.camera.position,d=Math.hypot(e.x-c.x,e.z-c.z);const ac=this.ac;if(d>2600)return;
+  const s=ac.createBufferSource();s.buffer=this.buf;const f=ac.createBiquadFilter();f.type='bandpass';f.frequency.value=1700+Math.random()*500;f.Q.value=1.4;const g=ac.createGain();const A=0.22/(1+Math.pow(d/350,1.5));
+  const t0=ac.currentTime+d/340*0.35;g.gain.setValueAtTime(0,t0);g.gain.linearRampToValueAtTime(A,t0+0.04);g.gain.exponentialRampToValueAtTime(0.0005,t0+0.9);s.connect(f);f.connect(g);g.connect(this.master);s.start(t0,Math.random()*1.5,1.2);
+ },
+ update(dt,t){
+  if(!this.ready){this.t-=dt;if(this.t<=0){this.t=1;this.init();}return;}
+  const ac=this.ac,now=ac.currentTime,ramp=(p,v,tc)=>p.setTargetAtTime(v,now,tc||0.4);
+  const on=this.on&&G&&G.ents&&!G.over;ramp(this.master.gain,on?1:0,0.5);
+  if(!on)return;
+  const w=G.wind?G.wind.spd:6,gst=0.5+0.5*Math.sin(t*0.9)*Math.sin(t*0.37);
+  ramp(this.hum.g.gain,R3.mode==='tower'?0.06:0.015,0.8);
+  ramp(this.wind.g.gain,Math.min(0.14,0.012+w*0.0045)*(0.6+0.8*gst),0.5);ramp(this.wind.fl.frequency,260+w*22,0.6);
+  const rain=(WX.kind==='rain'||WX.kind==='storm'||(G.cell&&G.cell.over))?(WX.kind==='storm'||(G.cell&&G.cell.over)?0.1:0.065):0;ramp(this.rain.g.gain,rain,0.8);
+  // engines
+  const c=R3.camera.position,yaw=R3.cam?R3.cam.yaw:0,rx=Math.cos(yaw),rz=-Math.sin(yaw);let L=0,Lh=0,px=0,fr=0;
+  for(const e of G.ents){
+   if(e.dead||e.veh)continue;let th=0;
+   switch(e.phase){case'ROLL':case'CLIMB':case'GOAROUND':th=1;break;case'ROLLOUT':th=e.v>40?0.65:0.2;break;case'APPROACH':th=e.D>0?0.35:0.5;break;case'LINEUP':case'TAXI':case'PUSHBACK':case'RETURN':th=0.12;break;case'RTO':th=0.8;break;default:th=0.01;}
+   if(th<=0.02)continue;const dx=e.x-c.x,dz=e.z-c.z,dy=(e.y||0)-c.y,d=Math.hypot(dx,dz,dy)+1;
+   const big=(e.type&&e.type.eng===4?1.25:1)*(e.type&&e.type.wake==='H'?1.15:1)*(e.type&&e.type.prop?0.7:1);
+   const a=th*big*0.5/(1+Math.pow(d/380,1.7));L+=a;px+=a*((dx*rx+dz*rz)/d);fr+=a*(300+th*650);if(!(e.type&&e.type.prop))Lh+=a*th*th;
+  }
+  const tot=L+1e-6;ramp(this.jet.g.gain,Math.min(0.5,L*1.4),0.25);ramp(this.jet.fl.frequency,Math.max(180,Math.min(1200,fr/tot)),0.4);
+  ramp(this.whine.g.gain,Math.min(0.06,Lh*0.35),0.3);if(this.pan)ramp(this.pan.pan,clamp(px/tot,-0.8,0.8),0.3);
+ }
+};
 (function(){
  const _uc=R3.updateCam;let last=performance.now()/1000;
  R3.updateCam=function(dt){_uc.call(this,dt);const now=performance.now()/1000,d=Math.min(0.1,now-last);last=now;
-  try{SVC.build();SVC.update(d);WX.update(d,now);}catch(e){if(!R3._xe){R3._xe=1;console.warn('extras',e);}}};
+  try{SVC.build();SVC.update(d);ROAM.build();ROAM.update(d,now);WX.update(d,now);Amb.update(d,now);R3.todAuto(d);}catch(e){if(!R3._xe){R3._xe=1;console.warn('extras',e);}}};
 })();
 
 ;
@@ -5102,10 +5432,19 @@ const FX={
    this.water(e.x+dx/L*2+rnd2(-0.3,0.3),4.8,e.z+dz/L*2+rnd2(-0.3,0.3),dx/L*sp*0.8+rnd2(-1,1),sp*0.62+rnd2(-1,1),dz/L*sp*0.8+rnd2(-1,1));
   }
  },
+ /* wingtip vortices of heavies on approach / climb-out (they sink and linger, which is what the next aircraft flies into) */
+ wakeVortex(e,m,dt){
+  if(!e.type||e.type.wake!=='H'||e.y<2||e.y>260||(e.v||0)<45)return;const D=m.root.userData.dims;if(!D)return;
+  const n=this.n('wv'+e.id,26,dt),c=Math.cos(e.th),s=Math.sin(e.th),hw=D.half*0.93;
+  for(let i=0;i<n;i++)for(const sd of[-1,1]){
+   const bx=e.x-c*D.L*0.18-s*sd*hw,bz=e.z-s*D.L*0.18+c*sd*hw;
+   psEmit(this.smoke,bx+rnd2(-0.4,0.4),e.y+rnd2(1.5,3.5),bz+rnd2(-0.4,0.4),-s*sd*rnd2(0.2,1.0),-0.5,c*sd*rnd2(0.2,1.0),rnd2(9,14),rnd2(0.9,1.4),rnd2(5.5,8),[0.92,0.94,0.96],[0.8,0.82,0.86],0.09,0.12,0.05,0,0.4);}
+ },
  /* tyre smoke when the main gear touches down */
  tdSmoke(e,m,dt){
   if(e.tdT==null||e.y>1.5)return;const D=m.root.userData.dims;if(!D)return;
   const st=m.fx||(m.fx={});if(st.tdSeen!==e.tdT){st.tdSeen=e.tdT;st.tdE=0;}
+  if(st.tdE===0&&typeof Amb!=='undefined')Amb.touch(e);
   st.tdE+=dt;const k=st.tdE;if(k>2.2||(e.v||0)<22)return;
   const hard=e.tdHard||0,w=(e.type&&e.type.wing)||30,big=Math.min(1.6,0.6+(e.type&&e.type.len||40)/70);
   const rate=(k<0.25?1500:420*Math.pow(1-k/2.2,1.2))*(0.7+0.7*hard)*big;
@@ -5127,7 +5466,7 @@ const FX={
     const m=R3.meshes.get(e.id);if(!m)continue;
     if(e.veh){if(e.vt==='fire')this.truckFx(e,m,dt);continue;}
     if(e.crashed||m.holder.userData.wreck)continue;
-    this.tdSmoke(e,m,dt);
+    this.tdSmoke(e,m,dt);this.wakeVortex(e,m,dt);
     try{this.entityFx(e,m,dt);}catch(er){if(!this._err){this._err=1;console.warn('fx',er);}}
    }
   }
@@ -5295,6 +5634,10 @@ const MAPV={
   G.ents.forEach(e=>{if(!e.dead&&e.id!==this.sel)draw(e);});if(sel)draw(sel);
   // incursion warnings
   for(const e of G.ents){if(e.dead||e.veh)continue;if(e.phase==='TAXI'&&e.blowHold&&e.path&&e.path.len-e.s<140){ctx.strokeStyle=C.bad;ctx.lineWidth=3;ctx.globalAlpha=0.5+0.5*Math.sin(t*10);{const [ix,iz]=this.P(e.x,e.z);ctx.strokeRect(ix-22,iz-22,44,44);}ctx.globalAlpha=1;}}
+  // thunderstorm cell on the radar
+  if(G.cell){const c=G.cell,[cx,cz]=this.P(c.x,c.z),R=c.r*this.sc;const gr=ctx.createRadialGradient(cx,cz,R*0.1,cx,cz,R);gr.addColorStop(0,'rgba(255,60,50,0.55)');gr.addColorStop(0.45,'rgba(255,170,40,0.38)');gr.addColorStop(1,'rgba(60,200,90,0.18)');
+   ctx.fillStyle=gr;ctx.beginPath();ctx.arc(cx,cz,R,0,6.283);ctx.fill();ctx.strokeStyle='rgba(255,120,60,0.6)';ctx.lineWidth=1;ctx.setLineDash([5,4]);ctx.stroke();ctx.setLineDash([]);
+   ctx.fillStyle='#ffb347';ctx.font='bold 10px "JetBrains Mono",monospace';ctx.textAlign='center';ctx.fillText('CB '+Math.round(Math.hypot(c.vx,c.vz)*1.94)+'kt',cx,cz+4);ctx.textAlign='left';}
   // wind + scale overlay
   this.overlay(ctx,t);
  },
@@ -5370,13 +5713,14 @@ const UI={
  /* ---------- start / stop ---------- */
  showStart(){
   const s=this.saved||{};
-  $('s-level').value=s.level||'cadet';$('s-mode').value=s.mode||'career';$('s-tod').value=s.tod||'day';$('s-wx').value=s.wx||'clear';$('s-fog').checked=!!s.fog;$('s-shift').value=s.shift||30;
+  $('s-level').value=s.level||'cadet';$('s-mode').value=s.mode||'career';$('s-tod').value=s.tod||'day';$('s-wx').value=s.wx||'clear';$('s-fog').checked=!!s.fog;$('s-cells').checked=s.cells!==false;$('s-amb').checked=(typeof Amb==='undefined')?true:Amb.on;$('s-shift').value=s.shift||30;
   $('s-key').value=Voice.key||'';$('s-gem').checked=Voice.gemini;$('s-voice').checked=Voice.on;
   $('start').hidden=false;$('over').hidden=true;
  },
  start(){
   Voice.ensureCtx();
-  const cfg={level:$('s-level').value,mode:$('s-mode').value,tod:$('s-tod').value,wx:$('s-wx').value,fog:$('s-fog').checked,shift:+$('s-shift').value||30};
+  const cfg={level:$('s-level').value,mode:$('s-mode').value,tod:$('s-tod').value,wx:$('s-wx').value,fog:$('s-fog').checked,cells:$('s-cells').checked,shift:+$('s-shift').value||30};
+  try{Amb.on=$('s-amb').checked;localStorage.setItem('marlow.amb',Amb.on?'1':'0');}catch(e){}
   Voice.key=$('s-key').value.trim();Voice.gemini=$('s-gem').checked;Voice.on=$('s-voice').checked;Voice.save();
   this.saved=cfg;this.saveCfg();
   R3.clear();MAPV.trails.clear();$('log').innerHTML='';this.logN=0;this.sel=0;R3.sel=0;MAPV.sel=0;
@@ -5485,7 +5829,7 @@ const UI={
  },
  atisText(){
   const w=G.wind;let wd=Math.round(WDM(w)/10)*10%360;if(wd===0)wd=360;
-  return '<b>'+AIRPORT.icao+' INFORMATION '+ATIS_L[G.atis].toUpperCase()+'</b>  '+this.clockStr(G.clock).slice(0,5).replace(':','')+'Z\n'+((G.wx&&G.wx!=='clear')?'WEATHER '+WX_NAMES[G.wx]+'\n':'')+'RUNWAY IN USE '+RWD()+'\nWIND '+pad(wd,3)+' DEGREES '+Math.round(w.spd)+' KNOTS\nVISIBILITY '+(G.fog?'800 METRES, FOG':'10 KILOMETRES OR MORE')+'\nQNH '+G.qnh+'\nTRANSITION LEVEL 60\n<b>ACKNOWLEDGE INFORMATION '+ATIS_L[G.atis].toUpperCase()+' ON FIRST CONTACT.</b>';
+  return '<b>'+AIRPORT.icao+' INFORMATION '+ATIS_L[G.atis].toUpperCase()+'</b>  '+this.clockStr(G.clock).slice(0,5).replace(':','')+'Z\n'+((G.wx&&G.wx!=='clear')?'WEATHER '+WX_NAMES[G.wx]+'\n':'')+(G.fog?'LOW VISIBILITY PROCEDURES IN OPERATION\n':'')+(G.cell&&G.cell.near?'CB OVERHEAD OR NEAR FIELD, LIGHTNING WITHIN 5 MILES, RAMP CLOSED\n':G.cell?'CB APPROACHING FROM THE '+compassOf(-G.cell.vx,-G.cell.vz).toUpperCase()+'\n':'')+'RUNWAY IN USE '+RWD()+'\nWIND '+pad(wd,3)+' DEGREES '+Math.round(w.spd)+' KNOTS\nVISIBILITY '+(G.fog?'800 METRES, FOG':'10 KILOMETRES OR MORE')+'\nQNH '+G.qnh+'\nTRANSITION LEVEL 60\n<b>ACKNOWLEDGE INFORMATION '+ATIS_L[G.atis].toUpperCase()+' ON FIRST CONTACT.</b>';
  },
  talkingId(){
   if(typeof Voice!=='undefined'&&Voice.on&&Voice.now&&Voice.now.ent&&Voice.now.who==='pilot')return Voice.now.ent.id;
@@ -5538,7 +5882,7 @@ const UI={
   const gs=Math.round(a.v/KT),alt=a.y>10?Math.round(a.y*FT/10)*10:0;
   return '<div class="fp"><div class="fp-top"><b>'+esc(csName(a))+'</b><small>'+esc(a.type.n+' · '+(a.heavy?'H':'M')+' · '+a.al.icao)+'</small><span class="ph2 '+cls+'" id="fp-ph">'+esc(a.emerg?String(a.emerg).toUpperCase():a.req?'CALLING':a.y>10?(a.kind==='dep'?'DEPARTING':'ARRIVING'):'ON GROUND')+'</span></div>'+
    '<div class="fp-route"><span>'+org+'</span><i><u id="fp-prog" style="width:'+Math.round(this.fpProg(a)*100)+'%"></u></i><span>'+dst+'</span></div>'+
-   '<div class="fp-stats"><div><small>Speed</small><b id="fp-spd">'+gs+' kt</b></div><div><small>Altitude</small><b id="fp-alt">'+(alt?alt.toLocaleString('en-GB')+' ft':'GND')+'</b></div><div><small>'+(a.kind==='arr'&&a.D>0?'To go':'Squawk')+'</small><b id="fp-x">'+(a.kind==='arr'&&a.D>0?(a.D/NM).toFixed(1)+' nm':(a.squawk||'—'))+'</b></div></div></div>';
+   '<div class="fp-stats"><div><small>Speed</small><b id="fp-spd">'+gs+' kt</b></div><div><small>Altitude</small><b id="fp-alt">'+(alt?alt.toLocaleString('en-GB')+' ft':'GND')+'</b></div><div><small>'+(a.kind==='arr'&&a.D>0?'To go':'Squawk')+'</small><b id="fp-x">'+(a.kind==='arr'&&a.D>0?(a.D/NM).toFixed(1)+' nm':(a.squawk||'—'))+'</b></div></div>'+(a.slot&&!a.slotDone?'<div class="fp-slot" style="margin:6px 2px 0;padding:5px 8px;border:1px solid #8a6d1f;border-radius:5px;color:#f0c050;font:600 11px JetBrains Mono,monospace;letter-spacing:.04em">'+slotText(a)+'</div>':'')+'</div>';
  },
  fpLive(a){
   const s=$('fp-spd');if(!s||a.veh)return;s.textContent=Math.round(a.v/KT)+' kt';const al=a.y>10?Math.round(a.y*FT/10)*10:0;$('fp-alt').textContent=al?al.toLocaleString('en-GB')+' ft':'GND';

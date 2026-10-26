@@ -70,13 +70,33 @@ const TS={
  A359:{k:'wide',nl:0.130,tl:0.190,p:1.95,nd:0.24,hr:1.00,upw:0.48,wl:'curved',eng:'xwb',R:0.60,fin:2.55,stab:0.33,win:0.58,gear:3,mzf:1.7},
  B789:{k:'wide',nl:0.128,tl:0.190,p:2.00,nd:0.18,hr:1.00,upw:0.52,wl:'raked',eng:'gen',R:0.60,fin:2.55,stab:0.33,win:0.58,gear:3,mzf:1.7},
  B77W:{k:'wide',nl:0.120,tl:0.185,p:2.15,nd:0.12,hr:1.00,upw:0.60,wl:'raked',eng:'ge90',R:0.68,fin:2.50,stab:0.33,win:0.56,gear:3,mzf:1.7},
- A388:{k:'super',nl:0.115,tl:0.190,p:1.90,nd:0.10,hr:1.20,upw:0.30,wl:'fence',eng:'trent',R:0.50,fin:2.55,stab:0.30,win:0.55,gear:2,mzf:3.5}
+ A388:{k:'super',nl:0.115,tl:0.190,p:1.90,nd:0.10,hr:1.20,upw:0.30,wl:'fence',eng:'trent',R:0.50,fin:2.55,stab:0.30,win:0.55,gear:2,mzf:3.5},
+ // ---- later additions (cloned / tuned from the benchmark types)
+ A319:{k:'narrow',nl:0.122,tl:0.225,p:2.15,nd:0.20,hr:1.035,upw:0.62,wl:'sharklet',eng:'cfm',R:0.53,fin:3.0,stab:0.36,win:0.60,gear:1,mzf:1.7},
+ A20N:{k:'narrow',nl:0.118,tl:0.225,p:2.15,nd:0.20,hr:1.035,upw:0.62,wl:'sharklet',eng:'cfm',R:0.58,fin:3.0,stab:0.36,win:0.60,gear:1,mzf:1.7},
+ A21N:{k:'narrow',nl:0.105,tl:0.205,p:2.15,nd:0.20,hr:1.035,upw:0.60,wl:'sharklet',eng:'cfm',R:0.58,fin:3.0,stab:0.36,win:0.60,gear:1,mzf:1.7},
+ B38M:{k:'narrow',nl:0.120,tl:0.230,p:2.30,nd:0.14,hr:1.00,upw:0.55,wl:'blended',eng:'cfm737',R:0.53,fin:2.95,stab:0.35,win:0.62,gear:1,mzf:1.7},
+ B752:{k:'narrow',nl:0.105,tl:0.200,p:2.20,nd:0.15,hr:1.00,upw:0.50,wl:'blended',eng:'cfm737',R:0.56,fin:2.9,stab:0.34,win:0.62,gear:1,mzf:1.8},
+ B763:{k:'wide',nl:0.120,tl:0.200,p:2.10,nd:0.14,hr:1.00,upw:0.48,wl:'blended',eng:'ge90',R:0.54,fin:2.5,stab:0.33,win:0.58,gear:2,mzf:1.6},
+ B772:{k:'wide',nl:0.120,tl:0.185,p:2.15,nd:0.12,hr:1.00,upw:0.58,wl:null,eng:'ge90',R:0.66,fin:2.5,stab:0.33,win:0.56,gear:3,mzf:1.7},
+ B788:{k:'wide',nl:0.130,tl:0.195,p:2.00,nd:0.18,hr:1.00,upw:0.52,wl:'raked',eng:'gen',R:0.58,fin:2.55,stab:0.33,win:0.58,gear:3,mzf:1.7},
+ A332:{k:'wide',nl:0.125,tl:0.195,p:2.05,nd:0.20,hr:1.03,upw:0.52,wl:'fence',eng:'trent',R:0.56,fin:2.55,stab:0.33,win:0.58,gear:2,mzf:1.7},
+ A339:{k:'wide',nl:0.125,tl:0.195,p:2.05,nd:0.20,hr:1.03,upw:0.52,wl:'raked',eng:'trent',R:0.62,fin:2.55,stab:0.33,win:0.58,gear:2,mzf:1.7},
+ A35K:{k:'wide',nl:0.125,tl:0.185,p:1.95,nd:0.24,hr:1.00,upw:0.48,wl:'curved',eng:'xwb',R:0.62,fin:2.55,stab:0.33,win:0.58,gear:3,mzf:1.7},
+ B744:{k:'wide',ws:'jumbo',nl:0.115,tl:0.190,p:2.10,nd:0.12,hr:1.00,upw:0.62,wl:'small',eng:'ge90',R:0.55,fin:2.5,stab:0.33,win:0.56,gear:3,mzf:1.7,hump:0.52,h0:0.60,hp:0.855,h1:0.915},
+ B748:{k:'wide',ws:'jumbo',nl:0.112,tl:0.185,p:2.10,nd:0.12,hr:1.00,upw:0.62,wl:'raked',eng:'gen',R:0.58,fin:2.5,stab:0.33,win:0.56,gear:3,mzf:1.7,hump:0.52,h0:0.60,hp:0.86,h1:0.915},
+ B742:{k:'wide',ws:'jumbo',nl:0.115,tl:0.190,p:2.10,nd:0.12,hr:1.00,upw:0.62,wl:null,eng:'ge90',R:0.55,fin:2.4,stab:0.33,win:0.56,gear:3,mzf:1.7,hump:0.50,h0:0.66,hp:0.88,h1:0.925},
+ A343:{k:'wide',nl:0.125,tl:0.195,p:2.05,nd:0.20,hr:1.03,upw:0.52,wl:'fence',eng:'cfm',R:0.50,fin:2.55,stab:0.33,win:0.58,gear:2,mzf:1.7},
+ A346:{k:'wide',nl:0.115,tl:0.185,p:2.05,nd:0.20,hr:1.03,upw:0.52,wl:'fence',eng:'trent',R:0.54,fin:2.45,stab:0.33,win:0.58,gear:3,mzf:1.7},
+ A3ST:{k:'wide',nl:0.115,tl:0.225,p:2.10,nd:0.12,hr:1.00,upw:0.30,wl:null,eng:'ge90',R:0.50,fin:2.0,stab:0.33,win:0.56,gear:2,mzf:1.7,hump:1.15,h0:0.10,hp:0.62,h1:0.93,humpw:0.35},
+ B74L:{k:'wide',ws:'jumbo',nl:0.115,tl:0.190,p:2.10,nd:0.12,hr:1.00,upw:0.62,wl:'small',eng:'ge90',R:0.55,fin:2.5,stab:0.33,win:0.56,gear:3,mzf:1.7,hump:0.95,h0:0.14,hp:0.52,h1:0.84,humpw:0.40}
 };
 const WSPEC={ // planform; same numbers gfx.js used so gear / engine placement stays consistent
  narrow:{rootC:0.158,tipC:0.04,sweep:25,dih:5,wy:-0.45,lex:0.16,eng:0.32,kink:0.36,kc:0.60,tw:-3,tr:0.10},
  regional:{rootC:0.15,tipC:0.042,sweep:23,dih:5,wy:-0.42,lex:0.15,eng:0.33,kink:0.38,kc:0.62,tw:-3,tr:0.11},
  wide:{rootC:0.172,tipC:0.03,sweep:32,dih:6,wy:-0.42,lex:0.14,eng:0.31,kink:0.34,kc:0.58,tw:-4,tr:0.105},
  super:{rootC:0.172,tipC:0.03,sweep:33,dih:5,wy:-0.42,lex:0.14,eng:0.31,kink:0.34,kc:0.58,tw:-4,tr:0.115},
+ jumbo:{rootC:0.18,tipC:0.028,sweep:37.5,dih:6,wy:-0.42,lex:0.13,eng:0.31,kink:0.36,kc:0.58,tw:-4,tr:0.105},
  prop:{rootC:0.115,tipC:0.066,sweep:3,dih:1.5,wy:0.80,lex:0.10,eng:0.30,kink:0.45,kc:0.82,tw:-2,tr:0.15}
 };
 
@@ -93,6 +113,7 @@ function secAt(t,L,rf,S){
  else if(t<tl){const v=t/tl,q=1-v,r=0.055+0.945*Math.pow(Math.max(0,1-Math.pow(q,2.15)),0.72);
   s={y0:rf*S.upw*q*q*(S.k==='prop'?1.15:1),w:rf*r*(1-0.16*q),h:rf*S.hr*r,n:2.2};}
  else s={y0:S.k==='super'?rf*0.05:0,w:rf,h:rf*S.hr,n:S.k==='super'?2.45:2.15};
+ if(S.hump&&t>S.h0&&t<S.h1){let b=t<S.hp?(t-S.h0)/(S.hp-S.h0):(S.h1-t)/(S.h1-S.hp);b=b*b*(3-2*b);const d=rf*S.hump*b;s.y0+=d*0.5;s.h+=d*0.5;if(S.humpw)s.w+=rf*S.humpw*b;}
  return s;
 }
 function fusPoint(t,th,L,rf,S,out,off){
@@ -219,6 +240,24 @@ const HULLD={
  A359:{doors:[0.875,0.78,0.60,0.345,0.185],exits:[],w0:0.09,w1:0.9,cargo:[0.69,0.30],pitch:0.53},
  B789:{doors:[0.885,0.795,0.60,0.335,0.18],exits:[],w0:0.09,w1:0.9,cargo:[0.70,0.30],pitch:0.55},
  B77W:{doors:[0.885,0.80,0.585,0.315,0.185],exits:[],w0:0.085,w1:0.9,cargo:[0.71,0.30],pitch:0.55},
+ A319:{doors:[0.835,0.215],exits:[0.50],w0:0.19,w1:0.83,cargo:[0.72,0.30],pitch:0.53},
+ A20N:{doors:[0.845,0.225],exits:[0.505],w0:0.19,w1:0.83,cargo:[0.735,0.31],pitch:0.53},
+ A21N:{doors:[0.87,0.715,0.275,0.145],exits:[0.535,0.465],w0:0.115,w1:0.855,cargo:[0.775,0.2],pitch:0.53},
+ B38M:{doors:[0.83,0.215],exits:[0.495,0.55],w0:0.185,w1:0.81,cargo:[0.72,0.30],pitch:0.55},
+ B752:{doors:[0.865,0.17],exits:[0.52,0.585],w0:0.14,w1:0.84,cargo:[0.74,0.26],pitch:0.55},
+ B763:{doors:[0.875,0.72,0.43,0.15],exits:[],w0:0.10,w1:0.89,cargo:[0.66,0.28],pitch:0.55},
+ B772:{doors:[0.885,0.78,0.60,0.34,0.185],exits:[],w0:0.09,w1:0.90,cargo:[0.69,0.30],pitch:0.55},
+ B788:{doors:[0.885,0.79,0.60,0.34,0.18],exits:[],w0:0.09,w1:0.90,cargo:[0.70,0.30],pitch:0.55},
+ A332:{doors:[0.875,0.775,0.585,0.395,0.185],exits:[],w0:0.095,w1:0.895,cargo:[0.69,0.30],pitch:0.53},
+ A339:{doors:[0.875,0.775,0.585,0.395,0.185],exits:[],w0:0.095,w1:0.895,cargo:[0.69,0.30],pitch:0.53},
+ A35K:{doors:[0.885,0.80,0.62,0.37,0.19],exits:[],w0:0.09,w1:0.905,cargo:[0.71,0.30],pitch:0.53},
+ B744:{doors:[0.915,0.80,0.665,0.47,0.30,0.145],exits:[],w0:0.07,w1:0.92,cargo:[0.74,0.31],pitch:0.55},
+ B748:{doors:[0.92,0.81,0.68,0.49,0.32,0.15],exits:[],w0:0.07,w1:0.92,cargo:[0.75,0.31],pitch:0.55},
+ B742:{doors:[0.915,0.80,0.665,0.47,0.30,0.145],exits:[],w0:0.07,w1:0.92,cargo:[0.74,0.31],pitch:0.55},
+ A343:{doors:[0.875,0.775,0.585,0.395,0.185],exits:[],w0:0.095,w1:0.895,cargo:[0.69,0.30],pitch:0.53},
+ A346:{doors:[0.895,0.80,0.68,0.52,0.36,0.185],exits:[],w0:0.085,w1:0.905,cargo:[0.72,0.31],pitch:0.53},
+ A3ST:{doors:[0.90,0.06],exits:[],w0:0.5,w1:0.5,cargo:[0.40],pitch:0.55},
+ B74L:{doors:[0.915,0.06],exits:[],w0:0.5,w1:0.5,cargo:[0.40],pitch:0.55},
  A388:{doors:[0.905,0.835,0.665,0.415,0.225],exits:[],w0:0.085,w1:0.925,cargo:[0.74,0.33],pitch:0.55,deck2:true}
 };
 const LAYC={};
@@ -373,7 +412,7 @@ function paintLivery(al,ty,lay,W,H){
 const WTEX={};
 function wingTextures(ty,variant){
  const key=ty.n+variant;if(WTEX[key])return WTEX[key];
- const S=TS[ty.n]||TS.A320,WS=WSPEC[S.k],R=mul(seedOf('w'+key)),W=2048,H=1024,hf=H/2;
+ const S=TS[ty.n]||TS.A320,WS=WSPEC[S.ws||S.k],R=mul(seedOf('w'+key)),W=2048,H=1024,hf=H/2;
  const[c,x]=cv(W,H),[hc,h]=cv(W,H),[rc,r]=cv(W,H),[ac,a]=cv(W,H);
  const prop=S.k==='prop',half=ty.wing/2,zE=half*WS.eng;
  for(let s=0;s<2;s++){const y0=s*hf;const g=x.createLinearGradient(0,y0,0,y0+hf);if(s===0){g.addColorStop(0,'#dde1e4');g.addColorStop(1,'#cfd5d9');}else{g.addColorStop(0,'#c3c9ce');g.addColorStop(1,'#b6bdc3');}x.fillStyle=g;x.fillRect(0,y0,W,hf);}
@@ -511,7 +550,7 @@ R3.acMaterials=function(a){
  const fairM=new THREE.MeshStandardMaterial({color:lin(0xdadee1),roughness:0.42,metalness:0.1});
  return LV[key]={bodyM,wingM:wingMat(ty,variant),engM,finM,tailM,fairM,lay};
 };
-const ENGTXT={A320:'CFM56-5B / V2500',A321:'CFM56-5B / V2500',B738:'CFM56-7B27',E190:'GE CF34-10E',E175:'GE CF34-8E',A333:'ROLLS-ROYCE TRENT 700',A359:'ROLLS-ROYCE TRENT XWB',B789:'GEnx-1B',B77W:'GE90-115B',A388:'ROLLS-ROYCE TRENT 900',DH8D:'PW150A'};
+const ENGTXT={A320:'CFM56-5B / V2500',A321:'CFM56-5B / V2500',B738:'CFM56-7B27',E190:'GE CF34-10E',E175:'GE CF34-8E',A333:'ROLLS-ROYCE TRENT 700',A359:'ROLLS-ROYCE TRENT XWB',B789:'GEnx-1B',B77W:'GE90-115B',A388:'ROLLS-ROYCE TRENT 900',A319:'CFM56-5B / V2500',A20N:'LEAP-1A / PW1100G',A21N:'LEAP-1A / PW1100G',B38M:'LEAP-1B',B752:'ROLLS-ROYCE RB211-535',B763:'GE CF6-80C2',B772:'GE90-94B',B788:'GEnx-1B',A332:'ROLLS-ROYCE TRENT 700',A339:'ROLLS-ROYCE TRENT 7000',A35K:'ROLLS-ROYCE TRENT XWB-97',B744:'GE CF6-80C2',B748:'GEnx-2B',B742:'PRATT & WHITNEY JT9D',A343:'CFM56-5C',A346:'ROLLS-ROYCE TRENT 500',A3ST:'GE CF6-80C2',B74L:'GE CF6-80C2',DH8D:'PW150A'};
 
 /* =====================================================================
    COMPONENT BUILDERS
@@ -685,7 +724,7 @@ function wingletSecs(P,last,h,cant0,cant1,cTip,sweep,n){
  return out;
 }
 R3.buildAC=function(a){
- const ty=a.type,L=ty.len,W=ty.wing,rf=ty.rf,S=TS[ty.n]||TS.A320,WS=WSPEC[S.k],prop=S.k==='prop',big=S.k==='wide'||S.k==='super';
+ const ty=a.type,L=ty.len,W=ty.wing,rf=ty.rf,S=TS[ty.n]||TS.A320,WS=WSPEC[S.ws||S.k],prop=S.k==='prop',big=S.k==='wide'||S.k==='super';
  const mats=this.acMaterials(a),M=this.mat,variant=(a.id||0)%2;
  if(!M.glowM)M.glowM=new THREE.SpriteMaterial({map:this.glow,color:0xffffff,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false});
  const root=new THREE.Group(),pivot=new THREE.Group(),body=new THREE.Group(),detail=new THREE.Group();

@@ -151,6 +151,10 @@ const MAPV={
   G.ents.forEach(e=>{if(!e.dead&&e.id!==this.sel)draw(e);});if(sel)draw(sel);
   // incursion warnings
   for(const e of G.ents){if(e.dead||e.veh)continue;if(e.phase==='TAXI'&&e.blowHold&&e.path&&e.path.len-e.s<140){ctx.strokeStyle=C.bad;ctx.lineWidth=3;ctx.globalAlpha=0.5+0.5*Math.sin(t*10);{const [ix,iz]=this.P(e.x,e.z);ctx.strokeRect(ix-22,iz-22,44,44);}ctx.globalAlpha=1;}}
+  // thunderstorm cell on the radar
+  if(G.cell){const c=G.cell,[cx,cz]=this.P(c.x,c.z),R=c.r*this.sc;const gr=ctx.createRadialGradient(cx,cz,R*0.1,cx,cz,R);gr.addColorStop(0,'rgba(255,60,50,0.55)');gr.addColorStop(0.45,'rgba(255,170,40,0.38)');gr.addColorStop(1,'rgba(60,200,90,0.18)');
+   ctx.fillStyle=gr;ctx.beginPath();ctx.arc(cx,cz,R,0,6.283);ctx.fill();ctx.strokeStyle='rgba(255,120,60,0.6)';ctx.lineWidth=1;ctx.setLineDash([5,4]);ctx.stroke();ctx.setLineDash([]);
+   ctx.fillStyle='#ffb347';ctx.font='bold 10px "JetBrains Mono",monospace';ctx.textAlign='center';ctx.fillText('CB '+Math.round(Math.hypot(c.vx,c.vz)*1.94)+'kt',cx,cz+4);ctx.textAlign='left';}
   // wind + scale overlay
   this.overlay(ctx,t);
  },

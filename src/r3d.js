@@ -50,7 +50,10 @@ const R3={
   this.scene.add(this.clouds);
  },
  applyTOD(mode){
-  this.tod=mode;const P={
+  this.tod=mode;this.TODP={
+   day:{top:0x4f86d1,hor:0xcfe3f3,fog:0xc4d8e8,hemi:[0xffffff,0x4f6840,0.95],sun:[0xfff6e3,1.15],lights:0.12,win:0},
+   dusk:{top:0x2b3a6e,hor:0xf0a56a,fog:0x7b6f86,hemi:[0xffd7b0,0x3a4430,0.55],sun:[0xff9a55,0.6],lights:0.85,win:0.6},
+   night:{top:0x050a18,hor:0x172544,fog:0x0a1226,hemi:[0x6577aa,0x1a2230,0.28],sun:[0x7f90c8,0.12],lights:1,win:1}};const P={
    day:{top:0x4f86d1,hor:0xcfe3f3,fog:0xc4d8e8,hemi:[0xffffff,0x4f6840,0.95],sun:[0xfff6e3,1.15],lights:0.12,win:0},
    dusk:{top:0x2b3a6e,hor:0xf0a56a,fog:0x7b6f86,hemi:[0xffd7b0,0x3a4430,0.55],sun:[0xff9a55,0.6],lights:0.85,win:0.6},
    night:{top:0x050a18,hor:0x172544,fog:0x0a1226,hemi:[0x6577aa,0x1a2230,0.28],sun:[0x7f90c8,0.12],lights:1,win:1}}[mode]||null;
@@ -243,7 +246,9 @@ const R3={
   let y=0,vib=gnd?sp*(e.veh?0.004:0.0014)*Math.sin(t*(e.veh?29:19)+e.id*1.7):0;
   let p=d.x+vib+(gnd?sp*0.0012*Math.sin(t*3.1+e.id):0);
   if(!e.veh&&e.tdT!=null&&gnd){const k=G.t-e.tdT;if(k>=0&&k<4){const A=0.35+0.65*(e.tdHard||0),f=Math.exp(-2.6*k);p+=0.03*A*f*Math.sin(9*k);y=0.22*A*f*Math.abs(Math.sin(5.5*k));}}
-  return{p,r:d.r+(gnd?vib*0.7:0),y};
+  let wr=0;if(e.wakeT>0){const k=Math.min(1,e.wakeT/3);wr=Math.sin(t*7.3+e.id)*0.20*k+Math.sin(t*13)*0.05*k;p+=Math.sin(t*5.1)*0.03*k;}
+  if(e.cellWx||G.cell&&G.cell.over&&e.y>3){wr+=Math.sin(t*3.1+e.id)*0.04+Math.sin(t*8.7)*0.02;}
+  return{p,r:d.r+(gnd?vib*0.7:0)+wr,y};
  },
  /* ---------- per-frame ---------- */
  sync(dt,t){

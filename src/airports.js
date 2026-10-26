@@ -13,6 +13,27 @@ const NEWTYPES={
  A388:{n:'A388',wing:79.8,len:72.7,wake:'H',vref:145,vr:155,acc:1.45,eng:4,rf:3.55,wide:true}
 };
 Object.assign(TYPES,NEWTYPES);
+/* more Boeing / Airbus types (wake class, speeds and dimensions from the real aircraft) */
+Object.assign(TYPES,{
+ A319:{n:'A319',wing:35.8,len:33.8,wake:'M',vref:132,vr:137,acc:2.1,eng:2,rf:2.1,wide:false},
+ A20N:{n:'A20N',wing:35.8,len:37.6,wake:'M',vref:133,vr:138,acc:2.0,eng:2,rf:2.1,wide:false},
+ A21N:{n:'A21N',wing:35.8,len:44.5,wake:'M',vref:138,vr:143,acc:1.9,eng:2,rf:2.1,wide:false},
+ B38M:{n:'B38M',wing:35.9,len:39.5,wake:'M',vref:138,vr:143,acc:2.0,eng:2,rf:2.1,wide:false},
+ B752:{n:'B752',wing:38.0,len:47.3,wake:'M',vref:137,vr:145,acc:1.9,eng:2,rf:2.1,wide:false},
+ B763:{n:'B763',wing:47.6,len:54.9,wake:'H',vref:140,vr:147,acc:1.7,eng:2,rf:2.55,wide:true},
+ B772:{n:'B772',wing:60.9,len:63.7,wake:'H',vref:143,vr:150,acc:1.6,eng:2,rf:3.1,wide:true},
+ B788:{n:'B788',wing:60.1,len:56.7,wake:'H',vref:142,vr:148,acc:1.7,eng:2,rf:3.0,wide:true},
+ A332:{n:'A332',wing:60.3,len:58.8,wake:'H',vref:138,vr:146,acc:1.7,eng:2,rf:2.95,wide:true},
+ A339:{n:'A339',wing:64.0,len:63.7,wake:'H',vref:141,vr:149,acc:1.65,eng:2,rf:2.95,wide:true},
+ A35K:{n:'A35K',wing:64.8,len:73.8,wake:'H',vref:143,vr:153,acc:1.6,eng:2,rf:3.1,wide:true},
+ B744:{n:'B744',wing:64.4,len:70.7,wake:'H',vref:153,vr:160,acc:1.4,eng:4,rf:3.25,wide:true},
+ B748:{n:'B748',wing:68.4,len:76.3,wake:'H',vref:152,vr:160,acc:1.4,eng:4,rf:3.25,wide:true},
+ B742:{n:'B742',wing:59.6,len:70.7,wake:'H',vref:152,vr:158,acc:1.3,eng:4,rf:3.25,wide:true,rare:true},
+ A343:{n:'A343',wing:60.3,len:63.7,wake:'H',vref:140,vr:150,acc:1.45,eng:4,rf:2.95,wide:true,rare:true},
+ A346:{n:'A346',wing:63.5,len:75.4,wake:'H',vref:143,vr:153,acc:1.4,eng:4,rf:2.95,wide:true,rare:true},
+ A3ST:{n:'A3ST',wing:44.8,len:56.2,wake:'H',vref:132,vr:140,acc:1.7,eng:2,rf:2.85,wide:true,rare:true,name:'Airbus Beluga'},
+ B74L:{n:'B74L',wing:64.4,len:71.7,wake:'H',vref:153,vr:160,acc:1.35,eng:4,rf:3.25,wide:true,rare:true,name:'Boeing 747 Dreamlifter'}
+});
 /* ---- rare visitors: Concorde, Grumman F-14 Tomcat, Northrop B-2 Spirit (dimensions & speeds from the real aircraft) ---- */
 Object.assign(TYPES,{
  CONC:{n:'CONC',wing:25.6,len:61.66,wake:'H',vref:162,vr:195,acc:2.5,eng:4,rf:1.5,wide:false,rare:true,name:'Aérospatiale/BAC Concorde'},
@@ -57,10 +78,38 @@ const RARE_OPS=[
  {icao:'SPIRT',rt:'Spirit',nm:'509TH BOMB WING',liv:'B2',tail:0x2a2d31,acc:0x2a2d31,voice:'Algieba',accent:'American',fleet:['B2'],nums:['11','12','21','22','31','32'],w:4,
   names:[['Spirit of America','82-1066'],['Spirit of Arizona','82-1067'],['Spirit of Missouri','82-1070']]}
 ];
+RARE_OPS.push(
+ {icao:'BGA',rt:'Beluga',nm:'AIRBUS TRANSPORT',liv:'BEL',tail:0x1c4f9c,acc:0x1c4f9c,body:'#f3f5f7',voice:'Charon',accent:'French',fleet:['A3ST'],nums:['1','2','3','4','5'],w:2.5},
+ {icao:'GTI',rt:'Giant',nm:'DREAMLIFTER',liv:'DRL',tail:0x1d3d73,acc:0x1d3d73,body:'#f3f5f7',voice:'Fenrir',accent:'American',fleet:['B74L'],nums:['4241','4242','4243'],w:2});
 AIRLINES.push(...RARE_OPS);
 /* fleets for the original nine */
 const FLEET0={BAW:['A320','A321','A359','B789','B77W','A388'],DLH:['A320','A321','A359','A333'],AFR:['A320','A321','B77W','A359'],EZY:['A320','A321'],RYR:['B738'],KLM:['B738','E190','B789','B77W','A333'],VIR:['A333','A359','B789'],UAE:['B77W','A388','A359'],SAS:['A320','A359','E190']};
 AIRLINES.forEach(a=>{if(!a.fleet)a.fleet=FLEET0[a.icao]||['A320'];});
+/* extra regular types per airline (listed twice = more common) and rare types seen ~5% of the time */
+const FLEETX={
+ BAW:[['A319','A20N','A21N','B772','B788','A35K','A332','B744','B744'],['B742','B744','A346']],
+ DLH:[['A319','A20N','A21N','A332','A346','B748','B744'],['A343','A346','B742']],
+ AFR:[['A319','A332','B772','A359','A388'],['A343','B742']],
+ EZY:[['A319','A20N','A21N'],[]],RYR:[['B38M','B38M','B738'],[]],
+ KLM:[['B772','B788','A332','B744'],['B742','B744']],
+ VIR:[['A339','B788','A333'],['B744','A346','B744']],
+ UAE:[['B772','B77W'],['B744']],
+ SAS:[['A319','A20N','A333'],['A343']],
+ QTR:[['B772','A332','A35K','B788'],['A346','B748']],ETD:[['B772','B788','A332'],['A346']],
+ THY:[['A319','A20N','A21N','B38M','B772','A332'],['A343','B742']],
+ SWR:[['A319','A20N','A21N','B772'],['A343','A346']],
+ IBE:[['A319','A20N','A21N','A332','A339'],['A346','A343']],
+ SIA:[['B772','A35K','B788'],['A388','B744']],
+ AAL:[['B752','B763','B772','B788','B38M','A319','A20N'],['B744']],
+ DAL:[['B752','B763','B772','A332','A339','A319','B38M'],['B744','B742']],
+ UAL:[['B752','B763','B772','B788','B38M','A319'],['B744','B742']],
+ SWA:[['B38M','B38M'],[]],JBU:[['A21N','A20N'],[]],ASA:[['B38M'],[]],
+ ACA:[['A319','A332','B763','B772','B788','B38M'],['B742']],FDB:[['B38M','B38M'],[]],
+ JAL:[['B763','B772','B788','A35K'],['B744','B742']],ANA:[['B763','B772','B788','A388'],['B744']],
+ QFA:[['A332','B788','B772'],['B744','B742']],JST:[['A320','B788'],[]],VOZ:[['B738'],[]],
+ ANZ:[['B772','B788','A20N'],['B744']],TRA:[['B38M','B738'],[]],SCO:[['B788','B789'],[]]
+};
+AIRLINES.forEach(a=>{const f=FLEETX[a.icao];if(f&&!a.sq&&!a.liv){a.fleet=a.fleet.concat(f[0]);a.rareFleet=f[1];}});
 const AL_BY=Object.fromEntries(AIRLINES.map(a=>[a.icao,a]));
 const SPK={BAW:'Speedbird'};
 

@@ -358,10 +358,19 @@ const FX={
    this.water(e.x+dx/L*2+rnd2(-0.3,0.3),4.8,e.z+dz/L*2+rnd2(-0.3,0.3),dx/L*sp*0.8+rnd2(-1,1),sp*0.62+rnd2(-1,1),dz/L*sp*0.8+rnd2(-1,1));
   }
  },
+ /* wingtip vortices of heavies on approach / climb-out (they sink and linger, which is what the next aircraft flies into) */
+ wakeVortex(e,m,dt){
+  if(!e.type||e.type.wake!=='H'||e.y<2||e.y>260||(e.v||0)<45)return;const D=m.root.userData.dims;if(!D)return;
+  const n=this.n('wv'+e.id,26,dt),c=Math.cos(e.th),s=Math.sin(e.th),hw=D.half*0.93;
+  for(let i=0;i<n;i++)for(const sd of[-1,1]){
+   const bx=e.x-c*D.L*0.18-s*sd*hw,bz=e.z-s*D.L*0.18+c*sd*hw;
+   psEmit(this.smoke,bx+rnd2(-0.4,0.4),e.y+rnd2(1.5,3.5),bz+rnd2(-0.4,0.4),-s*sd*rnd2(0.2,1.0),-0.5,c*sd*rnd2(0.2,1.0),rnd2(9,14),rnd2(0.9,1.4),rnd2(5.5,8),[0.92,0.94,0.96],[0.8,0.82,0.86],0.09,0.12,0.05,0,0.4);}
+ },
  /* tyre smoke when the main gear touches down */
  tdSmoke(e,m,dt){
   if(e.tdT==null||e.y>1.5)return;const D=m.root.userData.dims;if(!D)return;
   const st=m.fx||(m.fx={});if(st.tdSeen!==e.tdT){st.tdSeen=e.tdT;st.tdE=0;}
+  if(st.tdE===0&&typeof Amb!=='undefined')Amb.touch(e);
   st.tdE+=dt;const k=st.tdE;if(k>2.2||(e.v||0)<22)return;
   const hard=e.tdHard||0,w=(e.type&&e.type.wing)||30,big=Math.min(1.6,0.6+(e.type&&e.type.len||40)/70);
   const rate=(k<0.25?1500:420*Math.pow(1-k/2.2,1.2))*(0.7+0.7*hard)*big;
@@ -383,7 +392,7 @@ const FX={
     const m=R3.meshes.get(e.id);if(!m)continue;
     if(e.veh){if(e.vt==='fire')this.truckFx(e,m,dt);continue;}
     if(e.crashed||m.holder.userData.wreck)continue;
-    this.tdSmoke(e,m,dt);
+    this.tdSmoke(e,m,dt);this.wakeVortex(e,m,dt);
     try{this.entityFx(e,m,dt);}catch(er){if(!this._err){this._err=1;console.warn('fx',er);}}
    }
   }

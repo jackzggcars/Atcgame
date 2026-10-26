@@ -119,16 +119,18 @@ function endGame(kind,reason,ents){G.over={kind,reason,t:G.t};emit('over',G.over
 function newGame(cfg){
  const base=Object.assign({},PRESETS[cfg.level||'controller'],cfg);
  G.cfg=Object.assign({level:'controller',mode:'career',shift:30,tod:'day',fog:false},base);
- G.t=0;G.clock=6*3600+10*60;G.rwy=Math.random()<0.5?'09':'27';
+ G.t=0;G.clock=({day:10*3600+20*60,dusk:18*3600+30*60,night:23*3600+10*60}[G.cfg.tod])||6*3600+10*60;G.rwy=Math.random()<0.5?'09':'27';
  const wd=G.rwy==='09'?rnd(60,120):rnd(240,300);
  G.wind={dir:wd,spd:rnd(6,12),target:wd,base:rnd(6,12)};G.qnh=rint(1004,1024);G.atis=rint(0,25);
  G.wx=G.cfg.wx||'clear';G.gust=G.wx==='storm'?9:G.wx==='rain'?4:0;if(G.wx==='storm'){G.wind.base+=11;G.qnh=rint(988,1002);}else if(G.wx==='rain'){G.wind.base+=4;G.qnh=rint(996,1010);}
  G.windShiftAt=rnd(480,780);G.fog=!!G.cfg.fog;
+ G.cellNext=undefined;G.cell=null;G.rampClosed=false;G.cellGust=0;
  G.ents=[];G.log=[];G.q=[];G.score=0;G.safety=100;G.over=null;G.nextId=1;G.gates={};G.flags={debris:false};
  G.stats={dep:0,arr:0,goArounds:0,incursion:0,los:0,wake:0,emerg:0,delay:0,readback:0};
  G.acc={dep:0,arr:0};G.opsNext=200;G.pairs={};G.lastTO={t:-999,heavy:false};G.sqUsed={};G.scoreLog=[];G.rwyWarn=0;
  spawnDep(rnd(6,10));spawnDep(rnd(22,32));later(rnd(12,18),()=>spawnArr());
  sysMsg('Shift started. Runway '+RWD()+' in use. ATIS '+ATIS_L[G.atis]+', QNH '+G.qnh+'.','ok');
+ if(G.fog)sysMsg('Low visibility procedures in force: slower taxi, wider spacing on final, expect delays.','warn');
  emit('new',G);
 }
 
@@ -143,7 +145,7 @@ function wpickAl(){const L=AIRPORT.airlines;let t=0;L.forEach(x=>t+=x[1]);let r=
 function mkAc(kind){
  let al=wpickAl(),rare=false;
  if(kind==='arr'&&Math.random()<(G.cfg.rare!==undefined?G.cfg.rare:0.05)){let t=0;RARE_OPS.forEach(x=>t+=x.w);let r=Math.random()*t;for(const x of RARE_OPS){r-=x.w;if(r<=0){al=x;break;}}rare=true;}
- const ty=TYPES[pick(al.fleet)]||TYPES.A320;
+ const ty=TYPES[(al.rareFleet&&al.rareFleet.length&&Math.random()<0.05)?pick(al.rareFleet):pick(al.fleet)]||TYPES.A320;
  let num=uniqueNum(al);if(rare){const f=al.nums.filter(n=>!G.ents.some(e=>e.al===al&&e.num===n));num=pick(f.length?f:al.nums);}
  const a={id:G.nextId++,kind,al,type:ty,num,cs:al.icao+num,rt:al.rt+' '+num,heavy:ty.wake==='H',
   x:0,z:0,y:0,th:0,v:0,pitch:0,bank:0,vs:0,phase:'',req:null,nextReq:null,waitSec:0,dead:false,r:0.32*Math.max(ty.wing,ty.len),
@@ -155,32 +157,33 @@ function mkAc(kind){
 function pickW(L){let t=0;L.forEach(x=>t+=x[1]);let r=Math.random()*t;for(const x of L){r-=x[1];if(r<=0)return x[0];}return L[0][0];}
 function pickMishap(kind){
  if(Math.random()>=G.cfg.mishap)return null;
- return kind==='dep'?pickW([['rto',24],['engine',16],['bird',22],['nordo',8],['rtofire',6],['engfire_dep',7],['engsep',2.5],['birdeng',5]]):pickW([['panpan',22],['lowfuel',16],['nordo',7],['leak',10],['engfire',8],['gear',8],['hyd',6],['smoke',5]]);
+ return kind==='dep'?pickW([['rto',24],['engine',16],['bird',22],['nordo',8],['rtofire',6],['engfire_dep',7],['engsep',2.5],['birdeng',5]]):pickW([['panpan',22],['lowfuel',16],['bstrike',7],['fuelhid',8],['nordo',7],['leak',10],['engfire',8],['gear',8],['hyd',6],['smoke',5]]);
 }
 function spawnDep(delay){
  const free=gatesFree();if(!free.length)return null;
  const n=pick(free);const a=mkAc('dep');a.gate=String(n);G.gates[n]=a.id;a.x=GATE_X[n-1];a.z=-350;a.th=-Math.PI/2;
- a.phase='BOARDING';a.board=0;a.boardTime=delay!==undefined?delay:rnd(30,55);a.mishap=pickMishap('dep');a.rtoSpeed=rnd(48,64);
+ assignSlot(a);a.phase='BOARDING';a.board=0;a.boardTime=delay!==undefined?delay:rnd(30,55);a.mishap=pickMishap('dep');a.rtoSpeed=rnd(48,64);
  G.ents.push(a);emit('spawn',a);return a;
 }
 function spawnArr(){
  const air=G.ents.filter(e=>!e.dead&&['APPROACH','GOAROUND'].includes(e.phase)).length;
  if(air>=G.cfg.maxAir)return null;
- const d=dirOf();let D=rnd(8.3,9.6)*NM;
- G.ents.forEach(e=>{if(e.phase==='APPROACH'&&Math.abs(e.D-D)<4.6*NM)D=Math.max(D,e.D+4.7*NM);});
+ const d=dirOf();let D=rnd(8.3,9.6)*NM;const SP=G.fog?6.2:4.6;
+ G.ents.forEach(e=>{if(e.phase==='APPROACH'&&Math.abs(e.D-D)<SP*NM)D=Math.max(D,e.D+(SP+0.1)*NM);});
  const a=mkAc('arr');a.phase='APPROACH';a.D=D;a.v=150*KT;a.mishap=pickMishap('arr');a.th=d>0?0:Math.PI;placeApproach(a);
  a.checked=false;
  G.ents.push(a);emit('spawn',a);
  if(a.mishap==='nordo'){a.nordo=true;a.squawk='7600';sysMsg('A '+a.cs+' squawking 7600: lost communications. Use the light gun.','warn');}
  else if(a.mishap==='panpan'){a.emerg='panpan';a.squawk='7700';G.stats.emerg++;request(a,'PANPAN',{dist:Math.round(D/NM)});}
+ else if(a.mishap==='fuelhid'){a.fuel=rnd(8,10);request(a,'CHECKIN',{dist:Math.round(D/NM)});}
  else if(a.mishap==='lowfuel'){a.fuel=rnd(9,11);request(a,'CHECKIN',{dist:Math.round(D/NM)});}
  else if(EMKIND[a.mishap]){startArrEmerg(a,D);}
  else request(a,'CHECKIN',{dist:Math.round(D/NM)});
  a.checked=true;return a;
 }
 function placeApproach(a){
- const d=dirOf();a.x=thrX()-d*a.D;a.z=0;a.th=d>0?0:Math.PI;
- a.y=a.D>0?a.D*TAN3+15:15*clamp(1+a.D/300,0,1);
+ const d=dirOf();a.x=thrX()-d*a.D;a.z=0;const th0=d>0?0:Math.PI;
+ a.y=a.D>0?a.D*TAN3+15:15*clamp(1+a.D/300,0,1);a.th=crabTh(a,th0);
 }
 
 /* ---------------- requests & reminders ---------------- */
@@ -234,6 +237,7 @@ function follow(a,dt,o){
  const h0=sample(p,a.s).th,la=10+a.v*2.4,h1=sample(p,Math.min(p.len,a.s+la)).th,turnA=Math.abs(angDiff(h1,h0));
  if(turnA>0.1){const vtn=o.vturn||5.5;vt=Math.min(vt,vtn+Math.max(0,vt-vtn)*Math.max(0,1-turnA/0.85));}
  if(o.endStop!==false)vt=Math.min(vt,Math.sqrt(2*1.5*Math.max(0,rem-0.4))+0.2);
+ if(G.fog)vt*=0.72;
  let blocked=false;
  if(o.block!==false){
   const q=sample(p,a.s);const sg=o.back?-1:1;
@@ -279,7 +283,7 @@ function step(dt){
  if(G.over)return;
  G.t+=dt;G.clock+=dt;
  for(let i=G.q.length-1;i>=0;i--){if(G.q[i].t<=G.t){const f=G.q[i].fn;G.q.splice(i,1);try{f();}catch(e){console.error(e);}}}
- weather(dt);spawnLogic(dt);
+ weather(dt);cellUpdate(dt);wakeUpdate(dt);spawnLogic(dt);
  for(const e of G.ents){if(e.dead)continue;if(e.yieldT>0){e.yieldT-=dt;if(e.yDone<e.yMag){const st=Math.min(6*dt,e.yMag-e.yDone);e.yDone+=st;e.x+=-Math.sin(e.th)*e.yDir*st;e.z+=Math.cos(e.th)*e.yDir*st;}}if(e.veh)updVeh(e,dt);else updAc(e,dt);}
  collisions();separation();
  for(let i=G.ents.length-1;i>=0;i--)if(G.ents[i].dead){emit('remove',G.ents[i]);G.ents.splice(i,1);}
@@ -289,7 +293,7 @@ function weather(dt){
  const w=G.wind;
  if(G.t>G.windShiftAt&&!G.shifted){G.shifted=true;w.target=G.rwy==='09'?rnd(240,290):rnd(70,110);G.atis=(G.atis+1)%26;sysMsg('Wind is shifting. New ATIS '+ATIS_L[G.atis]+' — a runway change may be needed.','warn');emit('atis',G);}
  const dd=angDiff(w.target*D2R,w.dir*D2R)*R2D;w.dir=(w.dir+clamp(dd,-0.6*dt,0.6*dt)+360)%360;
- w.spd=Math.max(2,w.base+Math.sin(G.t/17)*2.2+Math.sin(G.t/5.3)*1.2+(G.gust||0)*Math.max(0,Math.sin(G.t*1.3)*Math.sin(G.t/2.9)));
+ w.spd=Math.max(2,w.base+Math.sin(G.t/17)*2.2+Math.sin(G.t/5.3)*1.2+(G.gust||0)*Math.max(0,Math.sin(G.t*1.3)*Math.sin(G.t/2.9))+(G.cellGust||0)*(0.5+0.5*Math.sin(G.t*1.9)*Math.sin(G.t*0.7+1)));
  const hr=(G.rwy==='09'?90:270),head=w.spd*Math.cos((w.dir-hr)*D2R);G.head=head;
  G.rwyBetter=null;const other=G.rwy==='09'?270:90,ho=w.spd*Math.cos((w.dir-other)*D2R);
  if(head<-6&&ho>head+8)G.rwyBetter=G.rwy==='09'?'27':'09';
@@ -314,7 +318,7 @@ function updAc(a,dt){
  }
  switch(a.phase){
  case 'BOARDING':
-  a.board+=dt/a.boardTime;if(a.board>=1){a.board=1;a.phase='AT_GATE';if(!a.clrOk)request(a,'CLR');}break;
+  if(!G.rampClosed)a.board+=dt/a.boardTime;if(a.board>=1){a.board=1;a.phase='AT_GATE';if(!a.clrOk)request(a,'CLR');}break;
  case 'AT_GATE':
   if(a.clrOk&&!a.req&&!a.nextReq&&!a.pushAsked){a.pushAsked=true;a.nextReq={kind:'PUSH',at:G.t+rnd(7,14)};}
   break;
@@ -424,9 +428,9 @@ function rollUpdate(a,dt){
  if(a.v>=ty.vr*KT)a.pitch=Math.min(0.12,a.pitch+0.045*dt);
  if(G.flags.debris&&!a.debrisChk&&a.v>30){a.debrisChk=true;if(Math.random()<0.5){a.phase='RTO';say('pilot',a,'Tyre burst! Stopping, stopping!','urgent');a.mishap=null;return;}}
  if(a.v>=(ty.vr+6)*KT){
-  a.phase='CLIMB';a.y=0.6;a.vs=0.5;
+  a.phase='CLIMB';a.y=0.6;a.vs=0.5;checkSlot(a);
   const prev=G.lastTO;const need=prev.heavy?120:60;
-  if(G.t-prev.t<need&&G.t-prev.t>0){incident('wake','WAKE TURBULENCE: '+a.cs+' departed only '+Math.round(G.t-prev.t)+' s behind '+(prev.heavy?'a heavy':'another aircraft')+' (need '+need+' s)',5);}
+  if(G.t-prev.t<need&&G.t-prev.t>0){a.wakeT=9;incident('wake','WAKE TURBULENCE: '+a.cs+' departed only '+Math.round(G.t-prev.t)+' s behind '+(prev.heavy?'a heavy':'another aircraft')+' (need '+need+' s)',5);}
   G.lastTO={t:G.t,heavy:a.heavy};a.rwyAuth=false;a.outTh=(a.dest.th-AP.hdg)*D2R;a.tkLift=G.t;
   return;
  }
@@ -451,6 +455,7 @@ function appUpdate(a,dt){
  vt=Math.max(vt,vref);if(a.hyd)vt=Math.max(vt,vref+16*KT);a.v+=clamp(vt-a.v,-1.3*dt,1.0*dt);
  a.D-=a.v*dt;placeApproach(a);a.pitch=a.y<20?lerp(-0.03,0.075,clamp(1-a.y/20,0,1)):-0.03-0.02*clamp((a.y-20)/60,0,1);if(a.engOut)a.bank=lerp(a.bank,0.09*(a.engSide||1),dt);if(a.dead_stick){a.sinkX=(a.sinkX||0)+5.2*dt;a.y=Math.max(0,a.y-a.sinkX);if(a.y<=1&&a.D>40){a.x=a.x;deadStickCrash(a);return;}}
  if((!a.req||a.req.kind==='CHECKIN')&&!a.nextReq&&!a.cleared&&a.D>0&&(!a.askedLand&&Dnm<4.2||a.askedLand&&Dnm<2.2&&G.t-(a.lastLR||0)>20)){a.askedLand=true;a.lastLR=G.t;request(a,'LANDREQ',{dist:Math.max(1,Math.round(Dnm))});}
+ if(arrivalProblem(a,Dnm))return;
  if(a.D>0&&a.chk<1&&Dnm<0.62||a.D>0&&a.chk<2&&Dnm<0.27){
   a.chk=(a.chk||0)+1;
   const occ=rwyOccupied(a);const tail=Math.max(0,-G.head||0);
