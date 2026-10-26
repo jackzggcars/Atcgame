@@ -157,7 +157,7 @@ const Voice={
  },
  async test(){
   this.ensureCtx();this.fails=0;this.lastErr='';
-  const e={text:'Marlow Tower, Speedbird 452, holding point Bravo, runway 09, ready for departure.',voice:'Charon',accent:'British',cs:'BAW452',urgent:false};
+  const e={text:AIRPORT.short+' Tower, Speedbird 452, holding point '+AIRPORT.tx.conn[0]+', runway '+AIRPORT.rwy.a+', ready for departure.',voice:'Charon',accent:'British',cs:'BAW452',urgent:false};
   if(!this.key){this.status='nokey';this.speak(e);return 'No key set — playing a browser voice instead.';}
   try{const b=await this.geminiBuffer(toSpeech(e.text),e.voice,this.styleFor(e));await this.playBuffer(b);this.status='gemini';return 'Gemini voice OK ('+this.model+').';}
   catch(err){this.status='error';this.lastErr=String(err.message||err);if(this.fallback)this.speak(e);

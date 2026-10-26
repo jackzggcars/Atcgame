@@ -70,7 +70,7 @@ function parseCmd(text,selId){
  c.neg=/\b(negative|correction|i say again|disregard)\b/.test(m);
  c.deny=/\b(unable|not approved|denied|call again|cannot)\b/.test(m);
  c.wait=/\b(standby|stand by|wait|roger standby)\b/.test(m);
- const rw=m.match(/runway (\d{1,2})/);if(rw)c.rwy=rw[1].padStart(2,'0');
+ const rw=m.match(/runway (\d{1,2})\s*(left|right|centre|center|l|r|c)?\b/);if(rw){const dd=rw[1].padStart(2,'0'),ll=rw[2]?({left:'L',right:'R',centre:'C',center:'C'}[rw[2]]||rw[2].toUpperCase()):'';const full=dd+ll;c.rwy='ZZ';for(const k of ['09','27'])if(RWL[k]===full||(!ll&&RWL[k].slice(0,2)===dd))c.rwy=k;}
  let sq=m.match(/squawk (\d{4})/);if(sq)c.squawk=sq[1];
  else if(/cleared to \w+/.test(m)){const f=[...m.matchAll(/\b([0-7]{4})\b(?! ?(feet|ft))/g)].map(x=>x[1]).filter(x=>!m.includes('qnh '+x)&&!m.includes('runway '+x));if(f.length&&!/\b(qnh)\s*$/.test(m))c.squawk=f[0];}
  const hp=m.match(/holding point (bravo|charlie|delta|echo)/);if(hp)c.hp=hp[1][0].toUpperCase();
@@ -135,7 +135,7 @@ function injectErr(a,key,v){
   const real=v.sq,i=rint(0,3);let d=(+real[i]+rint(1,6))%8;const wrong=real.slice(0,i)+d+real.slice(i+1);
   v.sq=wrong;a.err={kind:'sq',real,wrong,at:G.t+15,fix:'negative, squawk '+real};return null;
  }
- if(key==='TAXI'){v.hs='';a.err={kind:'hold',at:G.t+17,fix:'negative, hold short of runway '+G.rwy};return null;}
+ if(key==='TAXI'){v.hs='';a.err={kind:'hold',at:G.t+17,fix:'negative, hold short of runway '+RWD()};return null;}
  if(key==='READY'){a.err={kind:'tko',at:G.t+14,fix:'negative, hold position, I said line up and wait'};return 'Cleared for takeoff, runway {rwy}, {cs}.';}
  return null;
 }
@@ -147,10 +147,10 @@ function resolveErr(a,c){
   if(c.neg){sayAgain(a);return true;}return false;
  }
  if(e.kind==='hold'){
-  if(c.intent==='holdpos'||c.intent==='holdshort'||c.neg){good();a.blowHold=false;pilotReply(a,'Hold short of runway '+G.rwy+', '+csName(a)+'.');return true;}return false;
+  if(c.intent==='holdpos'||c.intent==='holdshort'||c.neg){good();a.blowHold=false;pilotReply(a,'Hold short of runway '+RWD()+', '+csName(a)+'.');return true;}return false;
  }
  if(e.kind==='tko'){
-  if(c.intent==='holdpos'||c.intent==='lineup'||c.neg){good();a.autoTO=false;pilotReply(a,'Line up and wait, runway '+G.rwy+', '+csName(a)+'.');return true;}return false;
+  if(c.intent==='holdpos'||c.intent==='lineup'||c.neg){good();a.autoTO=false;pilotReply(a,'Line up and wait, runway '+RWD()+', '+csName(a)+'.');return true;}return false;
  }
  return false;
 }
@@ -167,7 +167,7 @@ function handleDeny(a){
  const d=k==='CLR'?rnd(80,110):rnd(45,75);
  if(a.veh)later(d,()=>{if(!a.dead&&a.phase==='REQ'&&!a.req)reaskVeh(a);});else a.nextReq={kind:k,at:G.t+d,x};
 }
-function reaskVeh(v){v.req={kind:'INSP',t:G.t,n:0,x:{}};say('pilot',v,fmt(PH.INSP.pilot[0],V(null,{unit:UNITS.GND.n,rwy:G.rwy})));emit('req',v);}
+function reaskVeh(v){v.req={kind:'INSP',t:G.t,n:0,x:{}};say('pilot',v,fmt(PH.INSP.pilot[0],V(null,{unit:UNITS.GND.n,rwy:RWD()})));emit('req',v);}
 function bestGate(a){
  if(a.gate&&G.gates[a.gate]===a.id)return +a.gate;
  let best=null,bl=1e9;
@@ -204,13 +204,13 @@ const HANDLERS={
   if(c.wait){if(a.req)handleWait(a);return;}
   if(a.kind==='dep'){
    if(a.phase!=='STOPPED'||!a.node){pilotReply(a,['BOARDING','AT_GATE'].includes(a.phase)?'Negative, we are still on stand, '+csName(a)+'.':'Say again, '+csName(a)+'?');return;}
-   if(c.rwy&&c.rwy!==G.rwy){pilotReply(a,'Negative, runway '+G.rwy+' is in use, '+csName(a)+'.');return;}
+   if(c.rwy&&c.rwy!==G.rwy){pilotReply(a,'Negative, runway '+RWD()+' is in use, '+csName(a)+'.');return;}
    const hp=c.hp?'H'+c.hp:defaultHold(a);
    if(availRoll(hp)<toffReq(a)){pilotReply(a,'Unable, we need more runway than is available from holding point '+HPN[hp]+', request '+(a.heavy?'the full length':'a longer roll')+', '+csName(a)+'.');return;}
    const r=route(a.node,hp);if(!r){sayAgain(a);return;}
    a.req=null;a.nextReq=null;a.hp=hp;a.destNode=hp;a.path=pathFromNodes(r.ids,{x:a.x,z:a.z},40);a.s=0;a.paused=false;a.back=false;a.phase='TAXI';a.node=null;
    const via=viaNames(r.edges,EXN[hp.slice(1)]).join(', ')||'Alpha';
-   readback(a,'TAXI','Accept',{via,hp:HPN[hp],hs:', hold short of runway '+G.rwy});
+   readback(a,'TAXI','Accept',{via,hp:HPN[hp],hs:', hold short of runway '+RWD()});
    return;
   }
   // arrival
@@ -240,7 +240,7 @@ const HANDLERS={
   pilotReply(a,'Stopping, '+csName(a)+'.');
  },
  holdshort(a,c){
-  if(a.phase==='TAXI'||a.phase==='HOLDING'||a.phase==='STOPPED'){a.blowHold=false;pilotReply(a,'Holding short of runway '+G.rwy+', '+csName(a)+'.');return;}
+  if(a.phase==='TAXI'||a.phase==='HOLDING'||a.phase==='STOPPED'){a.blowHold=false;pilotReply(a,'Holding short of runway '+RWD()+', '+csName(a)+'.');return;}
   sayAgain(a);
  },
  continue(a,c){
@@ -251,14 +251,14 @@ const HANDLERS={
  lineup(a,c){
   if(a.phase!=='HOLDING'||!a.destNode){pilotReply(a,a.phase==='ON_RWY'?'We are already lined up, '+csName(a)+'.':'Say again, '+csName(a)+'?');return;}
   if(c.deny){if(a.req)handleDeny(a);return;}
-  if(c.rwy&&c.rwy!==G.rwy){pilotReply(a,'Negative, runway '+G.rwy+' is the active runway, '+csName(a)+'.');return;}
+  if(c.rwy&&c.rwy!==G.rwy){pilotReply(a,'Negative, runway '+RWD()+' is the active runway, '+csName(a)+'.');return;}
   if(availRoll(a.destNode)<toffReq(a)){pilotReply(a,'Unable, not enough runway from here, '+csName(a)+'.');return;}
   const occ=rwyOccupied(a);if(occ){pilotReply(a,'Unable, the runway is occupied by '+occ.rt+', '+csName(a)+'.');return;}
   a.node=a.destNode;a.req=null;a.nextReq=null;startLineup(a,false);
   readback(a,'READY','Accept');
  },
  takeoff(a,c){
-  if(c.rwy&&c.rwy!==G.rwy){pilotReply(a,'Negative, runway '+G.rwy+' is active, '+csName(a)+'.');return;}
+  if(c.rwy&&c.rwy!==G.rwy){pilotReply(a,'Negative, runway '+RWD()+' is active, '+csName(a)+'.');return;}
   if(a.phase==='HOLDING'&&a.destNode){
    const occ=rwyOccupied(a);if(occ){pilotReply(a,'Unable, the runway is occupied by '+occ.rt+', '+csName(a)+'.');return;}
    if(availRoll(a.destNode)<toffReq(a)){pilotReply(a,'Unable, not enough runway from here, '+csName(a)+'.');return;}
@@ -273,7 +273,7 @@ const HANDLERS={
  },
  land(a,c){
   if(!['APPROACH','GOAROUND'].includes(a.phase)){sayAgain(a);return;}
-  if(c.rwy&&c.rwy!==G.rwy){pilotReply(a,'Negative, we are lined up for runway '+G.rwy+', '+csName(a)+'.');return;}
+  if(c.rwy&&c.rwy!==G.rwy){pilotReply(a,'Negative, we are lined up for runway '+RWD()+', '+csName(a)+'.');return;}
   if(a.phase==='GOAROUND'){pilotReply(a,'We are going around, '+csName(a)+'.');return;}
   a.cleared=true;a.priority=!!a.emerg;
   const key=a.emerg==='panpan'?'PANPAN':a.emerg==='fuel'?'LOWFUEL':a.emerg==='mayday'?'MAYDAY':'LANDREQ';
@@ -333,7 +333,7 @@ const HANDLERS={
   if(!a.veh||a.phase!=='REQ'){sayAgain(a);return;}
   if(c.deny){if(a.req)handleDeny(a);return;}
   if(c.wait){if(a.req)handleWait(a);return;}
-  a.req=null;readback(a,'INSP','Accept',{rwy:G.rwy,unit:''});
+  a.req=null;readback(a,'INSP','Accept',{rwy:RWD(),unit:''});
   later(3,()=>{if(a.dead)return;
    const k=G.rwy==='09'?'C':'D',rx=NODES['R'+k];const out=route('DP','H'+k);
    const p=opsInspectPath();a.path=p;a.s=0;a.phase='INSP';
@@ -400,7 +400,7 @@ function changeRunway(){
  const bv=G.ents.find(e=>e.veh&&e.vt==='ops'&&e.phase==='INSP');if(bv)return{ok:false,msg:'Inspection vehicle is on the runway.'};
  G.rwy=G.rwy==='09'?'27':'09';G.atis=(G.atis+1)%26;
  G.ents.forEach(e=>{if(!e.dead&&e.phase==='APPROACH'){e.cleared=false;placeApproach(e);}});
- sysMsg('Runway '+G.rwy+' now in use. New ATIS '+ATIS_L[G.atis]+'. Check your taxi routes.','warn');emit('atis',G);
+ sysMsg('Runway '+RWD()+' now in use. New ATIS '+ATIS_L[G.atis]+'. Check your taxi routes.','warn');emit('atis',G);
  return{ok:true};
 }
-function snapshotATIS(){const w=G.wind;let wd=Math.round(w.dir/10)*10%360;if(wd===0)wd=360;return 'ATIS '+ATIS_L[G.atis]+' · RWY '+G.rwy+' · '+pad(wd,3)+'/'+Math.round(w.spd)+'kt · QNH '+G.qnh+(G.fog?' · LOW VIS':'');}
+function snapshotATIS(){const w=G.wind;let wd=Math.round(WDM(w)/10)*10%360;if(wd===0)wd=360;return 'ATIS '+ATIS_L[G.atis]+' · RWY '+RWD()+' · '+pad(wd,3)+'/'+Math.round(w.spd)+'kt · QNH '+G.qnh+(G.fog?' · LOW VIS':'');}

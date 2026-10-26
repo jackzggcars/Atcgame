@@ -356,7 +356,7 @@ select,input[type=text],input[type=password],input[type=number]{border-radius:0;
    <div id="v3d">
     <canvas id="gl"></canvas><div id="labels3d"></div>
     <div id="cab"><i class="beam"></i><i class="mull m1"></i><i class="mull m2"></i><i class="pil pl"></i><i class="pil pr"></i><div class="desk"><div class="gg"><small>WIND</small><b id="cab-wind">---/--</b></div><div class="gg"><small>QNH</small><b id="cab-qnh">----</b></div><div class="gg"><small>RWY</small><b id="cab-rwy">--</b></div><div class="gg"><small>VIS</small><b id="cab-vis">10 KM</b></div><div class="gg"><small>ZULU</small><b id="cab-time">--:--</b></div></div></div>
-    <div class="vtools"><div class="seg" id="camtools"><button data-cam="tower" class="on">Tower</button><button data-cam="apron">Apron</button><button data-cam="rwy09">Final 09</button><button data-cam="rwy27">Final 27</button><button data-cam="mid">Midfield</button><button data-cam="follow">Follow</button></div></div>
+    <div class="vtools"><div class="seg" id="camtools"><button data-cam="tower" class="on">Tower</button><button data-cam="apron">Apron</button><button data-cam="rwy09">Final <span class="rwa">09</span></button><button data-cam="rwy27">Final 27</button><button data-cam="mid">Midfield</button><button data-cam="follow">Follow</button></div></div>
    </div>
    <div id="vmap">
     <canvas id="mapc"></canvas>
@@ -390,6 +390,7 @@ select,input[type=text],input[type=password],input[type=number]{border-radius:0;
    <li>The <b>Manual</b> (key M) has every phrase, searchable.</li>
   </ul>
   <div class="form">
+   <label class="wide">Airport<select id="s-apt"></select></label>
    <label>Difficulty<select id="s-level"><option value="cadet">Cadet — quiet, read-back hints</option><option value="controller">Controller</option><option value="veteran">Veteran — busy, many mishaps</option></select></label>
    <label>Mode<select id="s-mode"><option value="career">Career — a collision ends the shift</option><option value="training">Training — accidents are penalties</option></select></label>
    <label>Time of day<select id="s-tod"><option value="day">Day</option><option value="dusk">Dusk</option><option value="night">Night</option></select></label>

@@ -310,8 +310,8 @@ const R3={
   const c=this.cam;c.mode=m;
   if(m==='tower'){c.yaw=-0.98;c.pitch=-0.07;c.fov=52;c.pos.set(560,54,-372);}
   else if(m==='apron'){c.orbYaw=0.2;c.orbPitch=0.32;c.dist=300;c.target.set(0,8,-335);}
-  else if(m==='rwy09'){c.pos.set(-1440,9,0);c.yaw=-Math.PI/2;c.pitch=0.0;c.fov=44;}
-  else if(m==='rwy27'){c.pos.set(1440,9,0);c.yaw=Math.PI/2;c.pitch=0.0;c.fov=44;}
+  else if(m==='rwy09'){c.pos.set(-(AP.half-60),9,0);c.yaw=-Math.PI/2;c.pitch=0.0;c.fov=44;}
+  else if(m==='rwy27'){c.pos.set(AP.half-60,9,0);c.yaw=Math.PI/2;c.pitch=0.0;c.fov=44;}
   else if(m==='mid'){c.pos.set(300,10,-76);c.yaw=Math.PI/2;c.pitch=-0.01;c.fov=62;}
   else if(m==='follow'){c.orbYaw=0.5;c.orbPitch=0.28;c.dist=150;}
  },

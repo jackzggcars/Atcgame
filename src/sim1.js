@@ -12,16 +12,21 @@ const lerp=(a,b,t)=>a+(b-a)*t;
 const angDiff=(a,b)=>{let d=(a-b)%(2*Math.PI);if(d>Math.PI)d-=2*Math.PI;if(d<-Math.PI)d+=2*Math.PI;return d;};
 const pad=(n,l)=>String(n).padStart(l,'0');
 
-const AP={icao:'EGMW',name:'Marlow International',half:1500,thr:1450,w:45};
+const AP={icao:AIRPORT.icao,name:AIRPORT.name,half:AIRPORT.rwy.len/2,thr:AIRPORT.rwy.len/2-50,w:AIRPORT.rwy.wid,hdg:HDG_A,elev:AIRPORT.elev,mv:AIRPORT.mv};
+const RWD=()=>rwLabel(G.rwy);
+const WOFF=AIRPORT.rwy.mag-90;               // sim frame (runway = 090/270) -> magnetic
+const WDM=w=>((w.dir+WOFF)%360+360)%360;
+const CONNK=['B','C','D','E'];
+const HPN={},EXN={};CONNK.forEach((k,i)=>{HPN['H'+k]=AIRPORT.tx.conn[i];EXN[k]=AIRPORT.tx.conn[i];});
 const NODES={},EDGES=[];
 function N(id,x,z,t){NODES[id]={id,x,z,t,adj:[]};}
 function E(a,b,name,rwy){const A=NODES[a],B=NODES[b];const e={a,b,name,len:Math.hypot(A.x-B.x,A.z-B.z),rwy:!!rwy};EDGES.push(e);A.adj.push({to:b,e});B.adj.push({to:a,e});}
 (function buildAirport(){
- const CONN=[['B',-1300,'Bravo'],['C',-700,'Charlie'],['D',700,'Delta'],['E',1300,'Echo']];
+ const hf=AP.half,CONN=[['B',-Math.round(hf*0.87),AIRPORT.tx.conn[0]],['C',-Math.round(hf*0.47),AIRPORT.tx.conn[1]],['D',Math.round(hf*0.47),AIRPORT.tx.conn[2]],['E',Math.round(hf*0.87),AIRPORT.tx.conn[3]]];
  CONN.forEach(([k,x])=>{N('A'+k,x,-150,'tw');N('V'+k,x,-105,'tw');N('H'+k,x,-60,'hold');N('R'+k,x,0,'rwy');});
  N('AF',-160,-150,'tw');N('AM',0,-150,'tw');N('AG',160,-150,'tw');
  const alpha=['AB','AC','AF','AM','AG','AD','AE'];
- for(let i=0;i<alpha.length-1;i++)E(alpha[i],alpha[i+1],'Alpha');
+ for(let i=0;i<alpha.length-1;i++)E(alpha[i],alpha[i+1],AIRPORT.tx.par);
  CONN.forEach(([k,x,nm])=>{E('A'+k,'V'+k,nm);E('V'+k,'H'+k,nm);E('H'+k,'R'+k,nm,true);});
  const gx=[-400,-240,-80,80,240,400];
  gx.forEach((x,i)=>{N('P'+(i+1),x,-300,'lane');N('S'+(i+1),x,-350,'gate');});
@@ -29,7 +34,7 @@ function E(a,b,name,rwy){const A=NODES[a],B=NODES[b];const e={a,b,name,len:Math.
  const lane=['P1','P2','PF','P3','P4','PG','P5','P6'];
  for(let i=0;i<lane.length-1;i++)E(lane[i],lane[i+1],'Apron');
  gx.forEach((x,i)=>E('P'+(i+1),'S'+(i+1),'Stand'));
- E('AF','PF','Foxtrot');E('AG','PG','Golf');
+ E('AF','PF',AIRPORT.tx.fox);E('AG','PG',AIRPORT.tx.gol);
  N('DP',0,-110,'depot');E('AM','DP','Service Rd');
 })();
 const GATE_X=[-400,-240,-80,80,240,400];
@@ -92,8 +97,8 @@ const thrX=()=>-dirOf()*AP.thr;
 function csName(a){return a.rt+(a.heavy?' heavy':'');}
 function todWord(){const h=Math.floor(G.clock/3600)%24;return h<12?'morning':h<18?'afternoon':'evening';}
 function V(a,x){
- const w=G.wind;let wd=Math.round(w.dir/10)*10%360;if(wd===0)wd=360;
- const v={cs:a?csName(a):'',unit:'',gate:a&&a.gate?a.gate:'',dest:a&&a.dest?a.dest.n:'',sid:a&&a.dest?a.dest.sid:'',sq:a&&a.squawk?a.squawk:'',alt:'5000',qnh:G.qnh,atis:ATIS_L[G.atis%26],rwy:G.rwy,hp:a&&a.hp?HPN[a.hp]:'',via:'',hs:', hold short of runway '+G.rwy,wdir:pad(wd,3),wspd:Math.round(w.spd),dist:'',facing:'',freq:UNITS.DEP.f,n:'1',exit:'',spd:'160',tod:todWord()};
+ const w=G.wind;let wd=Math.round(WDM(w)/10)*10%360;if(wd===0)wd=360;
+ const v={cs:a?csName(a):'',unit:'',gate:a&&a.gate?a.gate:'',dest:a&&a.dest?a.dest.n:'',sid:a&&a.dest?a.dest.sid:'',sq:a&&a.squawk?a.squawk:'',alt:'5000',qnh:G.qnh,atis:ATIS_L[G.atis%26],rwy:RWD(),hp:a&&a.hp?HPN[a.hp]:'',via:'',hs:', hold short of runway '+RWD(),wdir:pad(wd,3),wspd:Math.round(w.spd),dist:'',facing:'',freq:UNITS.DEP.f,n:'1',exit:'',spd:'160',tod:todWord()};
  return Object.assign(v,x||{});
 }
 function say(who,a,text,sev){
@@ -122,7 +127,7 @@ function newGame(cfg){
  G.stats={dep:0,arr:0,goArounds:0,incursion:0,los:0,wake:0,emerg:0,delay:0,readback:0};
  G.acc={dep:0,arr:0};G.opsNext=200;G.pairs={};G.lastTO={t:-999,heavy:false};G.sqUsed={};G.scoreLog=[];G.rwyWarn=0;
  spawnDep(rnd(6,10));spawnDep(rnd(22,32));later(rnd(12,18),()=>spawnArr());
- sysMsg('Shift started. Runway '+G.rwy+' in use. ATIS '+ATIS_L[G.atis]+', QNH '+G.qnh+'.','ok');
+ sysMsg('Shift started. Runway '+RWD()+' in use. ATIS '+ATIS_L[G.atis]+', QNH '+G.qnh+'.','ok');
  emit('new',G);
 }
 
@@ -133,8 +138,9 @@ function newSquawk(){
  return '4'+rint(0,7)+rint(0,7)+rint(0,7);
 }
 function uniqueNum(al){for(let k=0;k<50;k++){const n=String(rint(2,998)).padStart(rint(0,1)?3:2,'0').replace(/^0+(?=\d{2})/,'');if(!G.ents.some(e=>e.al===al&&e.num===n))return n;}return String(rint(100,999));}
+function wpickAl(){const L=AIRPORT.airlines;let t=0;L.forEach(x=>t+=x[1]);let r=Math.random()*t;for(const x of L){r-=x[1];if(r<=0)return AL_BY[x[0]];}return AL_BY[L[0][0]];}
 function mkAc(kind){
- const al=pick(AIRLINES);let tk=pick(TYPE_KEYS);const ty=TYPES[tk];const num=uniqueNum(al);
+ const al=wpickAl();const ty=TYPES[pick(al.fleet)]||TYPES.A320;const num=uniqueNum(al);
  const a={id:G.nextId++,kind,al,type:ty,num,cs:al.icao+num,rt:al.rt+' '+num,heavy:ty.wake==='H',
   x:0,z:0,y:0,th:0,v:0,pitch:0,bank:0,vs:0,phase:'',req:null,nextReq:null,waitSec:0,dead:false,r:0.32*Math.max(ty.wing,ty.len),
   gate:null,dest:pick(DESTS),squawk:'',sqPlan:null,clrOk:false,pushDone:false,node:null,path:null,s:0,paused:false,back:false,
@@ -397,7 +403,7 @@ function rollUpdate(a,dt){
   a.phase='CLIMB';a.y=0.6;a.vs=0.5;
   const prev=G.lastTO;const need=prev.heavy?120:60;
   if(G.t-prev.t<need&&G.t-prev.t>0){incident('wake','WAKE TURBULENCE: '+a.cs+' departed only '+Math.round(G.t-prev.t)+' s behind '+(prev.heavy?'a heavy':'another aircraft')+' (need '+need+' s)',5);}
-  G.lastTO={t:G.t,heavy:a.heavy};a.rwyAuth=false;a.outTh=(a.dest.th-90)*D2R;a.tkLift=G.t;
+  G.lastTO={t:G.t,heavy:a.heavy};a.rwyAuth=false;a.outTh=(a.dest.th-AP.hdg)*D2R;a.tkLift=G.t;
   return;
  }
  if(Math.abs(a.x)>AP.half+60){crash([a],'RUNWAY OVERRUN: '+a.cs+' ran out of runway before rotating. Heavy aircraft need the full length.');}
@@ -467,7 +473,7 @@ function mkVeh(vt,x,z){return {id:G.nextId++,kind:'veh',veh:true,vt,x,z,y:0,th:M
 function spawnOps(urgent){
  if(G.ents.some(e=>e.veh&&e.vt==='ops'&&!e.dead))return;
  const v=mkVeh('ops',0,-110);v.phase='REQ';v.rt='Operations 1';v.t0=G.t;G.ents.push(v);emit('spawn',v);
- later(urgent?14:2,()=>{if(!v.dead){v.req={kind:'INSP',t:G.t,n:0,x:{}};v.unit='GND';const t=fmt(PH.INSP.pilot[0],V(null,{unit:UNITS.GND.n,rwy:G.rwy}));say('pilot',v,t,'');emit('req',v);}});
+ later(urgent?14:2,()=>{if(!v.dead){v.req={kind:'INSP',t:G.t,n:0,x:{}};v.unit='GND';const t=fmt(PH.INSP.pilot[0],V(null,{unit:UNITS.GND.n,rwy:RWD()}));say('pilot',v,t,'');emit('req',v);}});
 }
 function sendFire(x){
  if(G.ents.some(e=>e.veh&&e.vt==='fire'&&!e.dead))return;
@@ -499,7 +505,7 @@ function updVeh(v,dt){
   const done=follow(v,dt,{vmax:v.s>v.sIn&&v.s<v.sOut?32:11,snap:true,block:true,endStop:true,acc:3,dec:8,turn:3});
   const onRwy=Math.abs(v.z)<58;
   if(onRwy&&!v.wasOn){v.wasOn=true;v.rwyAuth=true;}
-  if(v.wasOn&&!onRwy&&v.s>v.sOut-10&&!v.reported){v.reported=true;v.rwyAuth=false;say('pilot',v,fmt('Runway {rwy} inspection complete, Operations 1 vacated.',{rwy:G.rwy}));G.flags.debris=false;G.score+=25;}
+  if(v.wasOn&&!onRwy&&v.s>v.sOut-10&&!v.reported){v.reported=true;v.rwyAuth=false;say('pilot',v,fmt('Runway {rwy} inspection complete, Operations 1 vacated.',{rwy:RWD()}));G.flags.debris=false;G.score+=25;}
   if(done){v.dead=true;}
   break;}
  case 'GO':{

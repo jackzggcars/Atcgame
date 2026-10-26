@@ -26,30 +26,13 @@ const TYPES={
  B77W:{n:'B77W',wing:64.8,len:73.9,wake:'H',vref:150,vr:158,acc:1.55,eng:2,rf:3.3,wide:true}
 };
 const TYPE_KEYS=['A320','A320','B738','B738','E190','DH8D','A359','B77W'];
-const DESTS=[
- {n:'Frankfurt',c:'EDDF',sid:'Rosel Two Alpha',th:50},
- {n:'Paris',c:'LFPG',sid:'Norta One Bravo',th:160},
- {n:'Amsterdam',c:'EHAM',sid:'Tilby Three Charlie',th:20},
- {n:'Dublin',c:'EIDW',sid:'Wesco Two Delta',th:-110},
- {n:'Madrid',c:'LEMD',sid:'Norta One Bravo',th:150},
- {n:'Copenhagen',c:'EKCH',sid:'Tilby Three Charlie',th:10},
- {n:'Dubai',c:'OMDB',sid:'Rosel Two Alpha',th:60}
-];
-const UNITS={
- DEL:{n:'Marlow Delivery',f:'121.700'},
- GND:{n:'Marlow Ground',f:'121.800'},
- TWR:{n:'Marlow Tower',f:'118.100'},
- DEP:{n:'Marlow Departure',f:'119.500'},
- OPS:{n:'Operations',f:'121.800'}
-};
-const HPN={HB:'Bravo',HC:'Charlie',HD:'Delta',HE:'Echo'};
-const EXN={B:'Bravo',C:'Charlie',D:'Delta',E:'Echo'};
 
 /* ---------- number / speech helpers ---------- */
 function digitsSpoken(s){return String(s).split('').map(c=>c==='.'?'decimal':(DIGW[+c]!==undefined?DIGW[+c]:c)).join(' ');}
 function fmt(t,v){return t.replace(/\{(\w+)\}/g,(m,k)=>v&&v[k]!==undefined?v[k]:m);}
 function toSpeech(t){
  return t
+  .replace(/\b(\d\d)([LRC])\b/g,(m,a,b)=>digitsSpoken(a)+' '+({L:'left',R:'right',C:'centre'}[b]))
   .replace(/\b(\d{3})\.(\d{1,3})\b/g,(m,a,b)=>digitsSpoken(a)+' decimal '+digitsSpoken(b))
   .replace(/\b([1-9])000 feet/g,(m,a)=>DIGW[+a]+' thousand feet')
   .replace(/\bQNH (\d{4})/g,(m,a)=>'QNH '+digitsSpoken(a))

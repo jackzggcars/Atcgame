@@ -8,10 +8,20 @@ const UI={
  sel:0,speed:1,layout:'split',running:false,last:0,tAcc:0,uiAcc:0,logN:0,
  cfgKey:'marlow.cfg',
  clockStr(sec){sec=Math.floor(sec);return pad(Math.floor(sec/3600)%24,2)+':'+pad(Math.floor(sec/60)%60,2)+':'+pad(sec%60,2);},
+ brand(){
+  const A=AIRPORT,set=(q,t)=>{const e=document.querySelector(q);if(e)e.textContent=t;};
+  document.title=A.short+' Tower';['DEL','GND','TWR','DEP'].forEach(k=>{const e=document.querySelector('#rp-'+k+' span');if(e)e.textContent=UNITS[k].f;});set('.brand h1',A.short+' Tower');const cm=document.getElementById('cmd');if(cm)cm.placeholder='Type or hold Space to talk, e.g. “Speedbird 452, runway '+A.rwy.a+', line up and wait”';set('#conn','OFFLINE · '+A.icao+'_TWR · RWY '+A.rwy.a+'/'+A.rwy.b);set('#p-log h2 span',A.icao+'_TWR · 4 channels');
+  set('#start h2',A.short+' Tower');set('#start .sub','CALLSIGN '+A.icao+'_TWR · '+A.name.toUpperCase()+' · DELIVERY / GROUND / TOWER · RATING S3');
+  const sel=document.getElementById('s-apt');if(sel){sel.innerHTML=ALLOWED.map(k=>'<option value="'+k+'"'+(k===A.icao?' selected':'')+'>'+AIRPORTS[k].name+' — '+AIRPORTS[k].icao+(AIRPORTS[k].fict?' (fictional)':'')+'</option>').join('');
+   sel.addEventListener('change',()=>{try{localStorage.setItem('marlow.airport',sel.value);}catch(e){}location.reload();});}
+  document.querySelectorAll('.rwa').forEach(e=>e.textContent=A.rwy.a);
+  const b9=document.querySelector('#camtools [data-cam="rwy09"]'),b27=document.querySelector('#camtools [data-cam="rwy27"]');if(b9)b9.textContent='Final '+A.rwy.a;if(b27)b27.textContent='Final '+A.rwy.b;
+ },
  init(){
   Voice.load();this.loadCfg();
   this.glOK=R3.init($('gl'),$('labels3d'));
   if(!this.glOK){$('v3d').classList.add('nogl');}
+  this.brand();
   MAPV.init($('mapc'));MAPV.fit();
   R3.onPick=e=>{if(e)this.select(e.id);};MAPV.onPick=e=>{if(e)this.select(e.id);};
   this.bind();this.buildManual();this.syncSettings();this.voiceStatus();
@@ -69,7 +79,7 @@ const UI={
  appendLog(e){
   const box=$('log');const d=document.createElement('div');d.className='ll '+e.who+(e.sev?' '+e.sev:'');
   const un=e.ent?this.unitOf(e.ent):'TWR';
-  const who=e.who==='pilot'?(e.ent?'<a data-id="'+e.ent.id+'">'+esc(e.ent.cs)+'</a>':'PILOT'):e.who==='atc'?'EGMW_'+un:'***';
+  const who=e.who==='pilot'?(e.ent?'<a data-id="'+e.ent.id+'">'+esc(e.ent.cs)+'</a>':'PILOT'):e.who==='atc'?AIRPORT.icao+'_'+un:'***';
   d.innerHTML='<time>['+this.clockStr(e.clock||G.clock)+']</time><b>'+who+(e.who==='sys'?'':':')+'</b><span>'+(e.who==='atc'&&e.ent?'<i style="font-style:normal;opacity:.7">→'+esc(e.ent.cs)+'</i> ':'')+esc(e.text)+'</span>';
   const stick=box.scrollTop+box.clientHeight>=box.scrollHeight-40;box.appendChild(d);if(++this.logN>260){box.removeChild(box.firstChild);}if(stick)box.scrollTop=box.scrollHeight;
  },
@@ -121,8 +131,8 @@ const UI={
   $('t-clock').textContent=this.clockStr(G.clock);$('t-atis').textContent='ATIS '+ATIS_L[G.atis].toUpperCase();
   $('t-score').textContent=Math.round(G.score);const sf=$('t-safe');sf.style.width=G.safety+'%';sf.parentElement.classList.toggle('low',G.safety<45);$('t-safen').textContent=G.safety;
   const left=Math.max(0,G.cfg.shift*60-G.t);$('t-left').textContent=this.clockStr(left).slice(3);
-  const rb=$('rwybtn');rb.textContent='RWY '+G.rwy+(G.rwyBetter?'  ▸ '+G.rwyBetter+' advised':'');rb.classList.toggle('adv',!!G.rwyBetter);
-  {const w=G.wind;let wd=Math.round(w.dir/10)*10%360;if(wd===0)wd=360;const ws=pad(wd,3)+'/'+Math.round(w.spd);$('t-wx').textContent=ws+'kt  QNH '+G.qnh;$('cab-wind').textContent=ws;$('cab-qnh').textContent=G.qnh;$('cab-rwy').textContent=G.rwy;$('cab-vis').textContent=G.fog?'800 M':'10 KM';$('cab-time').textContent=this.clockStr(G.clock).slice(0,5);$('conn').textContent='CONNECTED · EGMW_TWR · RWY '+G.rwy;$('conn-led').classList.add('on');if(!$('atis-pop').hidden)$('atis-pop').innerHTML=this.atisText();}
+  const rb=$('rwybtn');rb.textContent='RWY '+RWD()+(G.rwyBetter?'  ▸ '+rwLabel(G.rwyBetter)+' advised':'');rb.classList.toggle('adv',!!G.rwyBetter);
+  {const w=G.wind;let wd=Math.round(WDM(w)/10)*10%360;if(wd===0)wd=360;const ws=pad(wd,3)+'/'+Math.round(w.spd);$('t-wx').textContent=ws+'kt  QNH '+G.qnh;$('cab-wind').textContent=ws;$('cab-qnh').textContent=G.qnh;$('cab-rwy').textContent=RWD();$('cab-vis').textContent=G.fog?'800 M':'10 KM';$('cab-time').textContent=this.clockStr(G.clock).slice(0,5);$('conn').textContent='CONNECTED · '+AIRPORT.icao+'_TWR · RWY '+RWD();$('conn-led').classList.add('on');if(!$('atis-pop').hidden)$('atis-pop').innerHTML=this.atisText();}
   const q=G.ents.filter(e=>e.req&&!e.dead).length;$('t-req').textContent=q;$('t-req').parentElement.classList.toggle('hot',q>0);
  },
  /* ---------- strips ---------- */
@@ -149,8 +159,8 @@ const UI={
   const cf=$('cmd-freq');if(cf){const a=this.selAc();const un=a?this.unitOf(a):'';cf.textContent=a?('TX '+un+' '+UNITS[un].f):'TX —';}
  },
  atisText(){
-  const w=G.wind;let wd=Math.round(w.dir/10)*10%360;if(wd===0)wd=360;
-  return '<b>EGMW INFORMATION '+ATIS_L[G.atis].toUpperCase()+'</b>  '+this.clockStr(G.clock).slice(0,5).replace(':','')+'Z\nRUNWAY IN USE '+G.rwy+'\nWIND '+pad(wd,3)+' DEGREES '+Math.round(w.spd)+' KNOTS\nVISIBILITY '+(G.fog?'800 METRES, FOG':'10 KILOMETRES OR MORE')+'\nQNH '+G.qnh+'\nTRANSITION LEVEL 60\n<b>ACKNOWLEDGE INFORMATION '+ATIS_L[G.atis].toUpperCase()+' ON FIRST CONTACT.</b>';
+  const w=G.wind;let wd=Math.round(WDM(w)/10)*10%360;if(wd===0)wd=360;
+  return '<b>'+AIRPORT.icao+' INFORMATION '+ATIS_L[G.atis].toUpperCase()+'</b>  '+this.clockStr(G.clock).slice(0,5).replace(':','')+'Z\nRUNWAY IN USE '+RWD()+'\nWIND '+pad(wd,3)+' DEGREES '+Math.round(w.spd)+' KNOTS\nVISIBILITY '+(G.fog?'800 METRES, FOG':'10 KILOMETRES OR MORE')+'\nQNH '+G.qnh+'\nTRANSITION LEVEL 60\n<b>ACKNOWLEDGE INFORMATION '+ATIS_L[G.atis].toUpperCase()+' ON FIRST CONTACT.</b>';
  },
  talkingId(){
   if(typeof Voice!=='undefined'&&Voice.on&&Voice.now&&Voice.now.ent&&Voice.now.who==='pilot')return Voice.now.ent.id;
@@ -183,7 +193,7 @@ const UI={
    const d=document.createElement('div');
    d.className='strip '+(e.veh?'veh':e.kind)+(e.id===this.sel?' sel':'')+(e.req?' req':'')+(e.req&&PH[e.req.kind].urgent||e.emerg||e.nordo?' emg':'');
    d.dataset.id=e.id;
-   const dest=e.veh?'Airfield ops':e.kind==='dep'?(e.dest?e.dest.n:''):('ILS '+G.rwy+(e.gate?' · stand '+e.gate:''));
+   const dest=e.veh?'Airfield ops':e.kind==='dep'?(e.dest?e.dest.n:''):('ILS '+RWD()+(e.gate?' · stand '+e.gate:''));
    d.innerHTML='<i class="bar"></i><div class="c1"><b>'+esc(e.veh?e.rt:e.cs)+(e.heavy?'<em>H</em>':'')+'</b><span>'+esc(e.veh?'':e.type.n)+'</span></div><div class="c2"><span class="st">'+esc(this.statusText(e))+'</span><span class="dst">'+esc(dest)+'</span></div><div class="c3"><span class="sq'+(e.sqBad?' bad':'')+'">'+(e.squawk||'')+'</span>'+(e.err&&G.cfg.assist?'<span class="warn" title="Read-back differs from your instruction">⚠ RB</span>':'')+(e.nordo?'<span class="warn">NORDO</span>':'')+'</div><u class="wait" style="width:'+(e.req?Math.min(100,(G.t-e.req.t)/50*100):0)+'%"></u>';
    d.addEventListener('click',()=>this.select(e.id));box.appendChild(d);
   }
@@ -198,7 +208,7 @@ const UI={
  fpCard(a){
   if(a.veh)return '<div class="fp"><div class="fp-top"><b>'+esc(a.rt)+'</b><small>AIRFIELD VEHICLE</small><span class="ph2 gnd">'+esc(MAPV.phaseText(a))+'</span></div></div>';
   if(!a.from)a.from=DESTS[a.id%DESTS.length].c;
-  const org=a.kind==='dep'?'EGMW':a.from,dst=a.kind==='dep'?(a.dest?a.dest.c:'----'):'EGMW';
+  const org=a.kind==='dep'?AIRPORT.icao:a.from,dst=a.kind==='dep'?(a.dest?a.dest.c:'----'):AIRPORT.icao;
   const cls=(a.emerg||a.nordo)?'emg':a.req?'req':(a.y>10?'':'gnd');
   const gs=Math.round(a.v/KT),alt=a.y>10?Math.round(a.y*FT/10)*10:0;
   return '<div class="fp"><div class="fp-top"><b>'+esc(csName(a))+'</b><small>'+esc(a.type.n+' · '+(a.heavy?'H':'M')+' · '+a.al.icao)+'</small><span class="ph2 '+cls+'" id="fp-ph">'+esc(a.emerg?String(a.emerg).toUpperCase():a.req?'CALLING':a.y>10?(a.kind==='dep'?'DEPARTING':'ARRIVING'):'ON GROUND')+'</span></div>'+
@@ -217,7 +227,7 @@ const UI={
   if(soft&&sig===this._selSig){const f=$('sel-fuel');if(f&&a.kind==='arr')f.textContent=Math.max(0,a.fuel).toFixed(0)+' min';const h=$('sel-live');if(h)h.textContent=this.liveText(a);this.fpLive(a);return;}
   this._selSig=sig;
   let h=this.fpCard(a);
-  if(!a.veh){h+='<dl class="s-info"><div><dt>Squawk</dt><dd class="'+(a.sqBad?'bad':'')+'">'+(a.squawk||'—')+'</dd></div><div><dt>'+(a.kind==='dep'?'Destination':'Approach')+'</dt><dd>'+(a.kind==='dep'?esc(a.dest.n+' · '+a.dest.sid):'ILS RWY '+G.rwy)+'</dd></div><div><dt>Stand</dt><dd>'+(a.gate||'—')+'</dd></div><div><dt>Now</dt><dd id="sel-live">'+esc(this.liveText(a))+'</dd></div>'+(a.kind==='arr'?'<div><dt>Fuel</dt><dd id="sel-fuel">'+Math.max(0,a.fuel).toFixed(0)+' min</dd></div>':'')+'</dl>';}
+  if(!a.veh){h+='<dl class="s-info"><div><dt>Squawk</dt><dd class="'+(a.sqBad?'bad':'')+'">'+(a.squawk||'—')+'</dd></div><div><dt>'+(a.kind==='dep'?'Destination':'Approach')+'</dt><dd>'+(a.kind==='dep'?esc(a.dest.n+' · '+a.dest.sid):'ILS RWY '+RWD())+'</dd></div><div><dt>Stand</dt><dd>'+(a.gate||'—')+'</dd></div><div><dt>Now</dt><dd id="sel-live">'+esc(this.liveText(a))+'</dd></div>'+(a.kind==='arr'?'<div><dt>Fuel</dt><dd id="sel-fuel">'+Math.max(0,a.fuel).toFixed(0)+' min</dd></div>':'')+'</dl>';}
   if(a.req){
    h+='<div class="s-req'+(r&&r.urgent?' urgent':'')+'"><small>'+esc(PH[a.req.kind].title)+(r&&r.urgent?' · URGENT':'')+'</small>';
    const lastP=[...G.log].reverse().find(l=>l.who==='pilot'&&l.ent===a);if(lastP)h+='<p>“'+esc(lastP.text)+'”</p>';
@@ -264,7 +274,7 @@ const UI={
   const body=$('m-body');const frag=document.createDocumentFragment();
   const TIP={'CALLSIGN':'The aircraft you are talking to, exactly as on its strip, e.g. "Speedbird 452".','STAND':'Parking stand.','STAND NUMBER':'Parking stand 1 to 6 on the apron (numbered squares on the map). Shown in the selected-aircraft panel.','DESTINATION':'The city the flight is going to (selected-aircraft panel), e.g. Frankfurt.','SID NAME':'Name of the departure route the aircraft will fly after takeoff, e.g. "Rosel Two Alpha". Hover the Accept button for the exact name.','SQUAWK':'4-digit transponder code you give the pilot. Any digits 0 to 7 not already used (never 7500/7600/7700).','ALTITUDE':'Initial climb altitude in feet. Use 5000.','QNH':'Local pressure setting, from the ATIS chip in the top bar, e.g. 1013.','ATIS LETTER':'Letter of the current weather broadcast (top bar), e.g. Bravo.','RUNWAY':'Runway in use: 09 or 27 (RWY button, top bar).','HOLDING POINT':'Where the aircraft stops short of the runway: Bravo, Charlie, Delta or Echo (map, HP markers).','TAXIWAY ROUTE':'The taxiway names to follow, in order, e.g. "Golf, Alpha". Hover Accept to see the exact route for this aircraft.','WIND DIR':'Wind direction in degrees, from the ATIS chip, e.g. 080.','WIND SPEED':'Wind speed in knots, from the ATIS chip.','MILES':'Distance from the runway in nautical miles (map data block).','DIRECTION':'Compass direction the aircraft should face after pushback: east or west.','FREQUENCY':'Radio frequency, e.g. Departure 119.500.','NUMBER':'Landing sequence number, e.g. 2.','EXIT':'Taxiway the aircraft vacates onto, e.g. Delta.','SPEED':'Airspeed in knots.','INSTRUCTION':'The instruction to read out, e.g. line up and wait.','MORNING/AFTERNOON/EVENING':'Time of day greeting.'};
   const hl=s=>esc(s).replace(/\[([^\]]+)\]/g,(m,k)=>'<span class="ph" title="'+esc(TIP[k]||'Fill in the real value.')+'">'+m+'</span>');
-  const unitName=k=>(UNITS[k]&&UNITS[k].n)||'Marlow Tower';
+  const unitName=k=>(UNITS[k]&&UNITS[k].n)||AIRPORT.short+' Tower';
   const S=SAMPLE;const f=t=>fmt(t,S);
   const phCard=(k,ph)=>{const f=t=>fmt(t,Object.assign({},SAMPLE,{unit:unitName(ph.unit)}));
    const d=document.createElement('article');d.className='mc';d.dataset.cat=ph.cat;d.dataset.k=k;
@@ -285,7 +295,7 @@ const UI={
   body.addEventListener('click',e=>{const b=e.target.closest('.use');if(!b)return;const a=this.selAc();
    let vals=Object.assign({},SAMPLE);
    try{const un=a&&a.unit&&UNITS[a.unit]?UNITS[a.unit].n:null;const v=V(a&&!a.veh?a:null,un?{unit:un}:{});for(const k in v){if(v[k]!==''&&v[k]!==undefined&&v[k]!==null)vals[k]=String(v[k]);}}catch(err){}
-   vals.cs=a?(a.veh?a.rt:csName(a)):SAMPLE.cs;if(G.rwy)vals.rwy=G.rwy;
+   vals.cs=a?(a.veh?a.rt:csName(a)):SAMPLE.cs;if(G.rwy)vals.rwy=RWD();
    if(vals.hs&&vals.hs.indexOf('[')<0)vals.hs=', hold short of runway '+vals.rwy;
    let t=b.dataset.t.replace(/\{cs\}/g,vals.cs);t=fmt(t,vals);$('cmd').value=t;if(!this.docked())this.closeManual();$('cmd').focus();
    const m=/\[[^\]]+\]/.exec(t);if(m){$('cmd').setSelectionRange(m.index,m.index+m[0].length);this.toast('Replace the [BRACKETS] with the real details before sending.','warn');}});
@@ -353,7 +363,7 @@ const UI={
   document.querySelectorAll('#camtools button').forEach(b=>b.addEventListener('click',()=>{R3.setMode(b.dataset.cam);this.setCamBtn(b.dataset.cam);}));
   document.querySelectorAll('#layout button').forEach(b=>b.addEventListener('click',()=>this.setLayout(b.dataset.l)));
   $('mz-fit').addEventListener('click',()=>MAPV.fit());$('mz-wide').addEventListener('click',()=>MAPV.wide());$('mz-in').addEventListener('click',()=>MAPV.sc=Math.min(3,MAPV.sc*1.5));$('mz-out').addEventListener('click',()=>MAPV.sc=Math.max(0.0035,MAPV.sc/1.5));
-  $('rwybtn').addEventListener('click',()=>{const r=changeRunway();this.toast(r.ok?'Runway changed to '+G.rwy:r.msg,r.ok?'ok':'warn');this.syncTop();});
+  $('rwybtn').addEventListener('click',()=>{const r=changeRunway();this.toast(r.ok?'Runway changed to '+RWD():r.msg,r.ok?'ok':'warn');this.syncTop();});
   $('man-btn').addEventListener('click',()=>this.openManual());$('man-close').addEventListener('click',()=>this.closeManual());$('man-dock').addEventListener('click',()=>this.toggleDock());try{this.manDock=localStorage.getItem('marlow.dock')==='1';}catch(e){this.manDock=false;}
   $('set-btn').addEventListener('click',()=>{this.syncSettings();$('settings').hidden=false;});
   $('set-close').addEventListener('click',()=>{this.saveSettings();$('settings').hidden=true;});
