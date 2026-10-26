@@ -1583,7 +1583,10 @@ const Voice={
   return (e.urgent?'tense and urgent, clipped and fast, ':'calm and professional, clipped, ')+'airline pilot on a VHF radio, '+acc.replace(/, $/,'');
  },
  held:false,
- async idle(){while(this.held||(typeof Mic!=='undefined'&&(Mic.active||Mic.starting)))await new Promise(r=>setTimeout(r,120));},
+ async idle(){
+  const mic=()=>typeof Mic!=='undefined'&&(Mic.active||Mic.starting);
+  for(let i=0;this.held||mic();i++){if(this.held&&!mic()&&i>8)this.hold(false);await new Promise(r=>setTimeout(r,120));}
+ },
  hold(on){   // pause pilot audio while the controller is transmitting
   this.held=!!on;
   try{if(this.ctx){if(on)this.ctx.suspend();else this.ctx.resume();}}catch(e){}
@@ -1691,12 +1694,25 @@ const Voice={
  _speak(text,e){
   return new Promise(res=>{
    if(!('speechSynthesis' in window)){res();return;}
-   const vs=this.pickVoices();const u=new SpeechSynthesisUtterance(text);
+   const ss=speechSynthesis;
+   const vs=this.pickVoices();
    let h=0;for(const ch of (e.cs||'x'))h=(h*31+ch.charCodeAt(0))>>>0;
-   if(vs.length)u.voice=vs[h%vs.length];u.rate=e.urgent?1.2:1.08;u.pitch=0.75+((h>>3)%9)/12;u.volume=this.vol;
-   let fin=false;const done=()=>{if(!fin){fin=true;res();}};u.onend=done;u.onerror=done;
-   setTimeout(done,15000);
-   try{speechSynthesis.speak(u);}catch(err){done();}
+   let fin=false,started=false,tries=0;
+   const done=()=>{if(!fin){fin=true;clearTimeout(t1);clearTimeout(t2);res();}};
+   const t2=setTimeout(done,Math.min(30000,4000+text.length*110));
+   let t1=null;
+   const go=()=>{
+    tries++;
+    try{if(!this.held){ss.resume();}}catch(_){}
+    try{if(ss.speaking&&!started&&tries>1)ss.cancel();}catch(_){}
+    const u=new SpeechSynthesisUtterance(text);
+    if(vs.length)u.voice=vs[h%vs.length];u.rate=e.urgent?1.2:1.08;u.pitch=0.75+((h>>3)%9)/12;u.volume=this.vol;
+    u.onstart=()=>{started=true;};u.onend=done;u.onerror=ev=>{if(ev&&(ev.error==='interrupted'||ev.error==='canceled')&&!started&&tries<3){setTimeout(go,150);return;}done();};
+    this._u=u;   // keep a reference so it is not garbage-collected mid-speech (Chrome bug)
+    try{ss.speak(u);}catch(err){done();return;}
+    clearTimeout(t1);t1=setTimeout(()=>{if(!started&&!fin&&!this.held){if(tries<3){try{ss.cancel();}catch(_){}go();}else done();}},2500);
+   };
+   go();
   });
  },
  async test(){
