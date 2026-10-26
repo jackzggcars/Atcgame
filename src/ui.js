@@ -61,7 +61,7 @@ const UI={
  /* ---------- events ---------- */
  onSay(e){
   this.appendLog(e);
-  if(e.who==='pilot'&&Voice.on&&this.speed>0&&!(this.speed>=4&&!e.urgent))Voice.speak(e);
+  if(e.who==='pilot'&&Voice.on&&this.speed>0&&!(this.speed>=4&&!e.urgent)){if(e.ent&&e.ent.req&&!e.ent.veh)e.ent.req.hold=G.t||0.001;Voice.speak(e);}
   if(e.who==='pilot'&&e.ent&&e.ent.req&&!this.sel&&e.ent.id){this.select(e.ent.id,true);}
  },
  sysLine(t,sev){this.appendLog({who:'sys',text:t,sev:sev||'ok',clock:G.clock,cs:''});},

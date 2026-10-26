@@ -22,9 +22,10 @@ const Voice={
   const acc=e.accent&&e.accent!=='international'?e.accent+' accent, ':'';
   return (e.urgent?'tense and urgent, clipped and fast, ':'calm and professional, clipped, ')+'airline pilot on a VHF radio, '+acc.replace(/, $/,'');
  },
+ release(e){const r=e&&e.ent&&e.ent.req;if(r&&r.hold){r.hold=0;r.t=G.t;}},
  speak(e){
-  if(!this.on||G.over&&false)return;
-  if(this.queue.length>3){const i=this.queue.findIndex(q=>!q.urgent);if(i>=0)this.queue.splice(i,1);else return;}
+  if(!this.on||G.over&&false){this.release(e);return;}
+  if(this.queue.length>3){const i=this.queue.findIndex(q=>!q.urgent);if(i>=0){this.release(this.queue[i]);this.queue.splice(i,1);}else{this.release(e);return;}}
   if(e.urgent)this.queue.unshift(e);else this.queue.push(e);
   this.pump();
  },
@@ -40,7 +41,9 @@ const Voice={
     }
     if(!done&&this.fallback)await this.browserSpeak(spoken,e);
    }catch(err){}
+   this.release(e);
   }
+  while(this.queue.length)this.release(this.queue.shift());
   this.busy=false;
  },
  async geminiBuffer(text,voice,style){

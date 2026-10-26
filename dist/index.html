@@ -845,7 +845,7 @@ function spawnLogic(dt){
 
 /* ---------------- aircraft update ---------------- */
 function updAc(a,dt){
- if(a.req){a.waitSec+=dt;const lim=(PH[a.req.kind].patience||50)*(a.req.n+1);if(G.t-a.req.t>lim&&!a.nordo){a.req.n++;remind(a);}}
+ if(a.req){if(a.req.hold&&G.t-a.req.hold<45){a.req.t=G.t;}else{a.req.hold=0;a.waitSec+=dt;}const lim=(PH[a.req.kind].patience||50)*(a.req.n+1);if(G.t-a.req.t>lim&&!a.nordo){a.req.n++;remind(a);}}
  if(!a.req&&a.nextReq&&G.t>=a.nextReq.at){const n=a.nextReq;a.nextReq=null;request(a,n.kind,n.x);}
  if(a.err&&G.t>=a.err.at)applyErr(a);
  // incursion detector
@@ -1515,9 +1515,10 @@ const Voice={
   const acc=e.accent&&e.accent!=='international'?e.accent+' accent, ':'';
   return (e.urgent?'tense and urgent, clipped and fast, ':'calm and professional, clipped, ')+'airline pilot on a VHF radio, '+acc.replace(/, $/,'');
  },
+ release(e){const r=e&&e.ent&&e.ent.req;if(r&&r.hold){r.hold=0;r.t=G.t;}},
  speak(e){
-  if(!this.on||G.over&&false)return;
-  if(this.queue.length>3){const i=this.queue.findIndex(q=>!q.urgent);if(i>=0)this.queue.splice(i,1);else return;}
+  if(!this.on||G.over&&false){this.release(e);return;}
+  if(this.queue.length>3){const i=this.queue.findIndex(q=>!q.urgent);if(i>=0){this.release(this.queue[i]);this.queue.splice(i,1);}else{this.release(e);return;}}
   if(e.urgent)this.queue.unshift(e);else this.queue.push(e);
   this.pump();
  },
@@ -1533,7 +1534,9 @@ const Voice={
     }
     if(!done&&this.fallback)await this.browserSpeak(spoken,e);
    }catch(err){}
+   this.release(e);
   }
+  while(this.queue.length)this.release(this.queue.shift());
   this.busy=false;
  },
  async geminiBuffer(text,voice,style){
@@ -2745,7 +2748,7 @@ const UI={
  /* ---------- events ---------- */
  onSay(e){
   this.appendLog(e);
-  if(e.who==='pilot'&&Voice.on&&this.speed>0&&!(this.speed>=4&&!e.urgent))Voice.speak(e);
+  if(e.who==='pilot'&&Voice.on&&this.speed>0&&!(this.speed>=4&&!e.urgent)){if(e.ent&&e.ent.req&&!e.ent.veh)e.ent.req.hold=G.t||0.001;Voice.speak(e);}
   if(e.who==='pilot'&&e.ent&&e.ent.req&&!this.sel&&e.ent.id){this.select(e.ent.id,true);}
  },
  sysLine(t,sev){this.appendLog({who:'sys',text:t,sev:sev||'ok',clock:G.clock,cs:''});},

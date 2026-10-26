@@ -274,7 +274,7 @@ function spawnLogic(dt){
 
 /* ---------------- aircraft update ---------------- */
 function updAc(a,dt){
- if(a.req){a.waitSec+=dt;const lim=(PH[a.req.kind].patience||50)*(a.req.n+1);if(G.t-a.req.t>lim&&!a.nordo){a.req.n++;remind(a);}}
+ if(a.req){if(a.req.hold&&G.t-a.req.hold<45){a.req.t=G.t;}else{a.req.hold=0;a.waitSec+=dt;}const lim=(PH[a.req.kind].patience||50)*(a.req.n+1);if(G.t-a.req.t>lim&&!a.nordo){a.req.n++;remind(a);}}
  if(!a.req&&a.nextReq&&G.t>=a.nextReq.at){const n=a.nextReq;a.nextReq=null;request(a,n.kind,n.x);}
  if(a.err&&G.t>=a.err.at)applyErr(a);
  // incursion detector
