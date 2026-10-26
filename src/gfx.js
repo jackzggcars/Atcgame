@@ -234,7 +234,7 @@ R3.buildWorld=function(){
  // --- runway / taxiways / apron ---
  const rwTex=runwayTex();
  flat(AP.half*2,60,M.shoulder,0,0.055,0,0,16);
- const rw=flat(AP.half*2,AP.w,new THREE.MeshStandardMaterial(Object.assign({map:rwTex,roughness:0.88,metalness:0,envMapIntensity:0.3},PO(-2,-2))),0,0.09,0,0);
+ const rw=flat(AP.half*2,AP.w,new THREE.MeshStandardMaterial(Object.assign({map:rwTex,roughness:0.88,metalness:0,envMapIntensity:0.3},PO(-2,-2))),0,0.09,0,0);this.rwMat=rw.material;
  EDGES.forEach(e=>{
   const Aa=NODES[e.a],B=NODES[e.b];const len=Math.hypot(Aa.x-B.x,Aa.z-B.z);if(len<1)return;
   const ap=e.name==='Apron'||e.name==='Stand',wd=ap?32:e.name==='Service Rd'?8:23;const ang=-Math.atan2(B.z-Aa.z,B.x-Aa.x);

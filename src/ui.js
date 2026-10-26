@@ -45,17 +45,17 @@ const UI={
  /* ---------- start / stop ---------- */
  showStart(){
   const s=this.saved||{};
-  $('s-level').value=s.level||'cadet';$('s-mode').value=s.mode||'career';$('s-tod').value=s.tod||'day';$('s-fog').checked=!!s.fog;$('s-shift').value=s.shift||30;
+  $('s-level').value=s.level||'cadet';$('s-mode').value=s.mode||'career';$('s-tod').value=s.tod||'day';$('s-wx').value=s.wx||'clear';$('s-fog').checked=!!s.fog;$('s-shift').value=s.shift||30;
   $('s-key').value=Voice.key||'';$('s-gem').checked=Voice.gemini;$('s-voice').checked=Voice.on;
   $('start').hidden=false;$('over').hidden=true;
  },
  start(){
   Voice.ensureCtx();
-  const cfg={level:$('s-level').value,mode:$('s-mode').value,tod:$('s-tod').value,fog:$('s-fog').checked,shift:+$('s-shift').value||30};
+  const cfg={level:$('s-level').value,mode:$('s-mode').value,tod:$('s-tod').value,wx:$('s-wx').value,fog:$('s-fog').checked,shift:+$('s-shift').value||30};
   Voice.key=$('s-key').value.trim();Voice.gemini=$('s-gem').checked;Voice.on=$('s-voice').checked;Voice.save();
   this.saved=cfg;this.saveCfg();
   R3.clear();MAPV.trails.clear();$('log').innerHTML='';this.logN=0;this.sel=0;R3.sel=0;MAPV.sel=0;
-  newGame(cfg);R3.applyTOD(cfg.tod);R3.setFog(G.fog);R3.setMode('tower');this.setCamBtn('tower');
+  newGame(cfg);R3.applyTOD(cfg.tod);R3.setFog(G.fog);WX.apply(G.wx);R3.setMode('tower');this.setCamBtn('tower');
   $('start').hidden=true;$('over').hidden=true;this.running=true;this.speed=1;this.setSpeed(1);this.syncSettings();this.voiceStatus();
   MAPV.fit();this.resize();$('cmd').focus();
  },
@@ -160,7 +160,7 @@ const UI={
  },
  atisText(){
   const w=G.wind;let wd=Math.round(WDM(w)/10)*10%360;if(wd===0)wd=360;
-  return '<b>'+AIRPORT.icao+' INFORMATION '+ATIS_L[G.atis].toUpperCase()+'</b>  '+this.clockStr(G.clock).slice(0,5).replace(':','')+'Z\nRUNWAY IN USE '+RWD()+'\nWIND '+pad(wd,3)+' DEGREES '+Math.round(w.spd)+' KNOTS\nVISIBILITY '+(G.fog?'800 METRES, FOG':'10 KILOMETRES OR MORE')+'\nQNH '+G.qnh+'\nTRANSITION LEVEL 60\n<b>ACKNOWLEDGE INFORMATION '+ATIS_L[G.atis].toUpperCase()+' ON FIRST CONTACT.</b>';
+  return '<b>'+AIRPORT.icao+' INFORMATION '+ATIS_L[G.atis].toUpperCase()+'</b>  '+this.clockStr(G.clock).slice(0,5).replace(':','')+'Z\n'+((G.wx&&G.wx!=='clear')?'WEATHER '+WX_NAMES[G.wx]+'\n':'')+'RUNWAY IN USE '+RWD()+'\nWIND '+pad(wd,3)+' DEGREES '+Math.round(w.spd)+' KNOTS\nVISIBILITY '+(G.fog?'800 METRES, FOG':'10 KILOMETRES OR MORE')+'\nQNH '+G.qnh+'\nTRANSITION LEVEL 60\n<b>ACKNOWLEDGE INFORMATION '+ATIS_L[G.atis].toUpperCase()+' ON FIRST CONTACT.</b>';
  },
  talkingId(){
   if(typeof Voice!=='undefined'&&Voice.on&&Voice.now&&Voice.now.ent&&Voice.now.who==='pilot')return Voice.now.ent.id;

@@ -122,6 +122,7 @@ function newGame(cfg){
  G.t=0;G.clock=6*3600+10*60;G.rwy=Math.random()<0.5?'09':'27';
  const wd=G.rwy==='09'?rnd(60,120):rnd(240,300);
  G.wind={dir:wd,spd:rnd(6,12),target:wd,base:rnd(6,12)};G.qnh=rint(1004,1024);G.atis=rint(0,25);
+ G.wx=G.cfg.wx||'clear';G.gust=G.wx==='storm'?9:G.wx==='rain'?4:0;if(G.wx==='storm'){G.wind.base+=11;G.qnh=rint(988,1002);}else if(G.wx==='rain'){G.wind.base+=4;G.qnh=rint(996,1010);}
  G.windShiftAt=rnd(480,780);G.fog=!!G.cfg.fog;
  G.ents=[];G.log=[];G.q=[];G.score=0;G.safety=100;G.over=null;G.nextId=1;G.gates={};G.flags={debris:false};
  G.stats={dep:0,arr:0,goArounds:0,incursion:0,los:0,wake:0,emerg:0,delay:0,readback:0};
@@ -268,7 +269,7 @@ function weather(dt){
  const w=G.wind;
  if(G.t>G.windShiftAt&&!G.shifted){G.shifted=true;w.target=G.rwy==='09'?rnd(240,290):rnd(70,110);G.atis=(G.atis+1)%26;sysMsg('Wind is shifting. New ATIS '+ATIS_L[G.atis]+' — a runway change may be needed.','warn');emit('atis',G);}
  const dd=angDiff(w.target*D2R,w.dir*D2R)*R2D;w.dir=(w.dir+clamp(dd,-0.6*dt,0.6*dt)+360)%360;
- w.spd=Math.max(2,w.base+Math.sin(G.t/17)*2.2+Math.sin(G.t/5.3)*1.2);
+ w.spd=Math.max(2,w.base+Math.sin(G.t/17)*2.2+Math.sin(G.t/5.3)*1.2+(G.gust||0)*Math.max(0,Math.sin(G.t*1.3)*Math.sin(G.t/2.9)));
  const hr=(G.rwy==='09'?90:270),head=w.spd*Math.cos((w.dir-hr)*D2R);G.head=head;
  G.rwyBetter=null;const other=G.rwy==='09'?270:90,ho=w.spd*Math.cos((w.dir-other)*D2R);
  if(head<-6&&ho>head+8)G.rwyBetter=G.rwy==='09'?'27':'09';
