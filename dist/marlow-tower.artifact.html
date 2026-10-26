@@ -649,9 +649,9 @@ function pathFromNodes(ids,startPt,r){
 /* ---------------- global state ---------------- */
 const G={hooks:{}};
 const PRESETS={
- cadet:{dep:0.55,arr:0.45,mishap:0.07,err:0.03,maxAir:2,assist:true},
- controller:{dep:0.9,arr:0.75,mishap:0.15,err:0.08,maxAir:3,assist:false},
- veteran:{dep:1.4,arr:1.15,mishap:0.28,err:0.14,maxAir:4,assist:false}
+ cadet:{dep:0.38,arr:0.32,mishap:0.07,err:0.03,maxAir:2,assist:true},
+ controller:{dep:0.62,arr:0.5,mishap:0.15,err:0.08,maxAir:3,assist:false},
+ veteran:{dep:1.05,arr:0.85,mishap:0.28,err:0.14,maxAir:4,assist:false}
 };
 function emit(t,d){(G.hooks[t]||[]).forEach(f=>{try{f(d);}catch(e){console.error(e);}});}
 function on(t,f){(G.hooks[t]=G.hooks[t]||[]).push(f);}
@@ -666,6 +666,7 @@ function V(a,x){
 }
 function say(who,a,text,sev){
  const e={t:G.t,clock:G.clock,who,cs:a?a.cs:'',name:a?csName(a):'',text,sev:sev||'',ent:a||null,voice:a&&a.al?a.al.voice:null,accent:a&&a.al?a.al.accent:'',urgent:sev==='urgent'};
+ if(who!=='sys'){G.radioFree=Math.max(G.radioFree||0,G.t)+((text.match(/\S+/g)||[]).length*0.38+1.4);}
  G.log.push(e);if(G.log.length>400)G.log.shift();emit('say',e);return e;
 }
 const sysMsg=(t,sev)=>say('sys',null,t,sev||'');
@@ -739,8 +740,16 @@ function placeApproach(a){
 }
 
 /* ---------------- requests & reminders ---------------- */
+/* radio discipline: non-urgent pilots wait for a quiet frequency and never stack more than two open requests */
+function radioBusy(){
+ if((G.radioFree||0)>G.t+0.2)return true;
+ if(typeof Voice!=='undefined'&&Voice.on&&(Voice.busy||Voice.queue.length))return true;
+ let n=0;for(const e of G.ents)if(e.req&&!e.dead&&!(PH[e.req.kind]&&PH[e.req.kind].urgent))n++;
+ return n>=2;
+}
 function request(a,kind,x){
  const ph=PH[kind];if(!ph||a.nordo)return;
+ if(!ph.urgent&&radioBusy()){if(a.pend)return;a.pend=true;later(3+Math.random()*2.5,()=>{a.pend=false;if(!a.dead)request(a,kind,x);});return;}
  a.req={kind,t:G.t,n:0,x:x||{}};a.unit=ph.unit;
  const v=V(a,Object.assign({unit:UNITS[ph.unit].n,dist:a.kind==='arr'&&a.D?String(Math.max(1,Math.round(a.D/NM))):''},x||{}));
  v.dist=String((x&&x.dist)||v.dist);
@@ -749,7 +758,7 @@ function request(a,kind,x){
  emit('req',a);
 }
 function remind(a){
- const ph=PH[a.req.kind];const v=V(a,{unit:UNITS[ph.unit].n});
+ const ph=PH[a.req.kind];if(!ph.urgent&&(G.radioFree||0)>G.t+0.2)return;const v=V(a,{unit:UNITS[ph.unit].n});
  const t=pick(['{unit}, {cs}, still waiting.','{unit}, {cs}, do you copy?','{unit}, {cs}, how do you read, we are still waiting.']);
  say('pilot',a,fmt(t,v),ph.urgent?'urgent':'');G.score=Math.max(0,G.score-1);G.stats.delay+=1;
 }
