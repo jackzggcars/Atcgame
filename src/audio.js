@@ -3,14 +3,14 @@
    VOICE — Gemini TTS for pilots (with radio filter), browser-voice fallback, mic input
    ===================================================================== */
 const Voice={
- key:'',model:'gemini-3.8-flash-tts',on:true,gemini:true,fallback:true,fx:true,vol:0.9,micOn:true,
+ key:'',model:'gemini-3.8-flash-tts',on:true,gemini:true,fallback:true,fx:true,vol:0.9,micOn:true,style:false,
  ctx:null,queue:[],busy:false,cache:new Map(),fails:0,status:'idle',lastErr:'',nGemini:0,
  models:['gemini-3.8-flash-tts','gemini-3.1-flash-tts-preview','gemini-2.5-flash-preview-tts'],
  load(){
   try{const s=JSON.parse(localStorage.getItem('marlow.voice')||'{}');Object.assign(this,s);}catch(e){}
  },
  save(){
-  try{localStorage.setItem('marlow.voice',JSON.stringify({key:this.key,model:this.model,on:this.on,gemini:this.gemini,fallback:this.fallback,fx:this.fx,vol:this.vol,micOn:this.micOn}));}catch(e){}
+  try{localStorage.setItem('marlow.voice',JSON.stringify({key:this.key,model:this.model,on:this.on,gemini:this.gemini,fallback:this.fallback,fx:this.fx,vol:this.vol,micOn:this.micOn,style:this.style}));}catch(e){}
  },
  ensureCtx(){
   if(!this.ctx){try{this.ctx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){this.ctx=null;}}
@@ -18,6 +18,7 @@ const Voice={
   return this.ctx;
  },
  styleFor(e){
+  if(!this.style)return '';
   const acc=e.accent&&e.accent!=='international'?'with a '+e.accent+' accent, ':'';
   return e.urgent?'Say tensely and urgently, as an airline pilot on a VHF radio, '+acc+'clipped and fast':'Say calmly, as an airline pilot on a VHF radio, '+acc+'clipped and professional';
  },
@@ -56,13 +57,13 @@ const Voice={
   };
   for(const m of list){
    try{
-    const j=await tryFetch(base+'models/'+m+':generateContent?key='+encodeURIComponent(this.key),{contents:[{parts:[{text:style+': '+text}]}],generationConfig:{responseModalities:['AUDIO'],speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:voice}}}}});
+    const j=await tryFetch(base+'models/'+m+':generateContent?key='+encodeURIComponent(this.key),{contents:[{parts:[{text:style?style+': '+text:text}]}],generationConfig:{responseModalities:['AUDIO'],speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:voice}}}}});
     const a=this.findAudio(j);if(a){const b=await this.decode(a);this.cache.set(ck,b);if(m!==this.model){this.model=m;this.save();}return b;}
     lastErr=new Error('no audio in response');
    }catch(err){lastErr=err;if(/API key|403|401|PERMISSION|API_KEY/i.test(String(err.message)))break;if(/Failed to fetch|abort|NetworkError/i.test(String(err.message)))break;}
   }
   try{ // newer Interactions API
-   const j=await tryFetch(base+'interactions?key='+encodeURIComponent(this.key),{model:this.model,input:[{type:'user_input',content:[{type:'text',text:style+': '+text}]}],response_format:{type:'audio',mime_type:'audio/l16',sample_rate:24000},generation_config:{speech_config:[{voice}]}});
+   const j=await tryFetch(base+'interactions?key='+encodeURIComponent(this.key),{model:this.model,input:[{type:'user_input',content:[{type:'text',text:style?style+': '+text:text}]}],response_format:{type:'audio',mime_type:'audio/l16',sample_rate:24000},generation_config:{speech_config:[{voice}]}});
    const a=this.findAudio(j);if(a){const b=await this.decode(a);this.cache.set(ck,b);return b;}
   }catch(err){lastErr=lastErr||err;}
   throw lastErr||new Error('Gemini TTS failed');
@@ -133,15 +134,23 @@ const Voice={
 
 /* ---------- microphone (Web Speech API) ---------- */
 const Mic={
- rec:null,active:false,supported:!!(window.SpeechRecognition||window.webkitSpeechRecognition),onText:null,onState:null,last:'',
- start(){
-  if(!this.supported||this.active)return false;
+ rec:null,active:false,starting:false,wantStop:false,granted:false,supported:!!(window.SpeechRecognition||window.webkitSpeechRecognition),onText:null,onState:null,last:'',
+ async start(){
+  if(!this.supported||this.active||this.starting)return false;
+  this.starting=true;this.wantStop=false;
+  // ask for microphone permission explicitly so the browser shows its prompt
+  if(!this.granted){
+   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){this.starting=false;if(this.onState)this.onState(false,window.isSecureContext===false?'insecure-context':'unsupported');return false;}
+   try{const s=await navigator.mediaDevices.getUserMedia({audio:true});s.getTracks().forEach(t=>t.stop());this.granted=true;}
+   catch(e){this.starting=false;if(this.onState)this.onState(false,(e&&e.name==='NotFoundError')?'no-microphone':'not-allowed');return false;}
+  }
+  this.starting=false;if(this.wantStop)return false;
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   const r=new SR();r.lang='en-GB';r.interimResults=true;r.continuous=false;r.maxAlternatives=1;this.last='';
   r.onresult=ev=>{let t='';for(const res of ev.results)t+=res[0].transcript;this.last=t;if(this.onText)this.onText(t,ev.results[ev.results.length-1].isFinal);};
   r.onerror=ev=>{this.active=false;if(this.onState)this.onState(false,ev.error);};
   r.onend=()=>{this.active=false;if(this.onState)this.onState(false,'end');};
-  try{r.start();this.rec=r;this.active=true;if(this.onState)this.onState(true);return true;}catch(e){return false;}
+  try{r.start();this.rec=r;this.active=true;if(this.onState)this.onState(true);return true;}catch(e){if(this.onState)this.onState(false,String(e&&e.message||e));return false;}
  },
- stop(){if(this.rec&&this.active){try{this.rec.stop();}catch(e){}}}
+ stop(){this.wantStop=true;if(this.rec&&this.active){try{this.rec.stop();}catch(e){}}}
 };

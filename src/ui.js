@@ -17,7 +17,9 @@ const UI={
   this.bind();this.buildManual();this.syncSettings();this.voiceStatus();
   window.addEventListener('resize',()=>this.resize());this.resize();
   Mic.onText=(t,fin)=>{$('cmd').value=t;if(fin){this.submit();}};
-  Mic.onState=(on,err)=>{$('mic').classList.toggle('on',on);if(!on&&err&&err!=='end'&&err!=='no-speech'&&err!=='aborted')this.toast('Microphone: '+err+(err==='not-allowed'?' (permission blocked — type your transmission instead)':''),'warn');};
+  Mic.onState=(on,err)=>{$('mic').classList.toggle('on',on);if(on){this.toast('Listening… speak your transmission','ok');return;}
+   const M={'not-allowed':'Microphone blocked. Click the lock / camera icon in the address bar, allow the microphone, then try again.','service-not-allowed':'Speech recognition is blocked in this browser or page. Use Chrome or Edge on the downloaded or deployed (https) page.','no-microphone':'No microphone found.','audio-capture':'No microphone found.','network':'Speech recognition needs an internet connection.','insecure-context':'The microphone needs a secure (https) page.','unsupported':'This page cannot access the microphone (it may be embedded; open it in its own tab).','no-speech':"Didn't hear anything. Hold Space and speak."};
+   if(err&&err!=='end'&&err!=='aborted')this.toast(M[err]||('Microphone: '+err),'warn');};
   on('say',e=>this.onSay(e));on('incident',i=>this.banner(i.text,'bad'));on('over',o=>this.onOver(o));
   on('accident',e=>{R3.boom(e.x,e.y,e.z,G.cfg.mode==='training'?25:0);this.alarm();});
   on('score',s=>{this.sysLine('✓ '+s.a.cs+(s.a.kind==='dep'?' departed':' parked')+' · +'+Math.max(10,s.pts));});
@@ -182,11 +184,11 @@ const UI={
  setLayout(l){this.layout=l;$('views').className='lay-'+l;document.querySelectorAll('#layout button').forEach(b=>b.classList.toggle('on',b.dataset.l===l));setTimeout(()=>this.resize(),30);},
  /* ---------- settings ---------- */
  syncSettings(){
-  $('k-key').value=Voice.key||'';$('k-model').value=Voice.model;$('k-gem').checked=Voice.gemini;$('k-voice').checked=Voice.on;$('k-fb').checked=Voice.fallback;$('k-fx').checked=Voice.fx;$('k-vol').value=Voice.vol;$('k-mic').checked=Voice.micOn;
+  $('k-key').value=Voice.key||'';$('k-model').value=Voice.model;$('k-gem').checked=Voice.gemini;$('k-voice').checked=Voice.on;$('k-fb').checked=Voice.fallback;$('k-fx').checked=Voice.fx;$('k-style').checked=Voice.style;$('k-vol').value=Voice.vol;$('k-mic').checked=Voice.micOn;
   if(G.cfg){$('k-assist').checked=!!G.cfg.assist;}
  },
  saveSettings(){
-  Voice.key=$('k-key').value.trim();Voice.model=$('k-model').value.trim()||'gemini-3.8-flash-tts';Voice.gemini=$('k-gem').checked;Voice.on=$('k-voice').checked;Voice.fallback=$('k-fb').checked;Voice.fx=$('k-fx').checked;Voice.vol=+$('k-vol').value;Voice.micOn=$('k-mic').checked;Voice.fails=0;Voice.save();
+  Voice.key=$('k-key').value.trim();Voice.model=$('k-model').value.trim()||'gemini-3.8-flash-tts';Voice.gemini=$('k-gem').checked;Voice.on=$('k-voice').checked;Voice.fallback=$('k-fb').checked;Voice.fx=$('k-fx').checked;Voice.style=$('k-style').checked;Voice.vol=+$('k-vol').value;Voice.micOn=$('k-mic').checked;Voice.fails=0;Voice.save();
   if(G.cfg)G.cfg.assist=$('k-assist').checked;this.voiceStatus();
  },
  voiceStatus(){
@@ -260,7 +262,7 @@ const UI={
   $('start-set').addEventListener('click',()=>{this.syncSettings();$('settings').hidden=false;});
   $('start-man').addEventListener('click',()=>this.openManual());
   $('k-test').addEventListener('click',async()=>{this.saveSettings();$('k-res').textContent='Testing…';$('k-res').textContent=await Voice.test();this.voiceStatus();});
-  ['k-key','k-model','k-gem','k-voice','k-fb','k-fx','k-vol','k-mic','k-assist'].forEach(i=>$(i).addEventListener('change',()=>this.saveSettings()));
+  ['k-key','k-model','k-gem','k-voice','k-fb','k-fx','k-style','k-vol','k-mic','k-assist'].forEach(i=>$(i).addEventListener('change',()=>this.saveSettings()));
   $('send').addEventListener('click',()=>this.submit());
   $('cmd').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();this.submit();}e.stopPropagation();if(e.key==='Escape')$('cmd').blur();});
   $('mic').addEventListener('click',()=>{if(!Mic.supported){this.toast('Speech recognition is not available in this browser — type your transmission.','warn');return;}if(Mic.active)Mic.stop();else Mic.start();});

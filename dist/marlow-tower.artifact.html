@@ -293,6 +293,7 @@ body.man-docked #app{padding-right:calc(min(460px,42vw) + 12px)}
    <label class="chk"><input id="k-voice" type="checkbox"> Pilot voices on</label>
    <label class="chk"><input id="k-fb" type="checkbox"> Browser voice fallback</label>
    <label class="chk"><input id="k-fx" type="checkbox"> Radio static filter</label>
+   <label class="chk"><input id="k-style" type="checkbox"> Accent / mood prompts (may be read aloud)</label>
    <label class="chk"><input id="k-mic" type="checkbox"> Hold Space to talk</label>
    <label class="chk"><input id="k-assist" type="checkbox"> Highlight wrong read-backs</label>
    <label class="wide">Volume<input id="k-vol" type="range" min="0" max="1" step="0.05" style="width:100%;accent-color:#ffb22e"></label>
@@ -1483,14 +1484,14 @@ function snapshotATIS(){const w=G.wind;let wd=Math.round(w.dir/10)*10%360;if(wd=
    VOICE — Gemini TTS for pilots (with radio filter), browser-voice fallback, mic input
    ===================================================================== */
 const Voice={
- key:'',model:'gemini-3.8-flash-tts',on:true,gemini:true,fallback:true,fx:true,vol:0.9,micOn:true,
+ key:'',model:'gemini-3.8-flash-tts',on:true,gemini:true,fallback:true,fx:true,vol:0.9,micOn:true,style:false,
  ctx:null,queue:[],busy:false,cache:new Map(),fails:0,status:'idle',lastErr:'',nGemini:0,
  models:['gemini-3.8-flash-tts','gemini-3.1-flash-tts-preview','gemini-2.5-flash-preview-tts'],
  load(){
   try{const s=JSON.parse(localStorage.getItem('marlow.voice')||'{}');Object.assign(this,s);}catch(e){}
  },
  save(){
-  try{localStorage.setItem('marlow.voice',JSON.stringify({key:this.key,model:this.model,on:this.on,gemini:this.gemini,fallback:this.fallback,fx:this.fx,vol:this.vol,micOn:this.micOn}));}catch(e){}
+  try{localStorage.setItem('marlow.voice',JSON.stringify({key:this.key,model:this.model,on:this.on,gemini:this.gemini,fallback:this.fallback,fx:this.fx,vol:this.vol,micOn:this.micOn,style:this.style}));}catch(e){}
  },
  ensureCtx(){
   if(!this.ctx){try{this.ctx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){this.ctx=null;}}
@@ -1498,6 +1499,7 @@ const Voice={
   return this.ctx;
  },
  styleFor(e){
+  if(!this.style)return '';
   const acc=e.accent&&e.accent!=='international'?'with a '+e.accent+' accent, ':'';
   return e.urgent?'Say tensely and urgently, as an airline pilot on a VHF radio, '+acc+'clipped and fast':'Say calmly, as an airline pilot on a VHF radio, '+acc+'clipped and professional';
  },
@@ -1536,13 +1538,13 @@ const Voice={
   };
   for(const m of list){
    try{
-    const j=await tryFetch(base+'models/'+m+':generateContent?key='+encodeURIComponent(this.key),{contents:[{parts:[{text:style+': '+text}]}],generationConfig:{responseModalities:['AUDIO'],speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:voice}}}}});
+    const j=await tryFetch(base+'models/'+m+':generateContent?key='+encodeURIComponent(this.key),{contents:[{parts:[{text:style?style+': '+text:text}]}],generationConfig:{responseModalities:['AUDIO'],speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:voice}}}}});
     const a=this.findAudio(j);if(a){const b=await this.decode(a);this.cache.set(ck,b);if(m!==this.model){this.model=m;this.save();}return b;}
     lastErr=new Error('no audio in response');
    }catch(err){lastErr=err;if(/API key|403|401|PERMISSION|API_KEY/i.test(String(err.message)))break;if(/Failed to fetch|abort|NetworkError/i.test(String(err.message)))break;}
   }
   try{ // newer Interactions API
-   const j=await tryFetch(base+'interactions?key='+encodeURIComponent(this.key),{model:this.model,input:[{type:'user_input',content:[{type:'text',text:style+': '+text}]}],response_format:{type:'audio',mime_type:'audio/l16',sample_rate:24000},generation_config:{speech_config:[{voice}]}});
+   const j=await tryFetch(base+'interactions?key='+encodeURIComponent(this.key),{model:this.model,input:[{type:'user_input',content:[{type:'text',text:style?style+': '+text:text}]}],response_format:{type:'audio',mime_type:'audio/l16',sample_rate:24000},generation_config:{speech_config:[{voice}]}});
    const a=this.findAudio(j);if(a){const b=await this.decode(a);this.cache.set(ck,b);return b;}
   }catch(err){lastErr=lastErr||err;}
   throw lastErr||new Error('Gemini TTS failed');
@@ -1613,17 +1615,25 @@ const Voice={
 
 /* ---------- microphone (Web Speech API) ---------- */
 const Mic={
- rec:null,active:false,supported:!!(window.SpeechRecognition||window.webkitSpeechRecognition),onText:null,onState:null,last:'',
- start(){
-  if(!this.supported||this.active)return false;
+ rec:null,active:false,starting:false,wantStop:false,granted:false,supported:!!(window.SpeechRecognition||window.webkitSpeechRecognition),onText:null,onState:null,last:'',
+ async start(){
+  if(!this.supported||this.active||this.starting)return false;
+  this.starting=true;this.wantStop=false;
+  // ask for microphone permission explicitly so the browser shows its prompt
+  if(!this.granted){
+   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){this.starting=false;if(this.onState)this.onState(false,window.isSecureContext===false?'insecure-context':'unsupported');return false;}
+   try{const s=await navigator.mediaDevices.getUserMedia({audio:true});s.getTracks().forEach(t=>t.stop());this.granted=true;}
+   catch(e){this.starting=false;if(this.onState)this.onState(false,(e&&e.name==='NotFoundError')?'no-microphone':'not-allowed');return false;}
+  }
+  this.starting=false;if(this.wantStop)return false;
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   const r=new SR();r.lang='en-GB';r.interimResults=true;r.continuous=false;r.maxAlternatives=1;this.last='';
   r.onresult=ev=>{let t='';for(const res of ev.results)t+=res[0].transcript;this.last=t;if(this.onText)this.onText(t,ev.results[ev.results.length-1].isFinal);};
   r.onerror=ev=>{this.active=false;if(this.onState)this.onState(false,ev.error);};
   r.onend=()=>{this.active=false;if(this.onState)this.onState(false,'end');};
-  try{r.start();this.rec=r;this.active=true;if(this.onState)this.onState(true);return true;}catch(e){return false;}
+  try{r.start();this.rec=r;this.active=true;if(this.onState)this.onState(true);return true;}catch(e){if(this.onState)this.onState(false,String(e&&e.message||e));return false;}
  },
- stop(){if(this.rec&&this.active){try{this.rec.stop();}catch(e){}}}
+ stop(){this.wantStop=true;if(this.rec&&this.active){try{this.rec.stop();}catch(e){}}}
 };
 
 ;
@@ -2675,7 +2685,9 @@ const UI={
   this.bind();this.buildManual();this.syncSettings();this.voiceStatus();
   window.addEventListener('resize',()=>this.resize());this.resize();
   Mic.onText=(t,fin)=>{$('cmd').value=t;if(fin){this.submit();}};
-  Mic.onState=(on,err)=>{$('mic').classList.toggle('on',on);if(!on&&err&&err!=='end'&&err!=='no-speech'&&err!=='aborted')this.toast('Microphone: '+err+(err==='not-allowed'?' (permission blocked — type your transmission instead)':''),'warn');};
+  Mic.onState=(on,err)=>{$('mic').classList.toggle('on',on);if(on){this.toast('Listening… speak your transmission','ok');return;}
+   const M={'not-allowed':'Microphone blocked. Click the lock / camera icon in the address bar, allow the microphone, then try again.','service-not-allowed':'Speech recognition is blocked in this browser or page. Use Chrome or Edge on the downloaded or deployed (https) page.','no-microphone':'No microphone found.','audio-capture':'No microphone found.','network':'Speech recognition needs an internet connection.','insecure-context':'The microphone needs a secure (https) page.','unsupported':'This page cannot access the microphone (it may be embedded; open it in its own tab).','no-speech':"Didn't hear anything. Hold Space and speak."};
+   if(err&&err!=='end'&&err!=='aborted')this.toast(M[err]||('Microphone: '+err),'warn');};
   on('say',e=>this.onSay(e));on('incident',i=>this.banner(i.text,'bad'));on('over',o=>this.onOver(o));
   on('accident',e=>{R3.boom(e.x,e.y,e.z,G.cfg.mode==='training'?25:0);this.alarm();});
   on('score',s=>{this.sysLine('✓ '+s.a.cs+(s.a.kind==='dep'?' departed':' parked')+' · +'+Math.max(10,s.pts));});
@@ -2840,11 +2852,11 @@ const UI={
  setLayout(l){this.layout=l;$('views').className='lay-'+l;document.querySelectorAll('#layout button').forEach(b=>b.classList.toggle('on',b.dataset.l===l));setTimeout(()=>this.resize(),30);},
  /* ---------- settings ---------- */
  syncSettings(){
-  $('k-key').value=Voice.key||'';$('k-model').value=Voice.model;$('k-gem').checked=Voice.gemini;$('k-voice').checked=Voice.on;$('k-fb').checked=Voice.fallback;$('k-fx').checked=Voice.fx;$('k-vol').value=Voice.vol;$('k-mic').checked=Voice.micOn;
+  $('k-key').value=Voice.key||'';$('k-model').value=Voice.model;$('k-gem').checked=Voice.gemini;$('k-voice').checked=Voice.on;$('k-fb').checked=Voice.fallback;$('k-fx').checked=Voice.fx;$('k-style').checked=Voice.style;$('k-vol').value=Voice.vol;$('k-mic').checked=Voice.micOn;
   if(G.cfg){$('k-assist').checked=!!G.cfg.assist;}
  },
  saveSettings(){
-  Voice.key=$('k-key').value.trim();Voice.model=$('k-model').value.trim()||'gemini-3.8-flash-tts';Voice.gemini=$('k-gem').checked;Voice.on=$('k-voice').checked;Voice.fallback=$('k-fb').checked;Voice.fx=$('k-fx').checked;Voice.vol=+$('k-vol').value;Voice.micOn=$('k-mic').checked;Voice.fails=0;Voice.save();
+  Voice.key=$('k-key').value.trim();Voice.model=$('k-model').value.trim()||'gemini-3.8-flash-tts';Voice.gemini=$('k-gem').checked;Voice.on=$('k-voice').checked;Voice.fallback=$('k-fb').checked;Voice.fx=$('k-fx').checked;Voice.style=$('k-style').checked;Voice.vol=+$('k-vol').value;Voice.micOn=$('k-mic').checked;Voice.fails=0;Voice.save();
   if(G.cfg)G.cfg.assist=$('k-assist').checked;this.voiceStatus();
  },
  voiceStatus(){
@@ -2918,7 +2930,7 @@ const UI={
   $('start-set').addEventListener('click',()=>{this.syncSettings();$('settings').hidden=false;});
   $('start-man').addEventListener('click',()=>this.openManual());
   $('k-test').addEventListener('click',async()=>{this.saveSettings();$('k-res').textContent='Testing…';$('k-res').textContent=await Voice.test();this.voiceStatus();});
-  ['k-key','k-model','k-gem','k-voice','k-fb','k-fx','k-vol','k-mic','k-assist'].forEach(i=>$(i).addEventListener('change',()=>this.saveSettings()));
+  ['k-key','k-model','k-gem','k-voice','k-fb','k-fx','k-style','k-vol','k-mic','k-assist'].forEach(i=>$(i).addEventListener('change',()=>this.saveSettings()));
   $('send').addEventListener('click',()=>this.submit());
   $('cmd').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();this.submit();}e.stopPropagation();if(e.key==='Escape')$('cmd').blur();});
   $('mic').addEventListener('click',()=>{if(!Mic.supported){this.toast('Speech recognition is not available in this browser — type your transmission.','warn');return;}if(Mic.active)Mic.stop();else Mic.start();});
