@@ -141,7 +141,10 @@ function newSquawk(){
 function uniqueNum(al){for(let k=0;k<50;k++){const n=String(rint(2,998)).padStart(rint(0,1)?3:2,'0').replace(/^0+(?=\d{2})/,'');if(!G.ents.some(e=>e.al===al&&e.num===n))return n;}return String(rint(100,999));}
 function wpickAl(){const L=AIRPORT.airlines;let t=0;L.forEach(x=>t+=x[1]);let r=Math.random()*t;for(const x of L){r-=x[1];if(r<=0)return AL_BY[x[0]];}return AL_BY[L[0][0]];}
 function mkAc(kind){
- const al=wpickAl();const ty=TYPES[pick(al.fleet)]||TYPES.A320;const num=uniqueNum(al);
+ let al=wpickAl(),rare=false;
+ if(kind==='arr'&&Math.random()<(G.cfg.rare!==undefined?G.cfg.rare:0.05)){let t=0;RARE_OPS.forEach(x=>t+=x.w);let r=Math.random()*t;for(const x of RARE_OPS){r-=x.w;if(r<=0){al=x;break;}}rare=true;}
+ const ty=TYPES[pick(al.fleet)]||TYPES.A320;
+ let num=uniqueNum(al);if(rare){const f=al.nums.filter(n=>!G.ents.some(e=>e.al===al&&e.num===n));num=pick(f.length?f:al.nums);}
  const a={id:G.nextId++,kind,al,type:ty,num,cs:al.icao+num,rt:al.rt+' '+num,heavy:ty.wake==='H',
   x:0,z:0,y:0,th:0,v:0,pitch:0,bank:0,vs:0,phase:'',req:null,nextReq:null,waitSec:0,dead:false,r:0.32*Math.max(ty.wing,ty.len),
   gate:null,dest:pick(DESTS),squawk:'',sqPlan:null,clrOk:false,pushDone:false,node:null,path:null,s:0,paused:false,back:false,

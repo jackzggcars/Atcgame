@@ -795,6 +795,7 @@ R3.buildAC=function(a){
  return{holder,root,body:pivot,sh,a};
 };
 // wing texture accessor kept for any caller
+R3.liftSurface=liftSurface;
 R3.wingTex=function(){return wingTextures(TYPES.A320,0).map;};
 
 /* ---------- per-frame: fan spin + LOD ---------- */

@@ -4,7 +4,7 @@ const S=f=>fs.readFileSync('src/'+f,'utf8');
 const page=S('page.html');
 const i=page.indexOf('<div id="app">');
 const head=page.slice(0,i), body=page.slice(i);
-const js=['data.js','airports.js','sim1.js','sim2.js','sim3.js','audio.js','r3d.js','gfx.js','acmodel.js','extras.js','fx3d.js','map.js','ui.js','tutorial.js'].map(S).join('\n;\n').replace(/<\/script/gi,'<\\/script');
+const js=['data.js','airports.js','sim1.js','sim2.js','sim3.js','audio.js','r3d.js','gfx.js','acmodel.js','rareac.js','extras.js','fx3d.js','map.js','ui.js','tutorial.js'].map(S).join('\n;\n').replace(/<\/script/gi,'<\\/script');
 const three='<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>';
 const es=S('espeak.bundle.js').replace(/<\/script/gi,'<\\/script');
 const scripts=three+'\n<script>/* eSpeak (GPL) via meSpeak — offline pilot voice for the radio effect */\n'+es+'\n</script>\n<script>\n'+js+'\n</script>\n';

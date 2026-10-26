@@ -13,6 +13,12 @@ const NEWTYPES={
  A388:{n:'A388',wing:79.8,len:72.7,wake:'H',vref:145,vr:155,acc:1.45,eng:4,rf:3.55,wide:true}
 };
 Object.assign(TYPES,NEWTYPES);
+/* ---- rare visitors: Concorde, Grumman F-14 Tomcat, Northrop B-2 Spirit (dimensions & speeds from the real aircraft) ---- */
+Object.assign(TYPES,{
+ CONC:{n:'CONC',wing:25.6,len:61.66,wake:'H',vref:162,vr:195,acc:2.5,eng:4,rf:1.5,wide:false,rare:true,name:'Aérospatiale/BAC Concorde'},
+ F14:{n:'F14',wing:19.55,len:19.1,wake:'M',vref:138,vr:145,acc:3.4,eng:2,rf:1.0,wide:false,rare:true,name:'Grumman F-14 Tomcat'},
+ B2:{n:'B2',wing:52.4,len:21.0,wake:'H',vref:145,vr:150,acc:1.9,eng:4,rf:1.6,wide:false,rare:true,name:'Northrop B-2 Spirit'}
+});
 /* airline: icao, rt (telephony), nm (fuselage text), init (fin mark), tail/acc colours, body colour, fleet, voice/accent */
 const AL2=[
  {icao:'QTR',rt:'Qatari',nm:'QATAR AIRWAYS',init:'Q',tail:0x5c0632,acc:0x5c0632,voice:'Alnilam',accent:'Gulf Arabic',fleet:['A359','B789','B77W','A333','A320']},
@@ -39,6 +45,19 @@ const AL2=[
  {icao:'TRA',rt:'Transavia',nm:'transavia',init:'t',tail:0x00a651,acc:0x00a651,voice:'Despina',accent:'Dutch',fleet:['B738']}
 ];
 AIRLINES.push(...AL2);
+/* rare operators: radio callsigns as used in real life (Concorde: "Speedbird Concorde 1"; B-2s of the 509th Bomb Wing use "Spirit";
+   F-14 squadrons use their squadron tactical callsigns).  weight = relative chance among rare visitors */
+const RARE_OPS=[
+ {icao:'BAW',rt:'Speedbird Concorde',nm:'BRITISH AIRWAYS',liv:'BA',tail:0x14285a,acc:0xc8102e,voice:'Charon',accent:'British',fleet:['CONC'],nums:['1','2','3','4','9','11'],w:4},
+ {icao:'AFR',rt:'Air France Concorde',nm:'AIR FRANCE',liv:'AF',tail:0xffffff,acc:0x213a8f,voice:'Orus',accent:'French',fleet:['CONC'],nums:['1','2','3','4','9'],w:2.5},
+ {icao:'WOLFP',rt:'Wolfpack',nm:'VF-1 WOLFPACK',liv:'VF1',sq:{code:'NK',name:'WOLFPACK',tail:0x14161a,band:0xe9c500,mod:'1'},tail:0x14161a,acc:0xe9c500,voice:'Fenrir',accent:'American',fleet:['F14'],nums:['101','102','105','110','112'],w:2},
+ {icao:'BHUNT',rt:'Bounty Hunter',nm:'VF-2 BOUNTY HUNTERS',liv:'VF2',sq:{code:'NE',name:'BOUNTY HUNTERS',tail:0x1a1c20,band:0xd8232a,mod:'2'},tail:0x1a1c20,acc:0xd8232a,voice:'Orus',accent:'American',fleet:['F14'],nums:['201','202','205','207','210'],w:2},
+ {icao:'JOLLY',rt:'Jolly Roger',nm:'VF-84 JOLLY ROGERS',liv:'VF84',sq:{code:'AJ',name:'JOLLY ROGERS',tail:0x0d0e10,band:0xf2f2f2,mod:'1'},tail:0x0d0e10,acc:0xf2f2f2,voice:'Rasalgethi',accent:'American',fleet:['F14'],nums:['101','102','103','107','112'],w:2},
+ {icao:'SUNDN',rt:'Sundown',nm:'VF-111 SUNDOWNERS',liv:'VF111',sq:{code:'NL',name:'SUNDOWNERS',tail:0xc8102e,band:0xf2c400,mod:'2'},tail:0xc8102e,acc:0xf2c400,voice:'Puck',accent:'American',fleet:['F14'],nums:['201','203','204','210','214'],w:2},
+ {icao:'SPIRT',rt:'Spirit',nm:'509TH BOMB WING',liv:'B2',tail:0x2a2d31,acc:0x2a2d31,voice:'Algieba',accent:'American',fleet:['B2'],nums:['11','12','21','22','31','32'],w:4,
+  names:[['Spirit of America','82-1066'],['Spirit of Arizona','82-1067'],['Spirit of Missouri','82-1070']]}
+];
+AIRLINES.push(...RARE_OPS);
 /* fleets for the original nine */
 const FLEET0={BAW:['A320','A321','A359','B789','B77W','A388'],DLH:['A320','A321','A359','A333'],AFR:['A320','A321','B77W','A359'],EZY:['A320','A321'],RYR:['B738'],KLM:['B738','E190','B789','B77W','A333'],VIR:['A333','A359','B789'],UAE:['B77W','A388','A359'],SAS:['A320','A359','E190']};
 AIRLINES.forEach(a=>{if(!a.fleet)a.fleet=FLEET0[a.icao]||['A320'];});
