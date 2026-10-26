@@ -104,20 +104,54 @@ const Voice={
   const ctx=this.ctx;const b=ctx.createBuffer(1,Math.floor(ctx.sampleRate*len),ctx.sampleRate);const d=b.getChannelData(0);
   for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*0.5;return b;
  },
+ /* Channel vocoder: emulates the warbly, band-limited digital (AMBE-style) voice of a digital radio link.
+    8 kHz, 10 analysis bands, 20 ms frames, 4-bit envelopes, buzz / noise excitation, frame freezes and drop-outs that grow with distance. */
+ _bq(x,f0,Q,sr){const w=2*Math.PI*f0/sr,al=Math.sin(w)/(2*Q),a0=1+al,b0=al/a0,b2=-al/a0,a1=-2*Math.cos(w)/a0,a2=(1-al)/a0;const y=new Float32Array(x.length);let x1=0,x2=0,y1=0,y2=0;
+  for(let i=0;i<x.length;i++){const v=x[i],o=b0*v+b2*x2-a1*y1-a2*y2;y[i]=o;x2=x1;x1=v;y2=y1;y1=o;}return y;},
+ vocode(buf,q){
+  const sr=8000,src=buf.getChannelData(0),r=buf.sampleRate/sr,n=Math.floor(src.length/r),x=new Float32Array(n);
+  for(let i=0;i<n;i++){let a=0,c=0;for(let j=Math.floor(i*r);j<Math.floor((i+1)*r)&&j<src.length;j++){a+=src[j];c++;}x[i]=c?a/c:0;}
+  const FR=160,nf=Math.floor(n/FR),B=[[260,380],[380,520],[520,690],[690,890],[890,1130],[1130,1420],[1420,1770],[1770,2200],[2200,2700],[2700,3300]];
+  // excitation: glottal-ish buzz for voiced frames, noise for unvoiced (decided by zero-crossing rate)
+  const buzz=new Float32Array(n),noise=new Float32Array(n);let ph=0;
+  for(let i=0;i<n;i++){const f=118+14*Math.sin(i/sr*5.1)+((i/FR|0)%3)*4;ph+=f/sr;if(ph>=1)ph-=1;buzz[i]=(ph<0.07?1:0)-0.07+0.25*Math.sin(2*Math.PI*ph);noise[i]=Math.random()*2-1;}
+  const voiced=new Uint8Array(nf);for(let f=0;f<nf;f++){let z=0;for(let i=f*FR+1;i<(f+1)*FR;i++)if((x[i]>0)!==(x[i-1]>0))z++;voiced[f]=z<46?1:0;}
+  const exc=new Float32Array(n);for(let i=0;i<n;i++){const f=Math.min(nf-1,i/FR|0);exc[i]=voiced[f]?buzz[i]*0.9+noise[i]*0.12:noise[i]*0.55;}
+  const out=new Float32Array(n);const fe=new Float32Array(B.length);let held=null;
+  for(let b=0;b<B.length;b++){
+   const f0=Math.sqrt(B[b][0]*B[b][1]),Q=f0/(B[b][1]-B[b][0]),a=this._bq(x,f0,Q,sr),c=this._bq(exc,f0,Q,sr);
+   const env=new Float32Array(nf);for(let f=0;f<nf;f++){let e=0;for(let i=f*FR;i<(f+1)*FR;i++)e+=a[i]*a[i];env[f]=Math.sqrt(e/FR);}
+   // 4-bit log quantisation of the envelope, then stochastic freezes / drop-outs
+   let last=0;for(let f=0;f<nf;f++){let e=env[f];const db=20*Math.log10(e+1e-5);let lv=Math.round((Math.max(-60,Math.min(0,db))+60)/4);e=lv===0?0:Math.pow(10,(lv*4-60)/20);
+    const seed=Math.sin(f*12.9898+7.13)*43758.5453,rr=seed-Math.floor(seed);
+    if(rr<q*0.07)e=last;else if(rr>1-q*0.035)e=0;last=e;env[f]=e;}
+   for(let i=0;i<n;i++){const f=Math.min(nf-1,i/FR|0),g0=env[f],g1=env[Math.min(nf-1,f+1)],t=(i%FR)/FR;out[i]+=c[i]*(g0+(g1-g0)*t)*2.1;}
+  }
+  // dry path: band-limited + coarse 7-bit quantisation, blended under the vocoded voice
+  const dry=this._bq(this._bq(x,300,0.7,sr),2900,0.7,sr);let pk=0;
+  for(let i=0;i<n;i++){const d=Math.round(dry[i]*60)/60;out[i]=out[i]*0.62+d*0.45;if(Math.abs(out[i])>pk)pk=Math.abs(out[i]);}
+  const k=pk>0?0.85/pk:1,ob=this.ctx.createBuffer(1,n,sr),od=ob.getChannelData(0);for(let i=0;i<n;i++)od[i]=out[i]*k;return ob;
+ },
+ _q(){const e=this.now;if(!e||e.x===undefined)return 0.25;const d=Math.hypot(e.x,e.z)+Math.max(0,e.y||0)*0.5;return Math.max(0,Math.min(1,d/30000));},
+ /* background injection for voices that can't be routed through Web Audio (browser TTS): hiss, carrier whine, squelch */
+ bed(dur,q){const ctx=this.ensureCtx();if(!ctx)return;const t0=ctx.currentTime+0.02,out=ctx.createGain();out.gain.value=this.vol;out.connect(ctx.destination);
+  const ns=ctx.createBufferSource();ns.buffer=this.noiseBuf(dur+0.4);const nf=ctx.createBiquadFilter();nf.type='bandpass';nf.frequency.value=1700;nf.Q.value=0.5;const ng=ctx.createGain();ng.gain.value=0.02+0.06*q;ns.connect(nf);nf.connect(ng);ng.connect(out);ns.start(t0);
+  const sq=ctx.createBufferSource();sq.buffer=this.noiseBuf(0.07);const sg=ctx.createGain();sg.gain.value=0.16;sq.connect(sg);sg.connect(out);sq.start(t0);
+  const sq2=ctx.createBufferSource();sq2.buffer=this.noiseBuf(0.06);const sg2=ctx.createGain();sg2.gain.value=0.12;sq2.connect(sg2);sg2.connect(out);sq2.start(t0+dur+0.1);},
  async playBuffer(buf){await this.idle();return this._play(buf);},
  _play(buf){
   return new Promise(res=>{
    const ctx=this.ensureCtx();if(!ctx)return res();
    const t0=ctx.currentTime+0.02;const out=ctx.createGain();out.gain.value=this.vol;out.connect(ctx.destination);
-   const src=ctx.createBufferSource();src.buffer=buf;
-   if(this.fx){
+   const src=ctx.createBufferSource();src.buffer=buf;const Q=this._q();
+   if(this.fx){try{src.buffer=this.vocode(buf,Q);}catch(er){src.buffer=buf;}
     const hp=ctx.createBiquadFilter();hp.type='highpass';hp.frequency.value=380;
     const lp=ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=3100;
     const sh=ctx.createWaveShaper();const c=new Float32Array(256);for(let i=0;i<256;i++){const x=i/128-1;c[i]=Math.tanh(x*2.2);}sh.curve=c;
     const g=ctx.createGain();g.gain.value=0.9;
     src.connect(hp);hp.connect(lp);lp.connect(sh);sh.connect(g);g.connect(out);
-    const ns=ctx.createBufferSource();ns.buffer=this.noiseBuf(buf.duration+0.4);const nf=ctx.createBiquadFilter();nf.type='bandpass';nf.frequency.value=1800;nf.Q.value=0.6;const ng=ctx.createGain();ng.gain.value=0.035;
-    ns.connect(nf);nf.connect(ng);ng.connect(out);ns.start(t0);
+    const ns=ctx.createBufferSource();ns.buffer=this.noiseBuf(buf.duration+0.4);const nf=ctx.createBiquadFilter();nf.type='bandpass';nf.frequency.value=1800;nf.Q.value=0.6;const ng=ctx.createGain();ng.gain.value=0.02+0.07*Q;
+    ns.connect(nf);nf.connect(ng);ng.connect(out);ns.start(t0);{const wo=ctx.createOscillator();wo.frequency.value=1020+Q*60;const wg=ctx.createGain();wg.gain.value=0.003+0.01*Q;wo.connect(wg);wg.connect(out);wo.start(t0);wo.stop(t0+buf.duration+0.4);}
     const sq=ctx.createBufferSource();sq.buffer=this.noiseBuf(0.07);const sg=ctx.createGain();sg.gain.value=0.18;sq.connect(sg);sg.connect(out);sq.start(t0);
     const sq2=ctx.createBufferSource();sq2.buffer=this.noiseBuf(0.06);const sg2=ctx.createGain();sg2.gain.value=0.14;sq2.connect(sg2);sg2.connect(out);sq2.start(t0+0.12+buf.duration);
     src.start(t0+0.1);
@@ -135,6 +169,7 @@ const Voice={
   return new Promise(res=>{
    if(!('speechSynthesis' in window)){res();return;}
    const ss=speechSynthesis;
+   if(this.fx)try{this.bed(Math.min(14,text.length*0.075),this._q());}catch(_){}
    const vs=this.pickVoices();
    let h=0;for(const ch of (e.cs||'x'))h=(h*31+ch.charCodeAt(0))>>>0;
    let fin=false,started=false,tries=0;
