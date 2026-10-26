@@ -202,19 +202,22 @@ const UI={
  /* ---------- manual ---------- */
  buildManual(){
   const body=$('m-body');const frag=document.createDocumentFragment();
+  const TIP={'CALLSIGN':'The aircraft you are talking to, exactly as on its strip, e.g. "Speedbird 452".','STAND':'Parking stand.','STAND NUMBER':'Parking stand 1 to 6 on the apron (numbered squares on the map). Shown in the selected-aircraft panel.','DESTINATION':'The city the flight is going to (selected-aircraft panel), e.g. Frankfurt.','SID NAME':'Name of the departure route the aircraft will fly after takeoff, e.g. "Rosel Two Alpha". Hover the Accept button for the exact name.','SQUAWK':'4-digit transponder code you give the pilot. Any digits 0 to 7 not already used (never 7500/7600/7700).','ALTITUDE':'Initial climb altitude in feet. Use 5000.','QNH':'Local pressure setting, from the ATIS chip in the top bar, e.g. 1013.','ATIS LETTER':'Letter of the current weather broadcast (top bar), e.g. Bravo.','RUNWAY':'Runway in use: 09 or 27 (RWY button, top bar).','HOLDING POINT':'Where the aircraft stops short of the runway: Bravo, Charlie, Delta or Echo (map, HP markers).','TAXIWAY ROUTE':'The taxiway names to follow, in order, e.g. "Golf, Alpha". Hover Accept to see the exact route for this aircraft.','WIND DIR':'Wind direction in degrees, from the ATIS chip, e.g. 080.','WIND SPEED':'Wind speed in knots, from the ATIS chip.','MILES':'Distance from the runway in nautical miles (map data block).','DIRECTION':'Compass direction the aircraft should face after pushback: east or west.','FREQUENCY':'Radio frequency, e.g. Departure 119.500.','NUMBER':'Landing sequence number, e.g. 2.','EXIT':'Taxiway the aircraft vacates onto, e.g. Delta.','SPEED':'Airspeed in knots.','INSTRUCTION':'The instruction to read out, e.g. line up and wait.','MORNING/AFTERNOON/EVENING':'Time of day greeting.'};
+  const hl=s=>esc(s).replace(/\[([^\]]+)\]/g,(m,k)=>'<span class="ph" title="'+esc(TIP[k]||'Fill in the real value.')+'">'+m+'</span>');
+  const unitName=k=>(UNITS[k]&&UNITS[k].n)||'Marlow Tower';
   const S=SAMPLE;const f=t=>fmt(t,S);
-  const phCard=(k,ph)=>{
+  const phCard=(k,ph)=>{const f=t=>fmt(t,Object.assign({},SAMPLE,{unit:unitName(ph.unit)}));
    const d=document.createElement('article');d.className='mc';d.dataset.cat=ph.cat;d.dataset.k=k;
    const rows=[['accept','ACCEPT','b-acc'],['deny','DENY','b-den'],['wait','WAIT','b-wait']];
    d.innerHTML='<header><span class="chip">'+esc(ph.cat)+'</span>'+(ph.urgent?'<span class="chip red">Emergency</span>':'')+'<h3>'+esc(ph.title)+'</h3></header><p class="when">'+esc(ph.when)+'</p>'+
-    '<div class="say"><b>PILOT SAYS</b>'+ph.pilot.map(p=>'<q>'+esc(f(p))+'</q>').join('')+'</div>'+
-    '<div class="trio3">'+rows.map(([w,l,c])=>'<div class="'+c+'"><b>'+l+'</b><q>'+esc(f(ph[w]))+'</q><small>Pilot: '+esc(f(ph['rb'+w[0].toUpperCase()+w.slice(1)]||''))+'</small><button class="use" data-t="'+esc(ph[w])+'">Insert</button></div>').join('')+'</div>'+
+    '<div class="say"><b>PILOT SAYS</b>'+ph.pilot.map(p=>'<q>'+hl(f(p))+'</q>').join('')+'</div>'+
+    '<div class="trio3">'+rows.map(([w,l,c])=>'<div class="'+c+'"><b>'+l+'</b><q>'+hl(f(ph[w]))+'</q><small>Pilot: '+hl(f(ph['rb'+w[0].toUpperCase()+w.slice(1)]||''))+'</small><button class="use" data-t="'+esc(ph[w])+'">Insert</button></div>').join('')+'</div>'+
     '<p class="note">'+esc(ph.note)+'</p>';
    d.dataset.text=(ph.cat+' '+ph.title+' '+ph.when+' '+ph.pilot.join(' ')+' '+ph.accept+' '+ph.deny+' '+ph.wait+' '+(ph.rbAccept||'')+' '+ph.note+' '+k).toLowerCase();return d;
   };
   Object.keys(PH).forEach(k=>frag.appendChild(phCard(k,PH[k])));
   INSTR.forEach(i=>{const d=document.createElement('article');d.className='mc';d.dataset.cat=i.cat;
-   d.innerHTML='<header><span class="chip">Instructions</span><h3>'+esc(i.title)+'</h3></header><div class="trio3 one"><div class="b-acc"><b>YOU SAY</b><q>'+esc(fmt(i.atc,Object.assign({},SAMPLE,{instr:'line up and wait',sq:'4521'})))+'</q><small>Pilot: '+esc(fmt(i.rb,SAMPLE))+'</small><button class="use" data-t="'+esc(i.atc)+'">Insert</button></div></div><p class="note">'+esc(i.note)+'</p>';
+   d.innerHTML='<header><span class="chip">Instructions</span><h3>'+esc(i.title)+'</h3></header><div class="trio3 one"><div class="b-acc"><b>YOU SAY</b><q>'+hl(fmt(i.atc,Object.assign({},SAMPLE,{instr:'line up and wait',sq:'4521'})))+'</q><small>Pilot: '+hl(fmt(i.rb,SAMPLE))+'</small><button class="use" data-t="'+esc(i.atc)+'">Insert</button></div></div><p class="note">'+esc(i.note)+'</p>';
    d.dataset.text=('instructions '+i.title+' '+i.atc+' '+i.rb+' '+i.note).toLowerCase();frag.appendChild(d);});
   MAN_EXTRA.forEach(x=>{const d=document.createElement('article');d.className='mc ref';d.dataset.cat=x.cat;d.innerHTML='<header><span class="chip">Reference</span><h3>'+esc(x.title)+'</h3></header><div class="refbody">'+x.html+'</div>';d.dataset.text=(x.cat+' '+x.title+' '+x.tags+' '+x.html.replace(/<[^>]+>/g,' ')).toLowerCase();frag.appendChild(d);});
   body.appendChild(frag);
@@ -271,7 +274,7 @@ const UI={
   $('k-test').addEventListener('click',async()=>{this.saveSettings();$('k-res').textContent='Testing…';$('k-res').textContent=await Voice.test();this.voiceStatus();});
   ['k-key','k-model','k-gem','k-voice','k-fb','k-fx','k-style','k-vol','k-mic','k-assist'].forEach(i=>$(i).addEventListener('change',()=>this.saveSettings()));
   $('send').addEventListener('click',()=>this.submit());
-  $('cmd').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();this.submit();}e.stopPropagation();if(e.key==='Escape')$('cmd').blur();});
+  $('cmd').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();this.submit();}if(e.code==='Space'&&!$('cmd').value.trim()&&Voice.micOn&&Mic.supported&&!e.repeat){e.preventDefault();e.stopPropagation();Mic.start('hold');return;}if(e.code==='Space'&&Mic.mode==='hold'&&(Mic.active||Mic.starting)){e.preventDefault();e.stopPropagation();return;}e.stopPropagation();if(e.key==='Escape')$('cmd').blur();});
   $('mic').addEventListener('click',()=>{if(!Mic.supported){this.toast('Speech recognition is not available in this browser — type your transmission.','warn');return;}if(Mic.active)Mic.stop(0);else Mic.start('toggle');});
   $('log').addEventListener('click',e=>{const a=e.target.closest('a[data-id]');if(a)this.select(+a.dataset.id);});
   $('hdr-nextreq').addEventListener('click',()=>this.nextReq());

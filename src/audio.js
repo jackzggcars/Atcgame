@@ -14,7 +14,7 @@ const Voice={
  },
  ensureCtx(){
   if(!this.ctx){try{this.ctx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){this.ctx=null;}}
-  if(this.ctx&&this.ctx.state==='suspended')this.ctx.resume();
+  if(this.ctx&&this.ctx.state==='suspended'&&!this.held)this.ctx.resume();
   return this.ctx;
  },
  styleFor(e){
@@ -22,7 +22,10 @@ const Voice={
   const acc=e.accent&&e.accent!=='international'?e.accent+' accent, ':'';
   return (e.urgent?'tense and urgent, clipped and fast, ':'calm and professional, clipped, ')+'airline pilot on a VHF radio, '+acc.replace(/, $/,'');
  },
+ held:false,
+ async idle(){while(this.held||(typeof Mic!=='undefined'&&(Mic.active||Mic.starting)))await new Promise(r=>setTimeout(r,120));},
  hold(on){   // pause pilot audio while the controller is transmitting
+  this.held=!!on;
   try{if(this.ctx){if(on)this.ctx.suspend();else this.ctx.resume();}}catch(e){}
   try{if('speechSynthesis' in window){if(on)speechSynthesis.pause();else speechSynthesis.resume();}}catch(e){}
  },
@@ -98,7 +101,8 @@ const Voice={
   const ctx=this.ctx;const b=ctx.createBuffer(1,Math.floor(ctx.sampleRate*len),ctx.sampleRate);const d=b.getChannelData(0);
   for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*0.5;return b;
  },
- playBuffer(buf){
+ async playBuffer(buf){await this.idle();return this._play(buf);},
+ _play(buf){
   return new Promise(res=>{
    const ctx=this.ensureCtx();if(!ctx)return res();
    const t0=ctx.currentTime+0.02;const out=ctx.createGain();out.gain.value=this.vol;out.connect(ctx.destination);
@@ -123,7 +127,8 @@ const Voice={
   if(this.voices)return this.voices;if(!('speechSynthesis' in window))return[];
   const v=speechSynthesis.getVoices().filter(x=>/^en/i.test(x.lang));this.voices=v.length?v:speechSynthesis.getVoices();return this.voices;
  },
- browserSpeak(text,e){
+ async browserSpeak(text,e){await this.idle();return this._speak(text,e);},
+ _speak(text,e){
   return new Promise(res=>{
    if(!('speechSynthesis' in window)){res();return;}
    const vs=this.pickVoices();const u=new SpeechSynthesisUtterance(text);
