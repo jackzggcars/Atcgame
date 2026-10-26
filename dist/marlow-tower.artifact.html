@@ -7,7 +7,7 @@
 *{box-sizing:border-box}
 html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font:14px/1.35 var(--body);overflow:hidden}
 button{font:inherit;color:inherit;cursor:pointer}
-button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(--amber);outline-offset:1px}
+button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(--acc,#46f08c);outline-offset:1px}
 kbd{font:600 10px var(--mono);background:#0b1218;border:1px solid #2c4054;border-bottom-width:2px;border-radius:3px;padding:0 4px;color:var(--amber2)}
 #app{height:100%;display:grid;grid-template-rows:auto minmax(0,1fr) auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));gap:8px}
 /* header */
@@ -211,30 +211,151 @@ body.man-docked #app{padding-right:calc(min(460px,42vw) + 12px)}
  #cmdbar{position:sticky;bottom:0;background:var(--bg);padding-top:6px;flex-wrap:wrap}#cmd-for{max-width:100%}.form{grid-template-columns:1fr}.trio3{grid-template-columns:1fr}#o-stats{grid-template-columns:1fr}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+/* ===== IMMERSION LAYER: controller-client workstation (VATSIM / SimAware feel) ===== */
+:root{--bg:#030608;--panel:#090e11;--panel2:#0e1519;--line:#1b2a2f;--dim:#6f8a88;--acc:#46f08c;--acc2:#9dffc4;--fg:#d4e6e0;--mono:"JetBrains Mono","IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace}
+body{background:radial-gradient(120% 90% at 50% 0%,#07110f 0%,#030608 60%)}
+#app{gap:6px}
+/* window chrome */
+.pan{border-radius:0;border:1px solid #23363a;background:var(--panel);box-shadow:0 0 0 1px #000,inset 0 0 0 1px #0d1618}
+.pan>h2{background:linear-gradient(#17262a,#0f1b1e);color:var(--acc2);font:600 11px var(--mono);letter-spacing:.08em;padding:4px 8px;border-bottom:1px solid #2b4247;text-transform:uppercase;position:relative;padding-right:56px}
+.pan>h2::after{content:"— □ ×";position:absolute;right:8px;top:3px;font:700 10px var(--mono);letter-spacing:.2em;color:#58737a}
+.pan>h2 span{color:#5e7a7c;font-size:9.5px}
+#views>div{border-radius:0;border:1px solid #23363a;box-shadow:0 0 0 1px #000}
+.chip2{border-radius:0;background:#0a1114;border:1px solid #22353a;padding:3px 8px}
+.chip2 small{color:#5e7c7e}
+button.chip2{color:inherit;cursor:pointer}.atisb{color:var(--acc2);border-color:#2b5a45}.atisb:hover{border-color:var(--acc)}
+.clk span{font:700 15px var(--mono);color:var(--acc);text-shadow:0 0 8px rgba(70,240,140,.45);letter-spacing:.08em}
+#t-wx{color:var(--acc2)}
+.seg,.tbtn,#rwybtn,#cmd,#cmd-for,#mic,#send{border-radius:0}
+.seg{border-color:#22353a;background:#0a1114}
+.seg button.on{background:var(--acc);color:#02130a}
+.tbtn,#rwybtn{background:linear-gradient(#142226,#0c1619);border:1px solid #2c4348;color:#cfe3dc}
+.tbtn:hover,#rwybtn:hover{border-color:var(--acc);color:var(--acc2)}
+/* brand + connection */
+.brand{align-items:center;gap:9px}.brand h1{font:700 18px var(--disp);letter-spacing:.14em;color:var(--acc2);line-height:1}
+.brand span{display:block;font:500 9.5px var(--mono);color:#58787a;letter-spacing:.08em;margin-top:2px}
+.led{width:9px;height:9px;border-radius:50%;background:#555;box-shadow:0 0 0 1px #000;display:inline-block;flex:none}
+.led.on{background:var(--acc);box-shadow:0 0 8px var(--acc)}
+/* radio panel */
+#radiopanel{display:flex;gap:0;border:1px solid #2c4348;background:#060b0d}
+.rp{display:grid;grid-template-columns:auto auto;grid-template-rows:auto auto;column-gap:7px;align-items:center;padding:2px 8px 3px;border-right:1px solid #1d2f33;min-width:92px}
+.rp:last-child{border-right:0}
+.rp b{font:700 10px var(--mono);color:#6fa89b;letter-spacing:.14em;grid-column:1/3}
+.rp span{font:700 14px var(--mono);color:#ffb22e;letter-spacing:.06em;text-shadow:0 0 6px rgba(255,178,46,.35)}
+.rp i{font:700 8px var(--mono);font-style:normal;border:1px solid #2a3c40;padding:0 3px;color:#3a4c50;display:inline-block;margin-left:2px}
+.rp .rx{grid-column:1;grid-row:3;justify-self:start}
+.rp{grid-template-rows:auto auto}
+.rp.rx-on{background:#0d2217}.rp.rx-on .rx{background:#35e08a;color:#02170c;border-color:#35e08a;box-shadow:0 0 8px #35e08a}
+.rp.tx-on{background:#2a1010}.rp.tx-on .tx{background:#ff4a4a;color:#fff;border-color:#ff4a4a;box-shadow:0 0 8px #ff4a4a}
+.rp.act b::after{content:" ◂";color:var(--acc)}
+/* ATIS popover */
+#bar{position:relative}
+#cmd:focus-visible{outline:1px solid var(--acc);box-shadow:0 0 0 2px rgba(70,240,140,.25)}
+#atis-pop{position:absolute;top:100%;left:210px;z-index:25;width:min(430px,92vw);background:#05100c;border:1px solid var(--acc);padding:10px 12px;font:500 12px/1.55 var(--mono);color:#b8f5d2;box-shadow:0 12px 36px rgba(0,0,0,.7);white-space:pre-wrap}
+#atis-pop b{color:var(--acc)}
+/* strips: bays */
+#strips{padding:4px;background:#05090b}
+.bay{font:700 9.5px var(--mono);letter-spacing:.16em;color:#7ab5a4;background:#0c181a;border-left:3px solid #2e6a58;padding:2px 8px;margin:6px 0 3px;display:flex;justify-content:space-between;text-transform:uppercase}
+.bay:first-child{margin-top:0}.bay em{font-style:normal;color:#55777a}
+.strip{border-radius:0;background:linear-gradient(#f2e9cf,#e4d9ba);margin-bottom:3px;border-left:0;box-shadow:0 1px 0 #000,inset 0 0 0 1px rgba(0,0,0,.18)}
+.strip.arr{background:linear-gradient(#dcebf3,#c8dce8)}
+.strip::before{content:"";position:absolute;right:92px;top:0;bottom:0;width:1px;background:rgba(0,0,0,.14)}
+.c1 b{font-size:15px}
+/* selected aircraft: flight-plan card */
+#sel{padding:0}
+.fp{padding:9px 11px 4px;background:linear-gradient(#e9f0ec,#d5e2dc);color:#13201b}
+.fp-top{display:flex;align-items:baseline;gap:8px}
+.fp-top b{font:700 25px var(--disp);letter-spacing:.04em}
+.fp-top small{font:600 10px var(--mono);color:#4a5f58}
+.fp-top .ph2{margin-left:auto;font:700 10px var(--mono);background:#16a34a;color:#fff;padding:1px 8px;letter-spacing:.06em;text-transform:uppercase}
+.fp-top .ph2.gnd{background:#6b7f78}.fp-top .ph2.req{background:#d97706}.fp-top .ph2.emg{background:#c62828}
+.fp-route{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;margin:6px 0 4px}
+.fp-route span{font:700 17px var(--mono)}
+.fp-route i{position:relative;display:block;height:3px;background:#a9b9b2;border-radius:2px}
+.fp-route i u{position:absolute;left:0;top:0;bottom:0;background:#16a34a;border-radius:2px;display:block}
+.fp-route i u::after{content:"✈";position:absolute;right:-8px;top:-9px;color:#16a34a;font-size:15px;text-decoration:none}
+.fp-stats{display:grid;grid-template-columns:repeat(3,1fr);background:#0f1a17;color:#e9f6f0;margin:6px -11px 0;padding:6px 11px}
+.fp-stats div{text-align:center}.fp-stats small{display:block;font:500 9.5px var(--mono);color:#7fa396;text-transform:uppercase;letter-spacing:.08em}.fp-stats b{font:700 14px var(--mono)}
+.s-info,.s-req,.s-light,.s-quick{margin-left:10px;margin-right:10px}
+#sel .s-info{margin-top:8px}
+.s-req{border-radius:0;background:#0b1518}.s-req small{color:var(--acc)}
+.s-quick{margin-bottom:9px}
+.s-quick button{border-radius:0;background:linear-gradient(#142226,#0c1619);border-color:#2c4348}
+.trio button{border-radius:0}
+/* messages window */
+#log{background:#030708;font:11.5px/1.5 var(--mono);padding:4px 6px}
+.ll{display:block;border-bottom:0;padding:0 0 1px;text-indent:-0px}
+.ll time{color:#4b6a6c;margin-right:4px}.ll b{margin-right:5px}
+.ll.pilot b{color:#5fe0ff}.ll.pilot span{color:#cfeaf2}.ll.atc b{color:#ff7bf0}.ll.atc span{color:#ffb2f6}
+.ll.sys b{color:#6c8880}.ll.sys span{color:#8fb0a6}.ll.sys.ok span{color:#7dffb0}.ll.sys.warn span{color:#ffd27a}.ll.sys.bad span{color:#ff8e8e}
+.ll a{color:inherit;text-decoration:none;font-weight:700}.ll a:hover{text-decoration:underline}
+/* command bar */
+#cmdbar{background:#050a0c;border:1px solid #23363a;padding:5px 6px;margin-bottom:6px;gap:6px}
+#cmd-for{background:#0a1114;color:var(--acc2);border-color:#2b5a45}
+#cmd-freq{font:700 12px var(--mono);color:#ffb22e;border:1px solid #3a3017;background:#120e04;padding:7px 9px;white-space:nowrap;letter-spacing:.05em}
+#cmd{background:#020405;border-color:#2c4348;color:#d9ffe9;caret-color:var(--acc)}
+#send{background:var(--acc);color:#02130a;border-color:var(--acc)}
+#mic:hover{border-color:var(--acc)}
+/* tower cab overlay on the 3D view */
+#cab{position:absolute;inset:0;pointer-events:none;z-index:2;display:none}
+#v3d.cab-on #cab{display:block}
+#cab::before{content:"";position:absolute;inset:0;background:radial-gradient(120% 100% at 50% 40%,transparent 55%,rgba(0,0,0,.55) 100%),linear-gradient(115deg,rgba(255,255,255,.05) 0,transparent 18%,transparent 70%,rgba(255,255,255,.04) 100%)}
+#cab .beam{position:absolute;left:0;right:0;top:0;height:20px;background:linear-gradient(#0a0e10,#141b1e 70%,rgba(20,27,30,0));}
+#cab .mull{position:absolute;top:0;bottom:70px;width:7px;background:linear-gradient(90deg,#0a0e10,#1a2326,#0a0e10);opacity:.92}
+#cab .m1{left:33.3%;transform:skewX(-2deg)}#cab .m2{left:66.6%;transform:skewX(2deg)}
+#cab .pil{position:absolute;top:0;bottom:70px;width:26px;background:linear-gradient(90deg,#070a0b,#151d20)}
+#cab .pl{left:0}#cab .pr{right:0;transform:scaleX(-1)}
+#cab .desk{position:absolute;left:0;right:0;bottom:0;height:70px;background:linear-gradient(#202a2e 0,#11181b 14%,#0a0f11 100%);border-top:2px solid #37474c;box-shadow:0 -8px 22px rgba(0,0,0,.55);display:flex;justify-content:center;align-items:center;gap:18px;padding:0 20px}
+#cab .gg{background:#020605;border:1px solid #28403a;padding:4px 12px 5px;text-align:center;box-shadow:inset 0 0 12px rgba(0,0,0,.9);min-width:76px}
+#cab .gg small{display:block;font:600 8.5px var(--mono);color:#4f7d6b;letter-spacing:.2em}
+#cab .gg b{font:700 17px var(--mono);color:#3dff7e;text-shadow:0 0 9px rgba(61,255,126,.6);letter-spacing:.06em}
+.vtools{z-index:4}
+.l3{border-radius:0;font-size:10.5px;background:rgba(2,8,6,.72);border-color:#27413a}
+/* overlays / dialogs */
+.card{border-radius:0;border:1px solid #2b5a45;background:#070d0e;box-shadow:0 0 0 1px #000,0 20px 60px rgba(0,0,0,.7)}
+.card h2{color:var(--acc2)}
+.tbar{margin:-22px -24px 14px;background:linear-gradient(#1c3a36,#10231f);color:#bff8d8;font:600 11px var(--mono);letter-spacing:.06em;padding:5px 10px;display:flex;align-items:center;gap:8px}
+.tbar span{margin-left:auto;letter-spacing:.3em;color:#6f9a8b}
+.btn{border-radius:0;background:var(--acc);color:#02130a}.btn.ghost{background:#0b1517;color:var(--fg);border-color:#2c4348}
+.card .how li::before{background:var(--acc)}
+select,input[type=text],input[type=password],input[type=number]{border-radius:0;background:#020506;border-color:#2c4348}
+.chk input{accent-color:var(--acc)}
+.mc,.trio3>div{border-radius:0}
+#m-cats button.on{background:var(--acc);border-color:var(--acc);color:#02130a}
+.toast,.banner{border-radius:0}
 </style>
 
 <div id="app">
  <header id="bar">
-  <div class="brand"><h1>Marlow Tower</h1><span>EGMW · RWY 09/27</span></div>
-  <div class="chip2"><small>UTC</small><span id="t-clock">06:10:00</span></div>
-  <div class="chip2" id="t-atis">ATIS</div>
+  <div class="brand"><i class="led" id="conn-led"></i><div><h1>Marlow Tower</h1><span id="conn">OFFLINE · EGMW_TWR · RWY 09/27</span></div></div>
+  <div id="radiopanel" title="Radio frequencies: RX lights when a pilot is transmitting, TX when you are">
+   <div class="rp" id="rp-DEL"><b>DEL</b><span>121.700</span><i class="rx">RX</i><i class="tx">TX</i></div>
+   <div class="rp" id="rp-GND"><b>GND</b><span>121.800</span><i class="rx">RX</i><i class="tx">TX</i></div>
+   <div class="rp" id="rp-TWR"><b>TWR</b><span>118.100</span><i class="rx">RX</i><i class="tx">TX</i></div>
+   <div class="rp" id="rp-DEP"><b>DEP</b><span>119.500</span><i class="rx">RX</i><i class="tx">TX</i></div>
+  </div>
+  <div class="chip2 clk"><small>UTC</small><span id="t-clock">06:10:00</span></div>
+  <button class="chip2 atisb" id="t-atis" title="Click to read the ATIS">ATIS</button>
+  <div class="chip2" id="t-wx" title="Surface wind and QNH">—</div>
   <button id="rwybtn" title="Change the runway in use (only when no traffic is on or near the runway)">RWY 09</button>
   <div class="seg" id="speed" title="Simulation speed (P pauses)"><button data-s="0">❚❚</button><button data-s="1" class="on">1×</button><button data-s="2">2×</button><button data-s="4">4×</button></div>
   <div class="chip2"><small>Score</small><b id="t-score">0</b></div>
   <div class="chip2" title="Safety rating — a collision ends the shift"><small>Safety</small><div class="safe"><i id="t-safe" style="width:100%"></i></div><b id="t-safen">100</b></div>
   <div class="chip2"><small>Left</small><span id="t-left">30:00</span></div>
-  <div class="chip2" id="hdr-nextreq" style="cursor:pointer" title="Jump to the next aircraft waiting for you (Tab)"><small>Requests</small><b id="t-req">0</b></div>
+  <div class="chip2" id="hdr-nextreq" style="cursor:pointer" title="Jump to the next aircraft waiting for you (Tab)"><small>Calling</small><b id="t-req">0</b></div>
   <div class="spacer"></div>
   <span class="vstat" id="v-stat">Browser voices</span>
   <div class="seg" id="layout" title="Layout"><button data-l="split" class="on">Split</button><button data-l="3d">3D</button><button data-l="map">Map</button></div>
   <button class="tbtn" id="tut-btn" title="Replay the tutorial">Tutorial</button>
   <button class="tbtn" id="man-btn" title="Phraseology manual (M)">Manual</button>
   <button class="tbtn" id="set-btn" title="Voice, Gemini key and options">Settings</button>
+  <div id="atis-pop" hidden></div>
  </header>
  <main id="work">
   <section id="views" class="lay-split">
    <div id="v3d">
     <canvas id="gl"></canvas><div id="labels3d"></div>
+    <div id="cab"><i class="beam"></i><i class="mull m1"></i><i class="mull m2"></i><i class="pil pl"></i><i class="pil pr"></i><div class="desk"><div class="gg"><small>WIND</small><b id="cab-wind">---/--</b></div><div class="gg"><small>QNH</small><b id="cab-qnh">----</b></div><div class="gg"><small>RWY</small><b id="cab-rwy">--</b></div><div class="gg"><small>VIS</small><b id="cab-vis">10 KM</b></div><div class="gg"><small>ZULU</small><b id="cab-time">--:--</b></div></div></div>
     <div class="vtools"><div class="seg" id="camtools"><button data-cam="tower" class="on">Tower</button><button data-cam="apron">Apron</button><button data-cam="rwy09">Final 09</button><button data-cam="rwy27">Final 27</button><button data-cam="mid">Midfield</button><button data-cam="follow">Follow</button></div></div>
    </div>
    <div id="vmap">
@@ -243,13 +364,13 @@ body.man-docked #app{padding-right:calc(min(460px,42vw) + 12px)}
    </div>
   </section>
   <aside id="side">
-   <section class="pan" id="p-strips"><h2>Flight strips <span>click to select · amber = waiting for you</span><b id="talk-ind" hidden></b></h2><div id="strips"></div></section>
-   <section class="pan" id="p-sel"><h2>Selected aircraft</h2><div id="sel"></div></section>
-   <section class="pan" id="p-log"><h2>Radio <span>118.100 · 121.800 · 121.700</span></h2><div id="log"></div></section>
+   <section class="pan" id="p-strips"><h2>Strip bays <span>click to select · amber bar = calling you</span><b id="talk-ind" hidden></b></h2><div id="strips"></div></section>
+   <section class="pan" id="p-sel"><h2>Flight plan / aircraft</h2><div id="sel"></div></section>
+   <section class="pan" id="p-log"><h2>Messages <span>EGMW_TWR · 4 channels</span></h2><div id="log"></div></section>
   </aside>
  </main>
  <footer id="cmdbar">
-  <div id="cmd-for">no aircraft</div>
+  <div id="cmd-for">no aircraft</div><div id="cmd-freq">TX —</div>
   <input id="cmd" type="text" autocomplete="off" spellcheck="false" placeholder="Type or hold Space to talk, e.g. “Speedbird 452, runway 09, line up and wait”">
   <button id="mic" title="Microphone (hold Space)">🎙 TALK</button>
   <button id="send">SEND</button>
@@ -257,9 +378,10 @@ body.man-docked #app{padding-right:calc(min(460px,42vw) + 12px)}
 </div>
 
 <div id="start" class="ov">
- <div class="card">
+ <div class="card logon">
+  <div class="tbar"><i class="led"></i>Controller client — connect to network<span>— □ ×</span></div>
   <h2>Marlow Tower</h2>
-  <div class="sub">MARLOW INTERNATIONAL · EGMW · DELIVERY / GROUND / TOWER</div>
+  <div class="sub">CALLSIGN EGMW_TWR · MARLOW INTERNATIONAL · DELIVERY / GROUND / TOWER · RATING S3</div>
   <p>You are the controller on duty. Aircraft call in with real radiotelephony, you answer with the same phrases. Get it wrong and runways get crowded, read-backs go unchecked and aircraft meet in the wrong place.</p>
   <ul class="how">
    <li>Select an aircraft, then press <b>Accept</b>, <b>Deny</b> or <b>Wait</b> to send the standard reply, or type / speak your own.</li>
@@ -2915,8 +3037,9 @@ const UI={
  sysLine(t,sev){this.appendLog({who:'sys',text:t,sev:sev||'ok',clock:G.clock,cs:''});},
  appendLog(e){
   const box=$('log');const d=document.createElement('div');d.className='ll '+e.who+(e.sev?' '+e.sev:'');
-  const who=e.who==='pilot'?'PILOT':e.who==='atc'?'YOU':'SYS';
-  d.innerHTML='<time>'+this.clockStr(e.clock||G.clock).slice(3)+'</time><b>'+who+'</b><span>'+(e.ent&&e.who!=='sys'?'<a data-id="'+e.ent.id+'">'+esc(e.ent.cs)+'</a> ':'')+esc(e.text)+'</span>';
+  const un=e.ent?this.unitOf(e.ent):'TWR';
+  const who=e.who==='pilot'?(e.ent?'<a data-id="'+e.ent.id+'">'+esc(e.ent.cs)+'</a>':'PILOT'):e.who==='atc'?'EGMW_'+un:'***';
+  d.innerHTML='<time>['+this.clockStr(e.clock||G.clock)+']</time><b>'+who+(e.who==='sys'?'':':')+'</b><span>'+(e.who==='atc'&&e.ent?'<i style="font-style:normal;opacity:.7">→'+esc(e.ent.cs)+'</i> ':'')+esc(e.text)+'</span>';
   const stick=box.scrollTop+box.clientHeight>=box.scrollHeight-40;box.appendChild(d);if(++this.logN>260){box.removeChild(box.firstChild);}if(stick)box.scrollTop=box.scrollHeight;
  },
  banner(t,k){const b=$('banner');b.textContent=t;b.className='banner '+(k||'')+' show';clearTimeout(this._bt);this._bt=setTimeout(()=>b.classList.remove('show'),6500);if(k==='bad')this.alarm(true);},
@@ -2941,7 +3064,7 @@ const UI={
  submit(){
   const inp=$('cmd');const t=inp.value.trim();if(!t)return;
   const br=/\[[^\]]+\]/.exec(t);if(br){inp.focus();inp.setSelectionRange(br.index,br.index+br[0].length);this.toast('Replace '+br[0]+' with the real detail before sending.','warn');return;}
-  Voice.ensureCtx();
+  Voice.ensureCtx();this.txUntil=performance.now()+Math.min(5000,900+t.length*55);
   const ok=command(t,this.sel);inp.value='';this.renderSel();
   if(ok===false&&!this.selAc())this.toast('Select an aircraft first (or start with its callsign).','warn');
  },
@@ -2952,7 +3075,7 @@ const UI={
   if(this.running){
    if(this.speed>0&&!G.over){let rem=dt*this.speed;while(rem>0){const s=Math.min(0.1,rem);step(s);rem-=s;}}
    this.uiAcc+=dt;if(this.uiAcc>0.25){this.uiAcc=0;this.syncTop();this.renderStrips();this.renderSel(true);}
-   this.markTalking();
+   this.markTalking();this.radioLights();
    if(this.glOK&&$('v3d').offsetParent!==null)R3.sync(dt,t);
    if($('vmap').offsetParent!==null)MAPV.draw(t);
   }else{
@@ -2964,10 +3087,11 @@ const UI={
  setSpeed(n){this.speed=n;document.querySelectorAll('#speed button').forEach(b=>b.classList.toggle('on',+b.dataset.s===n));},
  syncTop(){
   if(!G.cfg)return;
-  $('t-clock').textContent=this.clockStr(G.clock);$('t-atis').textContent=snapshotATIS();
+  $('t-clock').textContent=this.clockStr(G.clock);$('t-atis').textContent='ATIS '+ATIS_L[G.atis].toUpperCase();
   $('t-score').textContent=Math.round(G.score);const sf=$('t-safe');sf.style.width=G.safety+'%';sf.parentElement.classList.toggle('low',G.safety<45);$('t-safen').textContent=G.safety;
   const left=Math.max(0,G.cfg.shift*60-G.t);$('t-left').textContent=this.clockStr(left).slice(3);
   const rb=$('rwybtn');rb.textContent='RWY '+G.rwy+(G.rwyBetter?'  ▸ '+G.rwyBetter+' advised':'');rb.classList.toggle('adv',!!G.rwyBetter);
+  {const w=G.wind;let wd=Math.round(w.dir/10)*10%360;if(wd===0)wd=360;const ws=pad(wd,3)+'/'+Math.round(w.spd);$('t-wx').textContent=ws+'kt  QNH '+G.qnh;$('cab-wind').textContent=ws;$('cab-qnh').textContent=G.qnh;$('cab-rwy').textContent=G.rwy;$('cab-vis').textContent=G.fog?'800 M':'10 KM';$('cab-time').textContent=this.clockStr(G.clock).slice(0,5);$('conn').textContent='CONNECTED · EGMW_TWR · RWY '+G.rwy;$('conn-led').classList.add('on');if(!$('atis-pop').hidden)$('atis-pop').innerHTML=this.atisText();}
   const q=G.ents.filter(e=>e.req&&!e.dead).length;$('t-req').textContent=q;$('t-req').parentElement.classList.toggle('hot',q>0);
  },
  /* ---------- strips ---------- */
@@ -2975,6 +3099,27 @@ const UI={
   if(a.veh)return MAPV.phaseText(a);
   const q=a.req?PH[a.req.kind].title:'';
   return a.req?q:MAPV.phaseText(a);
+ },
+ unitOf(a){
+  if(!a)return'TWR';if(a.veh)return'GND';
+  if(a.req&&a.req.kind&&PH[a.req.kind]&&PH[a.req.kind].unit&&UNITS[PH[a.req.kind].unit])return PH[a.req.kind].unit;
+  if(a.unit&&UNITS[a.unit]&&a.unit!=='OPS')return a.unit;
+  const p=a.phase;
+  if(p==='BOARDING'||p==='AT_GATE')return'DEL';
+  if(['PUSHBACK','PUSH_TURN','TAXI','HOLDING','STOPPED','VACATED','PARKING','STAND_IN'].includes(p))return'GND';
+  if(a.kind==='dep'&&a.y>300&&a.handed)return'DEP';
+  return'TWR';
+ },
+ radioLights(){
+  const tk=this.talkingId(),ta=tk?G.ents.find(e=>e.id===tk):null,ru=ta?this.unitOf(ta):'';
+  const tx=(typeof Mic!=='undefined'&&(Mic.active||Mic.starting))||(this.txUntil&&performance.now()<this.txUntil);
+  const su=this.sel?this.unitOf(this.selAc()):'';
+  ['DEL','GND','TWR','DEP'].forEach(k=>{const el=$('rp-'+k);if(!el)return;el.classList.toggle('rx-on',ru===k);el.classList.toggle('tx-on',!!tx&&su===k);el.classList.toggle('act',su===k);});
+  const cf=$('cmd-freq');if(cf){const a=this.selAc();const un=a?this.unitOf(a):'';cf.textContent=a?('TX '+un+' '+UNITS[un].f):'TX —';}
+ },
+ atisText(){
+  const w=G.wind;let wd=Math.round(w.dir/10)*10%360;if(wd===0)wd=360;
+  return '<b>EGMW INFORMATION '+ATIS_L[G.atis].toUpperCase()+'</b>  '+this.clockStr(G.clock).slice(0,5).replace(':','')+'Z\nRUNWAY IN USE '+G.rwy+'\nWIND '+pad(wd,3)+' DEGREES '+Math.round(w.spd)+' KNOTS\nVISIBILITY '+(G.fog?'800 METRES, FOG':'10 KILOMETRES OR MORE')+'\nQNH '+G.qnh+'\nTRANSITION LEVEL 60\n<b>ACKNOWLEDGE INFORMATION '+ATIS_L[G.atis].toUpperCase()+' ON FIRST CONTACT.</b>';
  },
  talkingId(){
   if(typeof Voice!=='undefined'&&Voice.on&&Voice.now&&Voice.now.ent&&Voice.now.who==='pilot')return Voice.now.ent.id;
@@ -2986,19 +3131,24 @@ const UI={
   document.querySelectorAll('#strips .strip').forEach(el=>el.classList.toggle('talking',+el.dataset.id===id));
   const ps=$('p-strips');if(ps)ps.classList.toggle('tk',!!id);const t=$('talk-ind');if(t){const e=id&&G.ents.find(x=>x.id===id);t.hidden=!e;if(e)t.textContent='● '+(e.veh?e.rt:csName(e))+' transmitting';}
  },
+ bayOf(e){const k=e.veh?'GND':this.unitOf(e);return k;},
  renderStrips(force){
   const L=G.ents.filter(e=>!e.dead&&e.phase!=='REMOVED');
   const rank=e=>(e.req?(PH[e.req.kind].urgent?0:1):e.err?2:e.emerg?2:e.nordo?2:3)+(e.veh?1:0);
-  L.sort((a,b)=>rank(a)-rank(b)||(a.req&&b.req?a.req.t-b.req.t:0)||a.id-b.id);
-  const sig=L.map(e=>e.id+':'+(e.req?e.req.kind:'')+e.phase+(e.id===this.sel?'*':'')+(e.nordo?'n':'')+(e.emerg||'')+(e.err&&G.cfg.assist?'e':'')).join('|');
+  const BO={TWR:0,DEP:1,GND:2,DEL:3},BN={TWR:'Tower · runway / final',DEP:'Departure',GND:'Ground · apron / taxi',DEL:'Delivery · clearances'};
+  L.sort((a,b)=>BO[this.bayOf(a)]-BO[this.bayOf(b)]||rank(a)-rank(b)||(a.req&&b.req?a.req.t-b.req.t:0)||a.id-b.id);
+  const sig=L.map(e=>e.id+':'+(e.req?e.req.kind:'')+e.phase+this.bayOf(e)+(e.id===this.sel?'*':'')+(e.nordo?'n':'')+(e.emerg||'')+(e.err&&G.cfg.assist?'e':'')).join('|');
   const box=$('strips');
   if(!force&&sig===this._sig){ // update timers only
    box.querySelectorAll('.strip').forEach(el=>{const e=G.ents.find(x=>x.id===+el.dataset.id);if(!e)return;const w=el.querySelector('.wait');if(w)w.style.width=e.req?Math.min(100,(G.t-e.req.t)/50*100)+'%':'0';const sp=el.querySelector('.st');if(sp)sp.textContent=this.statusText(e);});
    return;
   }
   this._sig=sig;box.innerHTML='';
-  if(!L.length){box.innerHTML='<div class="empty">No traffic yet. Aircraft call you as they become ready.</div>';return;}
+  if(!L.length){box.innerHTML='<div class="empty">No strips on the board. Aircraft call you as they become ready.</div>';return;}
+  let lastBay='';
   for(const e of L){
+   const bay=this.bayOf(e);
+   if(bay!==lastBay){lastBay=bay;const n=L.filter(x=>this.bayOf(x)===bay).length;const h=document.createElement('div');h.className='bay';h.innerHTML='<span>'+BN[bay]+'</span><em>'+UNITS[bay].f+' · '+n+'</em>';box.appendChild(h);}
    const d=document.createElement('div');
    d.className='strip '+(e.veh?'veh':e.kind)+(e.id===this.sel?' sel':'')+(e.req?' req':'')+(e.req&&PH[e.req.kind].urgent||e.emerg||e.nordo?' emg':'');
    d.dataset.id=e.id;
@@ -3009,14 +3159,33 @@ const UI={
   this._tk=-1;this.markTalking();
  },
  /* ---------- selected panel ---------- */
+ fpProg(a){
+  if(a.veh)return 0;
+  if(a.kind==='dep')return a.y>10?Math.min(1,0.12+a.y/1800*0.88):(a.phase==='ROLL'||a.phase==='ON_RWY'||a.phase==='LINEUP'?0.08:0.02);
+  return a.D>0?Math.max(0.05,1-Math.min(1,a.D/(9*NM))):1;
+ },
+ fpCard(a){
+  if(a.veh)return '<div class="fp"><div class="fp-top"><b>'+esc(a.rt)+'</b><small>AIRFIELD VEHICLE</small><span class="ph2 gnd">'+esc(MAPV.phaseText(a))+'</span></div></div>';
+  if(!a.from)a.from=DESTS[a.id%DESTS.length].c;
+  const org=a.kind==='dep'?'EGMW':a.from,dst=a.kind==='dep'?(a.dest?a.dest.c:'----'):'EGMW';
+  const cls=(a.emerg||a.nordo)?'emg':a.req?'req':(a.y>10?'':'gnd');
+  const gs=Math.round(a.v/KT),alt=a.y>10?Math.round(a.y*FT/10)*10:0;
+  return '<div class="fp"><div class="fp-top"><b>'+esc(csName(a))+'</b><small>'+esc(a.type.n+' · '+(a.heavy?'H':'M')+' · '+a.al.icao)+'</small><span class="ph2 '+cls+'" id="fp-ph">'+esc(a.emerg?String(a.emerg).toUpperCase():a.req?'CALLING':a.y>10?(a.kind==='dep'?'DEPARTING':'ARRIVING'):'ON GROUND')+'</span></div>'+
+   '<div class="fp-route"><span>'+org+'</span><i><u id="fp-prog" style="width:'+Math.round(this.fpProg(a)*100)+'%"></u></i><span>'+dst+'</span></div>'+
+   '<div class="fp-stats"><div><small>Speed</small><b id="fp-spd">'+gs+' kt</b></div><div><small>Altitude</small><b id="fp-alt">'+(alt?alt.toLocaleString('en-GB')+' ft':'GND')+'</b></div><div><small>'+(a.kind==='arr'&&a.D>0?'To go':'Squawk')+'</small><b id="fp-x">'+(a.kind==='arr'&&a.D>0?(a.D/NM).toFixed(1)+' nm':(a.squawk||'—'))+'</b></div></div></div>';
+ },
+ fpLive(a){
+  const s=$('fp-spd');if(!s||a.veh)return;s.textContent=Math.round(a.v/KT)+' kt';const al=a.y>10?Math.round(a.y*FT/10)*10:0;$('fp-alt').textContent=al?al.toLocaleString('en-GB')+' ft':'GND';
+  $('fp-x').textContent=a.kind==='arr'&&a.D>0?(a.D/NM).toFixed(1)+' nm':(a.squawk||'—');const pg=$('fp-prog');if(pg)pg.style.width=Math.round(this.fpProg(a)*100)+'%';
+ },
  renderSel(soft){
   const a=this.selAc(),box=$('sel');
   if(!a){box.innerHTML='<div class="empty">Select a strip, a map label or a plane.<br><span>Keys: <kbd>Tab</kbd> next request · <kbd>1</kbd> accept · <kbd>2</kbd> deny · <kbd>3</kbd> wait · <kbd>M</kbd> manual · hold <kbd>Space</kbd> to talk</span></div>';this._selSig='';return;}
   const r=buildReplies(a);const ql=quickCmds(a);
   const sig=a.id+'|'+(a.req?a.req.kind+a.req.t:'')+'|'+a.phase+'|'+(a.err?1:0)+'|'+(a.paused?1:0)+'|'+(a.nordo?1:0)+ql.length;
-  if(soft&&sig===this._selSig){const f=$('sel-fuel');if(f&&a.kind==='arr')f.textContent=Math.max(0,a.fuel).toFixed(0)+' min';const h=$('sel-live');if(h)h.textContent=this.liveText(a);return;}
+  if(soft&&sig===this._selSig){const f=$('sel-fuel');if(f&&a.kind==='arr')f.textContent=Math.max(0,a.fuel).toFixed(0)+' min';const h=$('sel-live');if(h)h.textContent=this.liveText(a);this.fpLive(a);return;}
   this._selSig=sig;
-  let h='<div class="s-head"><b>'+esc(a.veh?a.rt:csName(a))+'</b><span>'+esc(a.veh?'Airfield vehicle':a.type.n+' · '+(a.heavy?'HEAVY':'MEDIUM')+' · '+a.al.icao)+'</span></div>';
+  let h=this.fpCard(a);
   if(!a.veh){h+='<dl class="s-info"><div><dt>Squawk</dt><dd class="'+(a.sqBad?'bad':'')+'">'+(a.squawk||'—')+'</dd></div><div><dt>'+(a.kind==='dep'?'Destination':'Approach')+'</dt><dd>'+(a.kind==='dep'?esc(a.dest.n+' · '+a.dest.sid):'ILS RWY '+G.rwy)+'</dd></div><div><dt>Stand</dt><dd>'+(a.gate||'—')+'</dd></div><div><dt>Now</dt><dd id="sel-live">'+esc(this.liveText(a))+'</dd></div>'+(a.kind==='arr'?'<div><dt>Fuel</dt><dd id="sel-fuel">'+Math.max(0,a.fuel).toFixed(0)+' min</dd></div>':'')+'</dl>';}
   if(a.req){
    h+='<div class="s-req'+(r&&r.urgent?' urgent':'')+'"><small>'+esc(PH[a.req.kind].title)+(r&&r.urgent?' · URGENT':'')+'</small>';
@@ -3041,7 +3210,7 @@ const UI={
   const i=L.findIndex(e=>e.id===this.sel);this.select(L[(i+1)%L.length].id);
  },
  /* ---------- camera + layout ---------- */
- setCamBtn(m){document.querySelectorAll('#camtools button').forEach(b=>b.classList.toggle('on',b.dataset.cam===m));},
+ setCamBtn(m){$('v3d').classList.toggle('cab-on',m==='tower');document.querySelectorAll('#camtools button').forEach(b=>b.classList.toggle('on',b.dataset.cam===m));},
  setLayout(l){this.layout=l;$('views').className='lay-'+l;document.querySelectorAll('#layout button').forEach(b=>b.classList.toggle('on',b.dataset.l===l));setTimeout(()=>this.resize(),30);},
  /* ---------- settings ---------- */
  syncSettings(){
@@ -3143,6 +3312,8 @@ const UI={
  },
  /* ---------- event binding ---------- */
  bind(){
+  $('t-atis').addEventListener('click',e=>{e.stopPropagation();const pp=$('atis-pop');if(!G.cfg)return;pp.hidden=!pp.hidden;if(!pp.hidden){pp.innerHTML=this.atisText();pp.style.left=Math.max(8,$('t-atis').offsetLeft)+'px';}});
+  document.addEventListener('click',e=>{const pp=$('atis-pop');if(!pp.hidden&&!pp.contains(e.target))pp.hidden=true;});
   setInterval(()=>{try{this.renderLive();}catch(e){}},600);
   $('start-btn').addEventListener('click',()=>this.start());
   $('again').addEventListener('click',()=>{this.running=false;this.showStart();});
