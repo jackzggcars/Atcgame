@@ -67,7 +67,7 @@ function radarSym(ctx,e,px,pz,col,t){
 })();
 const MAPV={
  cx:0,cz:-170,sc:0.34,w:100,h:100,sel:0,hits:[],hover:null,onPick:null,trails:new Map(),lastTrail:0,
- C:{bg:'#04080a',grid:'#0c1a14',tw:'#1b2a24',twc:'#3d5a4c',rw:'#161d1b',rwEdge:'#8fa89b',txt:'#b9d4c4',dim:'#587064',dep:'#ffc83a',arr:'#38d6e6',bad:'#ff4a4a',ok:'#5fe08d',veh:'#d7e2dc',mag:'#ff6bd6',hold:'#e9d23a',sel:'#ffffff'},
+ C:{bg:'#070c12',grid:'#0d1620',tw:'#1b2a24',twc:'#3d5a4c',rw:'#161d1b',rwEdge:'#8fa89b',txt:'#b9d4c4',dim:'#587064',dep:'#ffc83a',arr:'#38d6e6',bad:'#ff4a4a',ok:'#5fe08d',veh:'#d7e2dc',mag:'#ff6bd6',hold:'#e9d23a',sel:'#ffffff'},
  init(canvas){
   this.cv=canvas;this.ctx=canvas.getContext('2d');this.bind();this.resize();
  },
@@ -111,14 +111,15 @@ const MAPV={
   const sc=this.sc,S=(x,z)=>this.P(x,z),TH=this.TH;this.hits=[];
   this.environment(ctx,sc);
   // radar scope: soft vignette, range rings centred on the field, bearing ticks
-  { const g=ctx.createRadialGradient(this.w/2,this.h/2,Math.min(this.w,this.h)*0.15,this.w/2,this.h/2,Math.max(this.w,this.h)*0.75);g.addColorStop(0,'rgba(18,40,30,0.55)');g.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=g;ctx.fillRect(0,0,this.w,this.h); }
+  { const g=ctx.createRadialGradient(this.w/2,this.h/2,Math.min(this.w,this.h)*0.15,this.w/2,this.h/2,Math.max(this.w,this.h)*0.75);g.addColorStop(0,'rgba(20,38,52,0.45)');g.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=g;ctx.fillRect(0,0,this.w,this.h); }
   { const gstep=sc>0.08?100:sc>0.02?500:NM*2,gp=gstep*sc;ctx.strokeStyle=C.grid;ctx.lineWidth=1;ctx.beginPath();
     const [ox0,oz0]=S(0,0);const sx0=((ox0%gp)+gp)%gp,sz0=((oz0%gp)+gp)%gp;
     for(let x=sx0;x<=this.w;x+=gp){const px=Math.round(x)+0.5;ctx.moveTo(px,0);ctx.lineTo(px,this.h);}
     for(let z=sz0;z<=this.h;z+=gp){const py=Math.round(z)+0.5;ctx.moveTo(0,py);ctx.lineTo(this.w,py);}ctx.stroke(); }
   // range rings & approach axes
   const [ox,oz]=S(0,0);
-  if(sc<0.12){ctx.strokeStyle='#15402e';ctx.fillStyle='#3c7a5c';ctx.font='10px "JetBrains Mono",monospace';ctx.setLineDash([]);for(let n=1;n<=14;n+=(sc<0.05?2:1)){ctx.beginPath();ctx.arc(ox,oz,n*NM*sc,0,6.283);ctx.stroke();ctx.fillText(n+' nm',ox+n*NM*sc*0.707+3,oz-n*NM*sc*0.707-3);}ctx.setLineDash([]);}
+  if(sc<0.12){ctx.strokeStyle='rgba(40,170,200,0.38)';ctx.fillStyle='#3aa7c0';ctx.font='10px "JetBrains Mono",monospace';ctx.setLineDash([]);for(let n=1;n<=14;n+=(sc<0.05?2:1)){ctx.beginPath();ctx.arc(ox,oz,n*NM*sc,0,6.283);ctx.stroke();ctx.fillText(n+' nm',ox+n*NM*sc*0.707+3,oz-n*NM*sc*0.707-3);}ctx.setLineDash([]);}
+  this.airspace(ctx,sc,ox,oz,t);
   const act=G.rwy==='09'?-1:1;
   [-1,1].forEach(side=>{const on=side===act;ctx.strokeStyle=on?'rgba(76,201,240,0.55)':'rgba(120,140,160,0.18)';ctx.lineWidth=on?1.4:1;ctx.setLineDash(on?[10,7]:[2,7]);
    const [x0,z0]=S(side*AP.thr,0),[x1,z1]=S(side*(AP.thr+13*NM),0);ctx.beginPath();ctx.moveTo(x0,z0);ctx.lineTo(x1,z1);ctx.stroke();ctx.setLineDash([]);
@@ -157,12 +158,16 @@ const MAPV={
   if(t-this.lastTrail>2.5){this.lastTrail=t;for(const e of G.ents){if(e.veh||e.dead)continue;if(e.y>10||e.v>12){let tr=this.trails.get(e.id);if(!tr){tr=[];this.trails.set(e.id,tr);}tr.push([e.x,e.z]);if(tr.length>8)tr.shift();}}}
   // sweep (wide zoom only): rotating beam + afterglow, like a real PSR display
   if(sc<0.06){const R=Math.hypot(this.w,this.h),ang=(t*0.9)%(Math.PI*2);ctx.save();ctx.translate(ox,oz);
-   for(let i=0;i<24;i++){ctx.strokeStyle='rgba(60,255,140,'+(0.10*(1-i/24)).toFixed(3)+')';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(Math.cos(ang-i*0.028)*R,Math.sin(ang-i*0.028)*R);ctx.stroke();}
+   for(let i=0;i<24;i++){ctx.strokeStyle='rgba(70,200,240,'+(0.07*(1-i/24)).toFixed(3)+')';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(Math.cos(ang-i*0.028)*R,Math.sin(ang-i*0.028)*R);ctx.stroke();}
    ctx.restore();}
   // conflict detection (STCA-style): airborne pairs inside 3 nm and 1000 ft, or landing traffic vs occupied runway
   const conf=new Set();
   { const air=G.ents.filter(e=>!e.dead&&!e.veh&&e.y>30);
     for(let i=0;i<air.length;i++)for(let j=i+1;j<air.length;j++){const A=air[i],B=air[j];if(Math.hypot(A.x-B.x,A.z-B.z)<3*NM&&Math.abs(A.y-B.y)*FT<1000){conf.add(A.id);conf.add(B.id);}} }
+  // CPA / conflict lines with separation readout
+  { const air2=G.ents.filter(e=>!e.dead&&!e.veh&&e.y>30&&conf.has(e.id));
+    for(let i=0;i<air2.length;i++)for(let j=i+1;j<air2.length;j++){const A=air2[i],B=air2[j];const dd=Math.hypot(A.x-B.x,A.z-B.z);if(dd<3*NM&&Math.abs(A.y-B.y)*FT<1000){const [a1,a2]=S(A.x,A.z),[b1,b2]=S(B.x,B.z);ctx.strokeStyle='rgba(255,74,74,'+(0.55+0.4*Math.sin(t*9)).toFixed(2)+')';ctx.lineWidth=1.2;ctx.setLineDash([4,3]);ctx.beginPath();ctx.moveTo(a1,a2);ctx.lineTo(b1,b2);ctx.stroke();ctx.setLineDash([]);
+      ctx.fillStyle='#ff6a6a';ctx.font='bold 10px "JetBrains Mono",monospace';ctx.textAlign='center';ctx.fillText((dd/NM).toFixed(1)+'nm/'+Math.round(Math.abs(A.y-B.y)*FT/100)*100+'ft',(a1+b1)/2,(a2+b2)/2-5);ctx.textAlign='left';}}}
   // entities
   const sel=G.ents.find(e=>e.id===this.sel&&!e.dead);
   const FONT=(b,sz)=>(b?'bold ':'')+(sz||11)+'px "JetBrains Mono","Consolas",monospace';
@@ -207,7 +212,7 @@ const MAPV={
    const bh=lines.length*12+4;
    ctx.strokeStyle=col;ctx.globalAlpha=0.7;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(px+Math.min(8,size)*0.7,pz-Math.min(8,size)*0.7);ctx.lineTo(bx-4,bz+bh-12);ctx.lineTo(bx-1,bz+bh-12);ctx.stroke();ctx.globalAlpha=1;
    if(isSel){ctx.fillStyle='rgba(255,255,255,0.10)';ctx.fillRect(bx-3,bz-9,mw+8,bh);ctx.strokeStyle=C.sel;ctx.lineWidth=1;ctx.strokeRect(bx-3.5,bz-9.5,mw+9,bh+1);}
-   lines.forEach((q,i)=>{ctx.fillStyle=i===0?(inConf?C.bad:col):(i===1?'#d3e4da':'#7f978a');ctx.font=FONT(i===0,11);ctx.fillText(q,bx,bz+i*12+2);});
+   lines.forEach((q,i)=>{ctx.fillStyle=i===0?(inConf?C.bad:(isSel?'#fff':col)):(i===1?(air?'#7dff9c':'#d3e4da'):'#8fb8a2');ctx.font=FONT(i===0,11);ctx.fillText(q,bx,bz+i*12+2);});
    if(e.req){const blink=Math.sin(t*7)>-0.2;if(blink){ctx.fillStyle=C.dep;ctx.font=FONT(true,10);ctx.fillText('◄ CALLING',bx+mw+8,bz+2);}}
    this.hits.push({x:bx+mw/2,y:bz+bh/2-8,r:Math.max(16,mw/2+4),e});
   };
@@ -220,6 +225,35 @@ const MAPV={
    ctx.fillStyle='#ffb347';ctx.font='bold 10px "JetBrains Mono",monospace';ctx.textAlign='center';ctx.fillText('CB '+Math.round(Math.hypot(c.vx,c.vz)*1.94)+'kt',cx,cz+4);ctx.textAlign='left';}
   // wind + scale overlay
   this.overlay(ctx,t);
+ },
+
+ hashS(str){let h=2166136261;for(const c of str){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;},
+ airspace(ctx,sc,ox,oz,t){
+  const ic=AIRPORT.icao||'XXXX',seed=this.hashS(ic);let r=seed;const rn=()=>{r=Math.imul(r^(r>>>15),2246822519)>>>0;r=(r+0x6d2b79f5)>>>0;return (r%1000)/1000;};
+  // sector polygons: CTR (10 nm, lumpy) and TMA (28 nm), dashed cyan like SimAware/EuroScope airspace
+  const poly=(R,n,jit,fill,stroke,dash)=>{ctx.beginPath();for(let i=0;i<n;i++){const a=i/n*6.283,k=R*(1+(Math.sin(a*3+seed%7)*0.5+Math.sin(a*5+seed%11)*0.5)*jit);const x=Math.cos(a)*k*NM,z=Math.sin(a)*k*NM;const [px,pz]=this.P(x,z);i?ctx.lineTo(px,pz):ctx.moveTo(px,pz);}ctx.closePath();if(fill){ctx.fillStyle=fill;ctx.fill();}ctx.strokeStyle=stroke;ctx.setLineDash(dash||[]);ctx.lineWidth=1.2;ctx.stroke();ctx.setLineDash([]);};
+  if(sc<0.1){
+   poly(28,48,0.12,'rgba(40,120,160,0.05)','rgba(60,170,210,0.55)',[]);
+   poly(10,36,0.08,'rgba(40,150,190,0.07)','rgba(80,200,230,0.7)',[6,4]);
+   // neighbouring sector boundaries
+   ctx.strokeStyle='rgba(120,150,190,0.3)';ctx.lineWidth=1;ctx.setLineDash([2,5]);ctx.beginPath();
+   for(let k=0;k<3;k++){const a=(seed%360+k*120+rn()*30)*D2R,[p1,p2]=this.P(Math.cos(a)*28*NM,Math.sin(a)*28*NM),[q1,q2]=this.P(Math.cos(a)*70*NM,Math.sin(a)*70*NM);ctx.moveTo(p1,p2);ctx.lineTo(q1,q2);}ctx.stroke();ctx.setLineDash([]);
+   ctx.fillStyle='rgba(120,200,225,0.75)';ctx.font='10px "JetBrains Mono",monospace';ctx.textAlign='center';
+   const [l1,l2]=this.P(0,-27.4*NM*0.0+(-28*NM));ctx.fillText((AIRPORT.short||ic).toUpperCase()+' TMA  A015-FL095',l1,l2+14);
+   const [m1,m2]=this.P(0,10*NM);ctx.fillText(ic+' CTR  SFC-A030',m1,m2+13);ctx.textAlign='left';
+   // fixes: IAF on both axes + holds, 5-letter names from ICAO
+   const nm=(i)=>{const L='ABCDEFGHIJKLMNOPRSTUVW';let q=ic.slice(0,2)==='EG'?'':'';let x=seed+i*7919;let o='';for(let k=0;k<5;k++){x=Math.imul(x^(x>>>13),1274126177)>>>0;o+=L[x%L.length];}return o;};
+   const fixes=[[-1,14,0],[1,14,1],[-1,22,2],[1,22,3]];
+   fixes.forEach(([sd,d,i])=>{const [fx,fz]=this.P(sd*(AP.thr+d*NM),0);ctx.strokeStyle='#4aa8c8';ctx.fillStyle='rgba(74,168,200,0.18)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(fx,fz-5);ctx.lineTo(fx+4.5,fz+3.5);ctx.lineTo(fx-4.5,fz+3.5);ctx.closePath();ctx.fill();ctx.stroke();
+    ctx.fillStyle='#5cb4d0';ctx.font='9px "JetBrains Mono",monospace';ctx.textAlign='center';ctx.fillText(nm(i),fx,fz+15);ctx.textAlign='left';});
+   // airway-style link between IAFs through the field (STAR/transition)
+   ctx.strokeStyle='rgba(74,168,200,0.22)';ctx.lineWidth=1;ctx.setLineDash([8,6]);
+   [[-1,22],[1,22]].forEach(([sd,d])=>{const [a1,a2]=this.P(sd*(AP.thr+d*NM),0),[b1,b2]=this.P(sd*(AP.thr+14*NM),0);ctx.beginPath();ctx.moveTo(a1,a2);ctx.lineTo(b1,b2);ctx.stroke();});ctx.setLineDash([]);
+  }
+  // airport symbol: label with G/T/A badges (SimAware style)
+  if(sc<0.035){const [ax,az]=this.P(0,0);ctx.strokeStyle='#8fd7ea';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(ax,az,6,0,6.283);ctx.stroke();
+   ctx.font='bold 12px "JetBrains Mono",monospace';ctx.fillStyle='#d8f4ff';ctx.textAlign='left';const lx=ax+12,lz=az-12;ctx.fillText(ic,lx,lz);
+   const w0=ctx.measureText(ic).width;[['G','#43b36a'],['T','#d8a23c'],['A','#c9569f']].forEach(([c,col],i)=>{const bx=lx+w0+6+i*15;ctx.fillStyle=col;ctx.fillRect(bx,lz-10,13,13);ctx.fillStyle='#04120a';ctx.font='bold 10px "JetBrains Mono",monospace';ctx.textAlign='center';ctx.fillText(c,bx+6.5,lz);ctx.textAlign='left';});}
  },
  environment(ctx,sc){
   const E=AIRPORT.env||{},g=E.ground;const tint={desert:'rgba(70,56,30,0.34)',urban:'rgba(44,46,56,0.34)',tropical:'rgba(18,60,34,0.30)',green:'rgba(24,52,30,0.26)'}[g];

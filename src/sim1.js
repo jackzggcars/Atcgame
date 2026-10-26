@@ -193,8 +193,14 @@ function spawnArr(){
  a.checked=true;return a;
 }
 function placeApproach(a){
- const d=dirOf();a.x=thrX()-d*a.D;a.z=0;const th0=d>0?0:Math.PI;
- a.y=a.D>0?a.D*TAN3+15:15*clamp(1+a.D/300,0,1);a.th=crabTh(a,th0);
+ const d=dirOf();a.x=thrX()-d*a.D;const th0=d>0?0:Math.PI;
+ a.z=a.zOff||0;a.y=(a.D>0?a.D*TAN3+15:15*clamp(1+a.D/300,0,1))+(a.yOff||0);
+ const eps=a.zOff?clamp(a.zOff*0.005,-0.7,0.7):0;a.th=crabTh(a,th0)-d*eps;
+}
+/* lateral / vertical offsets left over from joining final from a circuit decay smoothly */
+function settleOffsets(a,dt){
+ if(a.zOff){const eps=clamp(a.zOff*0.005,-0.7,0.7),st=Math.min(Math.abs(a.zOff),a.v*Math.abs(Math.sin(eps))*dt+0.02);a.zOff-=Math.sign(a.zOff)*st;if(Math.abs(a.zOff)<0.5)a.zOff=0;}
+ if(a.yOff){a.yOff-=Math.sign(a.yOff)*Math.min(Math.abs(a.yOff),7*dt);if(Math.abs(a.yOff)<0.3)a.yOff=0;}
 }
 
 /* ---------------- requests & reminders ---------------- */
@@ -381,14 +387,15 @@ function updAc(a,dt){
  case 'SLIDE':slideUpdate(a,dt);break;
  case 'CLIMB':climbUpdate(a,dt);break;
  case 'RETURN':
-  a.v=Math.min(a.v+0.5*dt,80);a.x+=Math.cos(a.th)*a.v*dt;a.z+=Math.sin(a.th)*a.v*dt;a.y=Math.min(450,a.y+4*dt);
-  if(G.t-a.retT>55){a.kind='arr';a.phase='APPROACH';a.D=rnd(5.2,6)*NM;a.v=95;a.decided=false;a.chk=0;placeApproach(a);a.cleared=!!a.preCleared;}
+  if(G.t-a.retT>20){if(!a.circ){startCircuit(a,rnd(6.2,7));a.circ.vt=92;}circuitFly(a,dt,true);}
+  else{a.v=Math.min(a.v+0.5*dt,80);a.x+=Math.cos(a.th)*a.v*dt;a.z+=Math.sin(a.th)*a.v*dt;a.y=Math.min(450,a.y+4*dt);}
   break;
  case 'APPROACH':appUpdate(a,dt);break;
  case 'GOAROUND':{
-  const d=dirOf();a.v=Math.min(a.v+1.6*dt,85);a.vs=Math.min(a.vs+2.2*dt,9.5);a.y+=a.vs*dt;a.pitch=0.1;a.x+=d*a.v*dt;a.z=0;a.gaT+=dt;a.th=d>0?0:Math.PI;
+  if(!a.circ)startCircuit(a,rnd(5.4,6.0));
+  a.gaT+=dt;
   if(a.y>300&&!a.gaCalled){a.gaCalled=true;request(a,'GAREQ');}
-  if(a.gaT>58){a.phase='APPROACH';a.D=rnd(8.2,9)*NM;G.ents.forEach(e=>{if(e!==a&&e.phase==='APPROACH'&&Math.abs(e.D-a.D)<4.5*NM)a.D=e.D+4.6*NM;});a.v=150*KT;a.decided=false;a.chk=0;a.asked=false;a.askedLand=false;a.cleared=false;a.gaCalled=false;a.req=null;placeApproach(a);request(a,'CHECKIN',{dist:Math.round(a.D/NM)});}
+  circuitFly(a,dt);
   break;}
  case 'ROLLOUT':rolloutUpdate(a,dt);break;
  case 'BLOCKED_ROLL':
@@ -466,7 +473,7 @@ function appUpdate(a,dt){
  const d=dirOf(),ty=a.type,vref=ty.vref*KT,Dnm=a.D/NM;
  let vt;if(a.spdCmd&&Dnm>3.2)vt=a.spdCmd*KT;else vt=Dnm>6?160*KT:Dnm<2.2?vref:lerp(vref,160*KT,(Dnm-2.2)/3.8);
  vt=Math.max(vt,vref);if(a.hyd)vt=Math.max(vt,vref+16*KT);a.v+=clamp(vt-a.v,-1.3*dt,1.0*dt);
- a.D-=a.v*dt;placeApproach(a);a.pitch=a.y<20?lerp(-0.03,0.075,clamp(1-a.y/20,0,1)):-0.03-0.02*clamp((a.y-20)/60,0,1);if(a.engOut)a.bank=lerp(a.bank,0.09*(a.engSide||1),dt);if(a.dead_stick){a.sinkX=(a.sinkX||0)+5.2*dt;a.y=Math.max(0,a.y-a.sinkX);if(a.y<=1&&a.D>40){a.x=a.x;deadStickCrash(a);return;}}
+ const thPrev=a.th;settleOffsets(a,dt);a.D-=a.v*dt;placeApproach(a);if(!a.engOut&&dt>0){const yr=angDiff(a.th,thPrev)/dt;a.bank=lerp(a.bank||0,clamp(yr*a.v/9.81,-0.45,0.45),Math.min(1,dt*2));}a.pitch=a.y<20?lerp(-0.03,0.075,clamp(1-a.y/20,0,1)):-0.03-0.02*clamp((a.y-20)/60,0,1);if(a.engOut)a.bank=lerp(a.bank,0.09*(a.engSide||1),dt);if(a.dead_stick){a.sinkX=(a.sinkX||0)+5.2*dt;a.y=Math.max(0,a.y-a.sinkX);if(a.y<=1&&a.D>40){a.x=a.x;deadStickCrash(a);return;}}
  if((!a.req||['CHECKIN','PRIO','DIVERT'].includes(a.req.kind))&&!a.nextReq&&!a.cleared&&a.D>0&&(!a.askedLand&&Dnm<4.2||a.askedLand&&Dnm<2.2&&G.t-(a.lastLR||0)>20)){a.askedLand=true;a.lastLR=G.t;request(a,'LANDREQ',{dist:Math.max(1,Math.round(Dnm))});}
  if(arrivalProblem(a,Dnm))return;
  if(a.D>0&&a.chk<1&&Dnm<0.62||a.D>0&&a.chk<2&&Dnm<0.27){
@@ -489,6 +496,43 @@ function startGoAround(a,why){
  say('pilot',a,'Going around, '+csName(a)+(why?' ('+why+')':'')+'.','urgent');
  if(why==='runway occupied'||/^no landing clearance/.test(why)){G.safety=Math.max(0,G.safety-2);sysMsg('Go-around: '+why+' (safety −2)','warn');}
  emit('goaround',a);
+}
+/* missed approach / return circuit: climb straight ahead, crosswind, downwind, base, re-join final */
+function startCircuit(a,Dnm){
+ const d=dirOf(),T=AP.thr,xF=thrX()-d*Dnm*NM,sd=a.cside||(a.cside=Math.random()<0.72?1:-1);
+ const W=[];
+ if(a.x*d<T+3200)W.push({x:d*(T+3600),z:0});
+ W.push({x:d*(T+4800),z:sd*1800},{x:d*(T+3400),z:sd*4000},{x:d*(T+400),z:sd*4200},{x:xF-d*1500,z:sd*4200,tag:'dw'},{x:xF-d*3500,z:sd*2300},{x:xF,z:0,fin:true});
+ a.circ={W,i:0,ext:0,Dnm,vt:95};a.stats=0;
+}
+function circuitFly(a,dt,isRet){
+ const c=a.circ,w=c.W[c.i],d=dirOf(),th0=a.th;
+ const dx=w.x-a.x,dz=w.z-a.z,dist=Math.hypot(dx,dz);
+ const turnRate=a.engOut?0.035:0.052;
+ a.th=turnTo(a.th,Math.atan2(dz,dx),turnRate,dt);
+ a.v+=clamp(c.vt-a.v,-1.3*dt,1.5*dt);
+ a.x+=Math.cos(a.th)*a.v*dt;a.z+=Math.sin(a.th)*a.v*dt;
+ const Dnow=d*(thrX()-a.x);
+ let altT=c.i<2?(c.W.length>6&&c.i===0?420:640):(w.fin||w.tag||c.i>=c.W.length-3)?clamp(Math.max(Dnow,2500)*TAN3+15,650,900):720;
+ const vsT=clamp((altT-a.y)*0.22,-3.6,a.gaT<14&&!isRet?9.5:7.5);
+ a.vs=lerp(a.vs||0,vsT,Math.min(1,dt*1.1));a.y+=a.vs*dt;
+ a.pitch=lerp(a.pitch||0,clamp(a.vs/Math.max(a.v,30)*1.3+0.025,-0.05,0.15),Math.min(1,dt*1.4));
+ const yr=angDiff(a.th,th0)/Math.max(dt,1e-3);a.bank=lerp(a.bank||0,clamp(yr*a.v/9.81,-0.48,0.48),Math.min(1,dt*2));
+ if(w.tag==='dw'&&dist<1900&&!c.chkd){
+  c.chkd=true;
+  const Dint=c.Dnm*NM,blocked=G.ents.some(e=>e!==a&&!e.dead&&e.phase==='APPROACH'&&e.D>0&&Math.abs(e.D-4300-Dint)<4.3*NM);
+  if(blocked&&c.ext<4){c.ext++;c.chkd=false;c.Dnm+=1.8;const sh=-d*3330;for(let k=c.i;k<c.W.length;k++){c.W[k].x+=sh;}
+   if(c.ext===1)say('pilot',a,'Tower, '+csName(a)+', extending downwind for spacing.','');}
+ }
+ const lead=w.fin?350:w.tag?1500:1700;
+ if(dist<lead||(w.fin&&Dnow<c.Dnm*NM+300&&dist<1400)){
+  c.i++;c.chkd=false;
+  if(c.i>=c.W.length){
+   const D=Math.max(3*NM,Dnow);a.D=D;a.zOff=a.z;a.yOff=a.y-(D*TAN3+15);a.circ=null;a.phase='APPROACH';a.kind='arr';
+   a.decided=false;a.chk=0;a.asked=false;a.askedLand=false;a.cleared=!!(isRet&&a.preCleared);a.gaCalled=false;a.req=null;a.nextReq=null;a.v=Math.max(a.v,a.type.vref*KT+8);
+   if(!isRet)request(a,'CHECKIN',{dist:Math.round(a.D/NM)});
+  }
+ }
 }
 function touchdown(a){
  a.phase='ROLLOUT';a.y=0;a.pitch=0.07;a.tdT=G.t;a.tdHard=Math.random();a.rwyAuth=true;a.z=0;const d=dirOf();

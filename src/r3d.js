@@ -248,7 +248,21 @@ const R3={
   if(!e.veh&&e.tdT!=null&&gnd){const k=G.t-e.tdT;if(k>=0&&k<4){const A=0.35+0.65*(e.tdHard||0),f=Math.exp(-2.6*k);p+=0.03*A*f*Math.sin(9*k);y=0.22*A*f*Math.abs(Math.sin(5.5*k));}}
   let wr=0;if(e.wakeT>0){const k=Math.min(1,e.wakeT/3);wr=Math.sin(t*7.3+e.id)*0.20*k+Math.sin(t*13)*0.05*k;p+=Math.sin(t*5.1)*0.03*k;}
   if(e.cellWx||G.cell&&G.cell.over&&e.y>3){wr+=Math.sin(t*3.1+e.id)*0.04+Math.sin(t*8.7)*0.02;}
-  return{p,r:d.r+(gnd?vib*0.7:0)+wr,y};
+  // airborne: natural flight motion — turbulence-driven pitch / roll / heading wander, heave, and banking into turns
+  let yaw=0;
+  if(!gnd){
+   const len=(e.type&&e.type.len)||40,f=clamp(1.55-len/85,0.4,1.7);
+   const w=G.wind?G.wind.spd:8,lowK=clamp(1.3-e.y/700,0.35,1.3);
+   const k=f*lowK*(0.45+w/22+(G.cellGust||0)/12+(G.wx==='storm'?0.9:G.wx==='rain'?0.35:0)+(e.cellWx?0.5:0)+(e.phase==='GOAROUND'?0.15:0));
+   const ph=e.id*2.399,s1=Math.sin(t*0.61+ph),s2=Math.sin(t*1.37+ph*1.7),s3=Math.sin(t*2.9+ph*0.6),s4=Math.sin(t*0.37+ph*2.2);
+   p+=k*(0.0065*s1+0.0035*s3);
+   wr+=k*(0.015*s2+0.01*s4+0.004*s3);
+   yaw=k*(0.004*Math.sin(t*0.83+ph)+0.0025*Math.sin(t*1.9+ph*0.4));
+   y+=k*(0.35*s1+0.2*s2);
+   if(!(Math.abs(e.bank||0)>0.01)){const Rb=clamp(d.yr*(e.v||0)/9.81,-0.5,0.5);d.rb=(d.rb||0)+(Rb-(d.rb||0))*Math.min(1,dt*2.2);wr+=d.rb;}
+   if(e.phase==='APPROACH'&&e.D>0&&e.D<7000)p+=0.006*Math.sin(t*0.9+ph)*clamp(e.D/3000,0.3,1);
+  }
+  return{p,r:d.r+(gnd?vib*0.7:0)+wr,y,yaw};
  },
  /* ---------- per-frame ---------- */
  sync(dt,t){
@@ -261,7 +275,7 @@ const R3={
    const dy=this.dyn(m,e,dt,t);
    if(e.veh){h.rotation.order='YXZ';h.rotation.y=-e.th;h.rotation.z=dy.p*1.8;h.rotation.x=dy.r*1.6;h.position.y=e.y+dy.y*0.5;if(h.userData.beacon)h.userData.beacon.visible=Math.sin(t*14)>0;continue;}
    h.position.y=e.y+dy.y;
-   m.root.rotation.y=-e.th;m.body.rotation.z=(e.pitch||0)+dy.p;m.body.rotation.x=(e.bank||0)+dy.r;
+   m.root.rotation.y=-e.th-(dy.yaw||0);m.body.rotation.z=(e.pitch||0)+dy.p;m.body.rotation.x=(e.bank||0)+dy.r;
    m.root.userData.gear.visible=e.y<14&&!(e.phase==='CLIMB'&&e.y>6);
    const ud=m.root.userData;
    ud.strobes.forEach((s,i)=>s.visible=((t*1.6+i*0.37)%1.4)<0.09);
