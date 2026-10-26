@@ -143,8 +143,8 @@ const Voice={
   return new Promise(res=>{
    const ctx=this.ensureCtx();if(!ctx)return res();
    const t0=ctx.currentTime+0.02;const out=ctx.createGain();out.gain.value=this.vol;out.connect(ctx.destination);
-   const src=ctx.createBufferSource();src.buffer=buf;const Q=this._q();
-   if(this.fx){try{src.buffer=this.vocode(buf,Q);}catch(er){src.buffer=buf;}
+   const src=ctx.createBufferSource();const Q=this._q();let pb=buf;if(this.fx){try{pb=this.vocode(buf,Q);}catch(er){console.warn('vocode',er);}}src.buffer=pb;
+   if(this.fx){
     const hp=ctx.createBiquadFilter();hp.type='highpass';hp.frequency.value=380;
     const lp=ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=3100;
     const sh=ctx.createWaveShaper();const c=new Float32Array(256);for(let i=0;i<256;i++){const x=i/128-1;c[i]=Math.tanh(x*2.2);}sh.curve=c;
@@ -166,6 +166,17 @@ const Voice={
  },
  async browserSpeak(text,e){await this.idle();return this._speak(text,e);},
  _speak(text,e){
+  if(this.fx&&window.meSpeak&&!this._esFail)return this._es(text,e).catch(er=>{this._esFail=1;console.warn('espeak',er);return this._speakNative(text,e);});
+  return this._speakNative(text,e);
+ },
+ async _es(text,e){
+  const ctx=this.ensureCtx();if(!ctx)throw new Error('no audio');
+  let h=0;for(const ch of (e.cs||'x'))h=(h*31+ch.charCodeAt(0))>>>0;
+  const raw=meSpeak.speak(text,{rawdata:'default',pitch:34+h%38,speed:166+((h>>4)%20)+(e.urgent?16:0),amplitude:100,wordgap:0});
+  if(!raw||!raw.byteLength)throw new Error('empty');
+  const buf=await ctx.decodeAudioData(raw.slice(0));return this._play(buf);
+ },
+ _speakNative(text,e){
   return new Promise(res=>{
    if(!('speechSynthesis' in window)){res();return;}
    const ss=speechSynthesis;
