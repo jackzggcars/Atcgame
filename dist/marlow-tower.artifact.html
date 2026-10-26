@@ -1182,7 +1182,7 @@ function fuzzWord(t){
 function normText(s){
  s=s.toLowerCase().replace(/[,.;:!?()"]/g,' ').replace(/-/g,' ').replace(/\b(uh|um|er|erm|ah|please)\b/g,' ');
  s=s.replace(/\bair france\b/g,'airfrance').replace(/\bwinds?\b/g,'wind').replace(/\bnine er\b/g,'niner').replace(/\bstand by\b/g,'standby');
- s=s.replace(/\b(won|wan)\b/g,'one').replace(/\b(free|tray)\b/g,'three').replace(/\b(ate)\b/g,'eight').replace(/\b(fore|fo)\b/g,'four').replace(/\b(sicks|sics)\b/g,'six').replace(/\b(nein|nina|niner)\b/g,'nine').replace(/\bheaven\b/g,'seven').replace(/\bweight\b/g,'wait').replace(/\bsquawk (to|too) (?=\d)/g,'squawk ').replace(/\bsquark|squack|squach|scott\b/g,'squawk');
+ s=s.replace(/\b(won|wan)\b/g,'one').replace(/\b(free|tray)\b/g,'three').replace(/\b(ate)\b/g,'eight').replace(/\b(fore|fo)\b/g,'four').replace(/\b(sicks|sics)\b/g,'six').replace(/\b(nein|nina|niner)\b/g,'nine').replace(/\bheaven\b/g,'seven').replace(/\bweight\b/g,'wait').replace(/\b(squat|squad|squash|squark|squack|squaw|swat|squirt|scwak|scrawl|squall)\b/g,'squawk').replace(/\bclear (to|for)\b/g,'cleared $1').replace(/\bq\s*(and|n|in|an)\s*h\b/g,'qnh').replace(/\bqueue\s*(and|n)\s*h\b/g,'qnh').replace(/\bclient\b/g,'climb').replace(/\bsquawk (to|too) (?=\d)/g,'squawk ').replace(/\bsquark|squack|squach|scott\b/g,'squawk');
  s=s.replace(/\bthe\s+(point|runway)\b/g,'$1').replace(/\bwrong way\b/g,'runway');
  let t=s.split(/\s+/).filter(Boolean).map(fuzzWord);
  const numish=x=>x&&(/^\d+$/.test(x)||/^(zero|oh|one|two|three|tree|four|fower|five|fife|six|seven|eight|niner|nine)$/.test(x));
@@ -1220,7 +1220,8 @@ function parseCmd(text,selId){
  c.deny=/\b(unable|not approved|denied|call again|cannot)\b/.test(m);
  c.wait=/\b(standby|stand by|wait|roger standby)\b/.test(m);
  const rw=m.match(/runway (\d{1,2})/);if(rw)c.rwy=rw[1].padStart(2,'0');
- const sq=m.match(/squawk (\d{4})/);if(sq)c.squawk=sq[1];
+ let sq=m.match(/squawk (\d{4})/);if(sq)c.squawk=sq[1];
+ else if(/cleared to \w+/.test(m)){const f=[...m.matchAll(/\b([0-7]{4})\b(?! ?(feet|ft))/g)].map(x=>x[1]).filter(x=>!m.includes('qnh '+x)&&!m.includes('runway '+x));if(f.length&&!/\b(qnh)\s*$/.test(m))c.squawk=f[0];}
  const hp=m.match(/holding point (bravo|charlie|delta|echo)/);if(hp)c.hp=hp[1][0].toUpperCase();
  const st=m.match(/stand (\d)/);if(st)c.stand=st[1];
  const sp=m.match(/(\d{2,3}) knots/);if(sp)c.spd=+sp[1];
