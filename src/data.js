@@ -1,0 +1,256 @@
+'use strict';
+/* =====================================================================
+   MARLOW TOWER — data: airlines, aircraft, phraseology (shared by game AND manual)
+   ===================================================================== */
+const ATIS_L=['Alpha','Bravo','Charlie','Delta','Echo','Foxtrot','Golf','Hotel','India','Juliet','Kilo','Lima','Mike','November','Oscar','Papa','Quebec','Romeo','Sierra','Tango','Uniform','Victor','Whiskey','X-ray','Yankee','Zulu'];
+const DIGW=['zero','one','two','three','four','five','six','seven','eight','niner'];
+const PHON_MAP={a:'alpha',b:'bravo',c:'charlie',d:'delta',e:'echo',f:'foxtrot',g:'golf',h:'hotel'};
+
+const AIRLINES=[
+ {icao:'BAW',rt:'Speedbird',tail:0x1d2b64,acc:0xc8102e,voice:'Charon',accent:'British'},
+ {icao:'DLH',rt:'Lufthansa',tail:0x0a1a52,acc:0xf5b800,voice:'Fenrir',accent:'German'},
+ {icao:'AFR',rt:'Airfrance',tail:0x213a8f,acc:0xd9232d,voice:'Orus',accent:'French'},
+ {icao:'EZY',rt:'Easy',tail:0xff6a13,acc:0xff6a13,voice:'Puck',accent:'British'},
+ {icao:'RYR',rt:'Ryanair',tail:0x0b3a8f,acc:0xf4c430,voice:'Zephyr',accent:'Irish'},
+ {icao:'KLM',rt:'KLM',tail:0x00a1de,acc:0x00a1de,voice:'Kore',accent:'Dutch'},
+ {icao:'VIR',rt:'Virgin',tail:0xc8102e,acc:0xc8102e,voice:'Aoede',accent:'British'},
+ {icao:'UAE',rt:'Emirates',tail:0xb81c26,acc:0xb81c26,voice:'Leda',accent:'international'},
+ {icao:'SAS',rt:'Scandinavian',tail:0x172a6e,acc:0x172a6e,voice:'Algieba',accent:'Scandinavian'}
+];
+const TYPES={
+ A320:{n:'A320',wing:35.8,len:37.6,wake:'M',vref:135,vr:140,acc:2.0,eng:2,rf:2.1,wide:false},
+ B738:{n:'B738',wing:35.8,len:39.5,wake:'M',vref:138,vr:143,acc:2.0,eng:2,rf:2.1,wide:false},
+ E190:{n:'E190',wing:28.7,len:36.2,wake:'M',vref:125,vr:132,acc:2.3,eng:2,rf:1.7,wide:false,rear:true},
+ DH8D:{n:'DH8D',wing:28.4,len:32.8,wake:'M',vref:100,vr:105,acc:2.4,eng:2,rf:1.4,wide:false,prop:true},
+ A359:{n:'A359',wing:64.8,len:66.8,wake:'H',vref:140,vr:150,acc:1.7,eng:2,rf:3.1,wide:true},
+ B77W:{n:'B77W',wing:64.8,len:73.9,wake:'H',vref:150,vr:158,acc:1.55,eng:2,rf:3.3,wide:true}
+};
+const TYPE_KEYS=['A320','A320','B738','B738','E190','DH8D','A359','B77W'];
+const DESTS=[
+ {n:'Frankfurt',c:'EDDF',sid:'Rosel Two Alpha',th:50},
+ {n:'Paris',c:'LFPG',sid:'Norta One Bravo',th:160},
+ {n:'Amsterdam',c:'EHAM',sid:'Tilby Three Charlie',th:20},
+ {n:'Dublin',c:'EIDW',sid:'Wesco Two Delta',th:-110},
+ {n:'Madrid',c:'LEMD',sid:'Norta One Bravo',th:150},
+ {n:'Copenhagen',c:'EKCH',sid:'Tilby Three Charlie',th:10},
+ {n:'Dubai',c:'OMDB',sid:'Rosel Two Alpha',th:60}
+];
+const UNITS={
+ DEL:{n:'Marlow Delivery',f:'121.700'},
+ GND:{n:'Marlow Ground',f:'121.800'},
+ TWR:{n:'Marlow Tower',f:'118.100'},
+ DEP:{n:'Marlow Departure',f:'119.500'},
+ OPS:{n:'Operations',f:'121.800'}
+};
+const HPN={HB:'Bravo',HC:'Charlie',HD:'Delta',HE:'Echo'};
+const EXN={B:'Bravo',C:'Charlie',D:'Delta',E:'Echo'};
+
+/* ---------- number / speech helpers ---------- */
+function digitsSpoken(s){return String(s).split('').map(c=>c==='.'?'decimal':(DIGW[+c]!==undefined?DIGW[+c]:c)).join(' ');}
+function fmt(t,v){return t.replace(/\{(\w+)\}/g,(m,k)=>v&&v[k]!==undefined?v[k]:m);}
+function toSpeech(t){
+ return t
+  .replace(/\b(\d{3})\.(\d{1,3})\b/g,(m,a,b)=>digitsSpoken(a)+' decimal '+digitsSpoken(b))
+  .replace(/\b([1-9])000 feet/g,(m,a)=>DIGW[+a]+' thousand feet')
+  .replace(/\bQNH (\d{4})/g,(m,a)=>'QNH '+digitsSpoken(a))
+  .replace(/\bFL(\d+)/g,(m,a)=>'flight level '+digitsSpoken(a))
+  .replace(/\d+/g,m=>digitsSpoken(m))
+  .replace(/\bIFR\b/g,'I F R').replace(/\bILS\b/g,'I L S').replace(/\bQNH\b/g,'Q N H').replace(/\bATIS\b/g,'A T I S')
+  .replace(/\bRTO\b/g,'rejected takeoff');
+}
+
+/* =====================================================================
+   PHRASEOLOGY TABLE — this is both what pilots say and what the manual shows.
+   Placeholders: {cs} callsign, {unit} ATC unit, {rwy}, {hp}, {via}, {gate}, {dest}, {sid}, {sq},
+   {alt}, {qnh}, {atis}, {wdir},{wspd}, {dist}, {facing}, {freq}, {n}, {exit}, {spd}, {tod}
+   ===================================================================== */
+const PH={
+ CLR:{cat:'Delivery',title:'IFR clearance request',unit:'DEL',
+  when:'Boarding is finished and the crew is ready to leave the stand.',
+  pilot:['{unit}, {cs}, stand {gate}, information {atis}, request IFR clearance to {dest}.','{unit}, good {tod}, {cs}, stand {gate}, information {atis}, request start-up and IFR clearance to {dest}.'],
+  accept:'{cs}, {unit}, cleared to {dest} via {sid} departure, squawk {sq}, initial climb {alt} feet, QNH {qnh}.',
+  rbAccept:'Cleared to {dest}, {sid} departure, squawk {sq}, initial climb {alt} feet, QNH {qnh}, {cs}.',
+  deny:'{cs}, {unit}, unable to issue your clearance, call again in two minutes.',
+  rbDeny:'Wilco, will call back, {cs}.',
+  wait:'{cs}, {unit}, standby.',rbWait:'Standing by, {cs}.',
+  note:'The clearance must name the right destination and give a 4-digit squawk (digits 0–7 only). Listen to the read-back: a wrong digit in the squawk is the classic error. If you hear one, say "negative, squawk ####".',errs:true},
+ PUSH:{cat:'Ground',title:'Pushback and start-up',unit:'GND',
+  when:'After the IFR clearance has been read back.',
+  pilot:['{unit}, {cs}, stand {gate}, request pushback and start-up.','{unit}, {cs}, stand {gate}, ready for pushback.'],
+  accept:'{cs}, {unit}, pushback and start-up approved, facing {facing}.',
+  rbAccept:'Pushback and start-up approved, facing {facing}, {cs}.',
+  deny:'{cs}, {unit}, unable to approve pushback, expect a delay of three minutes.',
+  rbDeny:'Roger, remaining on stand, {cs}.',
+  wait:'{cs}, {unit}, standby for pushback.',rbWait:'Standing by, {cs}.',
+  note:'"Facing" is the direction the nose points when the tug disconnects. The game picks the right direction for the runway in use.'},
+ TAXI:{cat:'Ground',title:'Taxi request (departure)',unit:'GND',
+  when:'Pushback has finished and the engines are running.',
+  pilot:['{unit}, {cs}, pushback complete, request taxi.','{unit}, {cs}, ready to taxi.'],
+  accept:'{cs}, {unit}, runway {rwy}, taxi to holding point {hp} via {via}, hold short of runway {rwy}, QNH {qnh}.',
+  rbAccept:'Taxi to holding point {hp} via {via}{hs}, QNH {qnh}, {cs}.',
+  deny:'{cs}, {unit}, hold position, expect taxi in three minutes.',
+  rbDeny:'Holding position, {cs}.',
+  wait:'{cs}, {unit}, standby.',rbWait:'Standing by, {cs}.',
+  note:'"Hold short" is a mandatory read-back item. If the read-back leaves it out, correct the pilot immediately — otherwise they may roll onto the runway. Heavy aircraft need the full runway length.',errs:true},
+ READY:{cat:'Tower',title:'Ready for departure',unit:'TWR',
+  when:'Aircraft is stopped at the holding point.',
+  pilot:['{unit}, {cs}, holding point {hp}, runway {rwy}, ready for departure.','{unit}, {cs}, ready at holding point {hp}.'],
+  accept:'{cs}, {unit}, runway {rwy}, line up and wait.',
+  rbAccept:'Line up and wait, runway {rwy}, {cs}.',
+  deny:'{cs}, {unit}, hold position, traffic on final.',
+  rbDeny:'Holding position, {cs}.',
+  wait:'{cs}, {unit}, standby.',rbWait:'Standing by, {cs}.',
+  note:'Only line up if the runway is clear and nothing is closer than about 3 nm on final. Mixing up "line up and wait" with "cleared for takeoff" is the most dangerous read-back error in aviation.',errs:true},
+ TKOF:{cat:'Tower',title:'Lined up, awaiting takeoff clearance',unit:'TWR',
+  when:'Aircraft is lined up on the runway.',
+  pilot:['{unit}, {cs}, lined up runway {rwy}, ready.','{unit}, {cs}, ready for takeoff.'],
+  accept:'{cs}, wind {wdir} degrees {wspd} knots, runway {rwy}, cleared for takeoff.',
+  rbAccept:'Cleared for takeoff, runway {rwy}, {cs}.',
+  deny:'{cs}, {unit}, hold position, traffic on final.',
+  rbDeny:'Holding position, {cs}.',
+  wait:'{cs}, {unit}, standby.',rbWait:'Standing by on the runway, {cs}.',
+  note:'Wake turbulence: after a HEAVY departure wait 2 minutes before the next takeoff. After a medium aircraft, 1 minute.'},
+ AIRB:{cat:'Tower',title:'Airborne — handoff to Departure',unit:'TWR',
+  when:'The aircraft is climbing out.',
+  pilot:['{unit}, {cs}, airborne.','{unit}, {cs}, passing 1000 feet.'],
+  accept:'{cs}, contact Departure {freq}.',
+  rbAccept:'Departure {freq}, {cs}.',
+  deny:'{cs}, {unit}, standby.',rbDeny:'Standing by, {cs}.',
+  wait:'{cs}, {unit}, standby.',rbWait:'Standing by, {cs}.',
+  note:'Always hand the aircraft off to Departure. Frequencies are in the top-right of the manual.'},
+ CHECKIN:{cat:'Tower',title:'Arrival check-in on final',unit:'TWR',
+  when:'An inbound aircraft is established on the ILS about 8 nm out.',
+  pilot:['{unit}, {cs}, {dist} miles final, runway {rwy}, ILS, information {atis}.','{unit}, good {tod}, {cs}, established ILS runway {rwy}, {dist} miles.'],
+  accept:'{cs}, {unit}, continue approach, wind {wdir} degrees {wspd} knots.',
+  rbAccept:'Continue approach, {cs}.',
+  deny:'{cs}, {unit}, go around.',rbDeny:'Going around, {cs}.',
+  wait:'{cs}, {unit}, continue approach.',rbWait:'Continue approach, {cs}.',
+  note:'You cannot "deny" an aircraft on final other than by sending it around. Normal flow: continue approach → cleared to land when the runway is clear.'},
+ LANDREQ:{cat:'Tower',title:'Request landing clearance',unit:'TWR',
+  when:'About 3 nm from the threshold, still without landing clearance.',
+  pilot:['{unit}, {cs}, {dist} miles final, runway {rwy}, request landing clearance.','{unit}, {cs}, still on final, request clearance to land.'],
+  accept:'{cs}, wind {wdir} degrees {wspd} knots, runway {rwy}, cleared to land.',
+  rbAccept:'Cleared to land, runway {rwy}, {cs}.',
+  deny:'{cs}, {unit}, go around, I say again, go around.',rbDeny:'Going around, {cs}.',
+  wait:'{cs}, {unit}, continue approach.',rbWait:'Continue approach, {cs}.',
+  note:'If you do not give a landing clearance before about 0.4 nm the pilot goes around by themselves. A runway occupied at the moment of touchdown means a collision — send them around.'},
+ GAREQ:{cat:'Tower',title:'Going around — request rejoin',unit:'TWR',
+  when:'After a go-around, once the aircraft is climbing.',
+  pilot:['{unit}, {cs}, going around, request to rejoin final.','{unit}, {cs}, missed approach, request another approach.'],
+  accept:'{cs}, roger, fly runway heading, climb 3000 feet, expect another approach.',
+  rbAccept:'Runway heading, climbing 3000 feet, {cs}.',
+  deny:'{cs}, {unit}, standby.',rbDeny:'Standing by, {cs}.',
+  wait:'{cs}, {unit}, standby.',rbWait:'Standing by, {cs}.',
+  note:'The aircraft will rejoin final automatically after a minute or so, using up fuel each time.'},
+ VAC:{cat:'Tower',title:'Runway vacated',unit:'TWR',
+  when:'The arrival has left the runway.',
+  pilot:['{unit}, {cs}, runway vacated.','{unit}, {cs}, vacated runway {rwy} via {exit}.'],
+  accept:'{cs}, contact Ground {freq}.',
+  rbAccept:'Ground {freq}, {cs}.',
+  deny:'{cs}, {unit}, standby.',rbDeny:'Standing by, {cs}.',
+  wait:'{cs}, {unit}, standby.',rbWait:'Standing by, {cs}.',
+  note:'Hand the arrival to Ground so you can use the runway again.'},
+ GNDTAXI:{cat:'Ground',title:'Taxi to stand (arrival)',unit:'GND',
+  when:'After contacting Ground.',
+  pilot:['{unit}, {cs}, vacated runway {rwy} via {exit}, request taxi to stand.','{unit}, {cs}, on {exit}, request taxi to stand.'],
+  accept:'{cs}, {unit}, taxi to stand {gate} via {via}.',
+  rbAccept:'Taxi to stand {gate} via {via}, {cs}.',
+  deny:'{cs}, {unit}, hold position.',rbDeny:'Holding position, {cs}.',
+  wait:'{cs}, {unit}, standby.',rbWait:'Standing by, {cs}.',
+  note:'If there is no free stand the pilot is told to hold. Stands are shown on the map.'},
+ INSP:{cat:'Ground',title:'Vehicle: runway inspection',unit:'GND',
+  when:'Airfield operations ask to inspect the runway (also after a bird strike or tyre burst).',
+  pilot:['{unit}, Operations 1, request runway {rwy} inspection.'],
+  accept:'Operations 1, cleared onto runway {rwy} for inspection, report runway vacated.',
+  rbAccept:'Cleared onto runway {rwy} for inspection, will report vacated, Operations 1.',
+  deny:'Operations 1, unable, traffic on final, hold position.',rbDeny:'Holding position, Operations 1.',
+  wait:'Operations 1, standby.',rbWait:'Standing by, Operations 1.',
+  note:'While the vehicle is on the runway it is an obstacle: do not clear anything to land or take off. It takes about 3 minutes. Debris on the runway can burst tyres.'},
+ PANPAN:{cat:'Emergency',title:'PAN-PAN — medical emergency',unit:'TWR',urgent:true,
+  when:'A passenger is seriously ill on an inbound flight.',
+  pilot:['Pan-pan, pan-pan, pan-pan. {unit}, {cs}, {dist} miles final runway {rwy}, passenger medical emergency, request priority landing, ambulance on arrival.'],
+  accept:'{cs}, roger pan-pan, runway {rwy}, wind {wdir} degrees {wspd} knots, cleared to land, emergency services standing by.',
+  rbAccept:'Cleared to land runway {rwy}, thank you, {cs}.',
+  deny:'{cs}, {unit}, unable.',rbDeny:'Say again? We have a medical emergency, we need priority, {cs}.',
+  wait:'{cs}, roger, standby.',rbWait:'Standing by, please be quick, {cs}.',
+  note:'PAN-PAN means urgency, not immediate danger. Clear the runway, give them priority, and do not send them around unless you have to.'},
+ MAYDAY:{cat:'Emergency',title:'MAYDAY — engine failure, return to field',unit:'TWR',urgent:true,
+  when:'An engine fails shortly after takeoff.',
+  pilot:['Mayday, mayday, mayday. {unit}, {cs}, engine failure, returning to the field, request immediate return runway {rwy}.'],
+  accept:'{cs}, roger mayday, runway {rwy}, cleared to land, wind {wdir} degrees {wspd} knots, emergency services alerted.',
+  rbAccept:'Cleared to land runway {rwy}, {cs}.',
+  deny:'{cs}, {unit}, unable.',rbDeny:'Say again? Mayday, we are returning now, {cs}.',
+  wait:'{cs}, roger mayday, standby.',rbWait:'Standing by, hurry please, {cs}.',
+  note:'MAYDAY means grave and imminent danger. Everything else stops. Make sure the runway is empty and nobody is lined up.'},
+ RTO:{cat:'Emergency',title:'Rejected takeoff (RTO)',unit:'TWR',urgent:true,
+  when:'The aircraft aborts its takeoff roll.',
+  pilot:['{unit}, {cs}, rejected takeoff, engine failure, stopped on the runway, request emergency services.','{unit}, {cs}, we rejected the takeoff, stopped on the runway, request fire service and a tow.'],
+  accept:'{cs}, roger, emergency services are on their way, hold position.',
+  rbAccept:'Holding position, thank you, {cs}.',
+  deny:'{cs}, {unit}, hold position.',rbDeny:'Holding position, {cs}.',
+  wait:'{cs}, {unit}, standby.',rbWait:'Standing by, {cs}.',
+  note:'The runway is blocked until the aircraft is towed away (about 90 seconds). Stop all other movements and keep arrivals away.'},
+ BIRD:{cat:'Emergency',title:'Bird strike',unit:'TWR',
+  when:'A bird strike on departure.',
+  pilot:['{unit}, {cs}, bird strike on departure, continuing, request runway inspection.'],
+  accept:'{cs}, roger, runway inspection will be carried out, contact Departure {freq}.',
+  rbAccept:'Contact Departure {freq}, {cs}.',
+  deny:'{cs}, {unit}, standby.',rbDeny:'Standing by, {cs}.',
+  wait:'{cs}, {unit}, standby.',rbWait:'Standing by, {cs}.',
+  note:'Send the airfield vehicle to inspect the runway before the next movements. Unswept debris can burst a tyre.'},
+ LOWFUEL:{cat:'Emergency',title:'Minimum fuel',unit:'TWR',urgent:true,
+  when:'An arrival is running low on fuel after holding or go-arounds.',
+  pilot:['{unit}, {cs}, minimum fuel, request priority.'],
+  accept:'{cs}, roger minimum fuel, no delay expected, runway {rwy}, wind {wdir} degrees {wspd} knots, cleared to land.',
+  rbAccept:'Cleared to land runway {rwy}, {cs}.',
+  deny:'{cs}, {unit}, unable.',rbDeny:'Say again? We need priority, {cs}.',
+  wait:'{cs}, {unit}, roger, standby.',rbWait:'Standing by, {cs}.',
+  note:'"Minimum fuel" means no more delay can be accepted. If it gets worse the pilot says "Mayday fuel".'},
+ BURST:{cat:'Emergency',title:'Burst tyre — stopped on runway',unit:'TWR',urgent:true,
+  when:'Debris or a hard landing bursts a tyre.',
+  pilot:['{unit}, {cs}, we have a burst tyre, stopped on the runway, request emergency services and a tow.'],
+  accept:'{cs}, roger, emergency services are on their way, hold position.',
+  rbAccept:'Holding position, {cs}.',
+  deny:'{cs}, {unit}, hold position.',rbDeny:'Holding position, {cs}.',
+  wait:'{cs}, {unit}, standby.',rbWait:'Standing by, {cs}.',
+  note:'Same procedure as RTO. The runway is closed until the tow arrives.'},
+ NORDO:{cat:'Emergency',title:'Lost communications (squawk 7600)',unit:'TWR',
+  when:'The aircraft stops answering and squawks 7600.',
+  pilot:['(no radio — aircraft squawks 7600 and does not respond)'],
+  accept:'Light gun: steady green = cleared to land / take off.',rbAccept:'(aircraft acknowledges by rocking wings / flashing lights)',
+  deny:'Light gun: steady red = give way, stop / do not land.',rbDeny:'(aircraft stops or goes around)',
+  wait:'Light gun: flashing white = return to start / taxi clear of the runway.',rbWait:'(aircraft holds)',
+  note:'Use the LIGHT GUN buttons on the selected aircraft. A NORDO arrival goes around unless it gets a green.'}
+};
+
+/* ATC-initiated instructions (no request required) */
+const INSTR=[
+ {k:'holdpos',cat:'Instructions',title:'Hold position / Stop',atc:'{cs}, hold position.',rb:'Holding position, {cs}.',note:'Stops an aircraft where it is. On a takeoff roll below about 80 kt use "stop immediately".'},
+ {k:'stop',cat:'Instructions',title:'Stop immediately (reject takeoff)',atc:'{cs}, stop immediately, stop immediately.',rb:'Stopping, {cs}.',note:'Only works while the aircraft is slow (under about 80 kt).'},
+ {k:'holdshort',cat:'Instructions',title:'Hold short of the runway',atc:'{cs}, hold short of runway {rwy}.',rb:'Holding short of runway {rwy}, {cs}.',note:'The pilot must read back the hold-short. This also cancels a missing hold-short from an earlier taxi read-back.'},
+ {k:'continue',cat:'Instructions',title:'Continue taxi',atc:'{cs}, continue taxi.',rb:'Continuing taxi, {cs}.',note:'Releases an aircraft you stopped.'},
+ {k:'goaround',cat:'Instructions',title:'Go around',atc:'{cs}, go around, I say again, go around.',rb:'Going around, {cs}.',note:'Use if the runway is not clear. The aircraft climbs and rejoins about a minute later.'},
+ {k:'contapp',cat:'Instructions',title:'Continue approach',atc:'{cs}, continue approach.',rb:'Continue approach, {cs}.',note:'Tells an inbound that it is not yet cleared to land.'},
+ {k:'speed',cat:'Instructions',title:'Speed control (arrivals)',atc:'{cs}, reduce speed to {spd} knots.',rb:'Reducing speed {spd} knots, {cs}.',note:'Use speed to open or close the gap between arrivals.'},
+ {k:'squawk',cat:'Instructions',title:'Squawk correction',atc:'{cs}, negative, squawk {sq}.',rb:'Squawk {sq}, {cs}.',note:'Use this when a read-back had the wrong digit.'},
+ {k:'neg',cat:'Instructions',title:'Negative — I say again',atc:'{cs}, negative, I say again, {instr}.',rb:'(pilot corrects the read-back)',note:'Say it the moment you hear a wrong read-back. You have about 12 seconds.'},
+ {k:'vacate',cat:'Instructions',title:'Vacate runway',atc:'{cs}, vacate runway {rwy}.',rb:'Vacating, {cs}.',note:'Pilots vacate by the first reachable exit anyway.'},
+ {k:'contactgnd',cat:'Instructions',title:'Contact Ground',atc:'{cs}, contact Ground {freq}.',rb:'Ground {freq}, {cs}.',note:'After the arrival has vacated.'},
+ {k:'contactdep',cat:'Instructions',title:'Contact Departure',atc:'{cs}, contact Departure {freq}.',rb:'Departure {freq}, {cs}.',note:'After takeoff.'},
+ {k:'radiocheck',cat:'Instructions',title:'Radio check',atc:'{cs}, radio check.',rb:'Loud and clear, {cs}.',note:'No answer = lost comms. Use the light gun.'}
+];
+
+/* Reference tables for the manual */
+const MAN_EXTRA=[
+ {cat:'Reference',title:'ICAO phonetic alphabet',tags:'alphabet phonetic letters spelling',html:'<table class="mt"><tr>'+'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map((c,i)=>'<td><b>'+c+'</b> '+['Alfa','Bravo','Charlie','Delta','Echo','Foxtrot','Golf','Hotel','India','Juliett','Kilo','Lima','Mike','November','Oscar','Papa','Quebec','Romeo','Sierra','Tango','Uniform','Victor','Whiskey','X-ray','Yankee','Zulu'][i]+'</td>'+((i+1)%4===0?'</tr><tr>':'')).join('')+'</tr></table>'},
+ {cat:'Reference',title:'Saying numbers',tags:'numbers digits niner decimal altitude',html:'<p>Numbers are spoken digit by digit: <b>0</b> zero, <b>1</b> one, <b>2</b> two, <b>3</b> three (tree), <b>4</b> four (fower), <b>5</b> five (fife), <b>6</b> six, <b>7</b> seven, <b>8</b> eight, <b>9</b> <b>niner</b>.</p><p>Callsign Speedbird 452 → "Speedbird four five two". Runway 09 → "runway zero niner". Frequency 118.1 → "one one eight decimal one". Squawk 4521 → "four five two one". Altitude 5000 ft → "five thousand feet". Wind 080 at 10 → "zero eight zero degrees, one zero knots".</p><p>You can type digits or words — the game understands both.</p>'},
+ {cat:'Reference',title:'Squawk (transponder) codes',tags:'squawk 7700 7600 7500 transponder emergency code',html:'<table class="mt"><tr><td><b>7700</b></td><td>General emergency (MAYDAY / PAN-PAN)</td></tr><tr><td><b>7600</b></td><td>Radio (communications) failure</td></tr><tr><td><b>7500</b></td><td>Unlawful interference (hijack)</td></tr><tr><td><b>2000</b></td><td>No code assigned / entering airspace without instruction</td></tr><tr><td><b>7000</b></td><td>VFR conspicuity (UK)</td></tr><tr><td><b>1200</b></td><td>VFR (US/ICAO)</td></tr></table><p>Assigned squawks are 4 digits, each 0–7 (octal). In the game, a 7600 aircraft stops responding and must be handled with the light gun.</p>'},
+ {cat:'Reference',title:'Standard words and phrases',tags:'roger wilco affirm negative say again standby unable approved cleared words',html:'<table class="mt"><tr><td><b>Roger</b></td><td>I have received all of your last transmission (not "yes").</td></tr><tr><td><b>Wilco</b></td><td>Will comply.</td></tr><tr><td><b>Affirm</b></td><td>Yes.</td></tr><tr><td><b>Negative</b></td><td>No / permission not granted / that is not correct.</td></tr><tr><td><b>Say again</b></td><td>Repeat all or part of your message.</td></tr><tr><td><b>Standby</b></td><td>Wait, I will call you back. (No clearance is implied.)</td></tr><tr><td><b>Unable</b></td><td>I cannot comply.</td></tr><tr><td><b>Approved</b></td><td>Permission granted.</td></tr><tr><td><b>Hold position</b></td><td>Stay exactly where you are.</td></tr><tr><td><b>Hold short</b></td><td>Stop before the stated point (holding line).</td></tr><tr><td><b>Line up and wait</b></td><td>Enter the runway and wait. NOT a takeoff clearance.</td></tr><tr><td><b>Cleared for takeoff</b></td><td>Start the takeoff roll. The word "takeoff" is used only here.</td></tr><tr><td><b>Go around</b></td><td>Abandon the approach and climb.</td></tr><tr><td><b>I say again</b></td><td>Repeating for clarity or emphasis.</td></tr></table>'},
+ {cat:'Reference',title:'Light gun signals',tags:'light gun green red white nordo radio failure signals',html:'<table class="mt"><tr><td><b>Steady green</b></td><td>Cleared to land / take off</td></tr><tr><td><b>Steady red</b></td><td>Give way to other aircraft and continue circling / stop</td></tr><tr><td><b>Flashing white</b></td><td>Return to starting point / taxi clear of the runway</td></tr><tr><td><b>Flashing red</b></td><td>Airport unsafe, do not land</td></tr></table>'},
+ {cat:'Reference',title:'Wake turbulence categories',tags:'wake heavy medium separation',html:'<p>HEAVY (A359, B77W): callsign carries the word "heavy". Departure behind a heavy: wait <b>2 minutes</b>. Departure behind a medium: <b>1 minute</b>. On final: keep arrivals at least <b>3 nm</b> apart, <b>4 nm</b> behind a heavy. Closer than that is reported as a loss of separation.</p>'},
+ {cat:'Reference',title:'Frequencies and airport',tags:'frequencies delivery ground tower departure airport marlow EGMW',html:'<table class="mt"><tr><td>Marlow Delivery</td><td>121.700</td></tr><tr><td>Marlow Ground</td><td>121.800</td></tr><tr><td>Marlow Tower</td><td>118.100</td></tr><tr><td>Marlow Departure</td><td>119.500</td></tr></table><p>Marlow International (EGMW) has one runway, <b>09/27</b> (3000 m). Parallel taxiway <b>Alpha</b>; runway connectors <b>Bravo, Charlie, Delta, Echo</b>; apron connectors <b>Foxtrot, Golf</b>; six stands (1–6). Holding points: Bravo, Charlie, Delta, Echo. Runway 09 uses Bravo to depart (arrivals exit at Delta or Echo); runway 27 uses Echo (arrivals exit Charlie or Bravo).</p>'},
+ {cat:'Reference',title:'Scoring and safety',tags:'score safety rating game over incursion collision accident',html:'<p><b>Safety rating</b> starts at 100. Runway incursion −15, loss of separation −10, wake turbulence −5, uncorrected read-back −5/−3, ATC-ordered go-around −2. At 0 your licence is suspended. A collision ends the shift (Training mode: −35 instead).</p><p><b>Score</b>: +120 per departure, +100 per arrival, bonuses for emergencies handled. Pilots losing patience while waiting for you cost points.</p>'},
+ {cat:'Reference',title:'How to talk to the pilots',tags:'how to type voice microphone buttons accept deny wait command',html:'<p>Select an aircraft (click its strip, its map label, or its plane). If it has a request, press <b>ACCEPT</b>, <b>DENY</b> or <b>WAIT</b> — that sends the exact standard phrase. Or type / speak your own transmission. Start with the callsign (or just select the aircraft). Hold <b>Space</b> to talk if the microphone is enabled.</p><p>Examples: "Speedbird 452, runway 09, line up and wait" · "Easy 301, cleared for takeoff runway 27" · "Lufthansa 12, go around".</p>'}
+];
+
+const SAMPLE={cs:'Speedbird 452',unit:'Marlow Tower',gate:'3',dest:'Frankfurt',sid:'Rosel Two Alpha',sq:'4521',alt:'5000',qnh:'1013',atis:'Bravo',rwy:'09',hp:'Bravo',via:'Foxtrot, Alpha',hs:', hold short of runway 09',wdir:'080',wspd:'10',dist:'8',facing:'west',freq:'119.500',n:'2',exit:'Delta',spd:'160',tod:'morning'};

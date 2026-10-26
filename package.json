@@ -1,0 +1,1 @@
+{"name":"marlow-tower","version":"1.0.0","description":"Browser air traffic control game with 3D tower view, radar map, real radiotelephony and Gemini voices","scripts":{"build":"node build.js"},"license":"MIT"}

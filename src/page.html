@@ -1,0 +1,307 @@
+<title>Marlow Tower</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<style>
+/* Layout concept: a tower workstation. 3D cab view above, radar-style ground map below, flight strips and comms down the right. Palette: night-shift slate with amber strip-light accents and paper-coloured flight strips. */
+:root{color-scheme:dark;--bg:#0a1117;--panel:#101921;--panel2:#15212b;--line:#213140;--fg:#dce6ee;--dim:#7b90a1;--amber:#ffb22e;--amber2:#ffd27a;--cyan:#4cc9f0;--ok:#5fd38d;--bad:#ff5d5d;--paper:#ebe2c8;--paper2:#d3e3ec;--ink:#16181b;--mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;--disp:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;--body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font:14px/1.35 var(--body);overflow:hidden}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(--amber);outline-offset:1px}
+kbd{font:600 10px var(--mono);background:#0b1218;border:1px solid #2c4054;border-bottom-width:2px;border-radius:3px;padding:0 4px;color:var(--amber2)}
+#app{height:100%;display:grid;grid-template-rows:auto minmax(0,1fr) auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));gap:8px}
+/* header */
+#bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding-top:8px;min-width:0}
+.brand{display:flex;align-items:baseline;gap:10px;margin-right:6px}
+.brand h1{font:700 26px var(--disp);letter-spacing:.09em;margin:0;color:var(--amber);text-transform:uppercase}
+.brand span{font:500 11px var(--mono);color:var(--dim);letter-spacing:.06em}
+.chip2{display:flex;align-items:center;gap:7px;background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:3px 9px;font:600 12px var(--mono);white-space:nowrap}
+.chip2 small{font:500 10px var(--mono);color:var(--dim);text-transform:uppercase;letter-spacing:.08em}
+.chip2.hot{border-color:var(--amber);color:var(--amber);animation:glow 1.4s infinite}
+#rwybtn{background:var(--panel);border:1px solid #3a5166;border-radius:3px;padding:4px 10px;font:700 12px var(--mono);letter-spacing:.04em}
+#rwybtn:hover{border-color:var(--amber)}
+#rwybtn.adv{border-color:var(--amber);color:var(--amber);animation:glow 1.4s infinite}
+.seg{display:flex;border:1px solid var(--line);border-radius:3px;overflow:hidden;background:var(--panel)}
+.seg button{background:none;border:0;padding:4px 10px;font:600 12px var(--mono);color:var(--dim);border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button.on{background:var(--amber);color:#1b1305}
+.seg button:hover:not(.on){color:var(--fg);background:#192733}
+.safe{width:90px;height:8px;background:#0b1218;border:1px solid var(--line);border-radius:2px;overflow:hidden}
+.safe i{display:block;height:100%;background:var(--ok);transition:width .4s}
+.safe.low i{background:var(--bad)}
+.spacer{flex:1}
+.tbtn{background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:4px 11px;font:600 12px var(--mono)}
+.tbtn:hover{border-color:var(--amber);color:var(--amber)}
+.vstat{font:500 11px var(--mono);color:var(--dim)}.vstat.ok{color:var(--ok)}.vstat.warn{color:var(--amber)}.vstat.off{color:#667}
+/* work area */
+#work{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:8px;min-height:0}
+#views{display:flex;flex-direction:column;gap:8px;min-height:0;min-width:0}
+#views>div{position:relative;min-height:0;min-width:0;border:1px solid var(--line);background:#06090d;border-radius:3px;overflow:hidden}
+.lay-split #v3d{flex:58 1 0}.lay-split #vmap{flex:42 1 0}
+.lay-3d #vmap{display:none}.lay-3d #v3d{flex:1}
+.lay-map #v3d{display:none}.lay-map #vmap{flex:1}
+canvas{display:block;touch-action:none}
+#gl,#mapc{position:absolute;inset:0;width:100%;height:100%}
+#labels3d{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.l3{position:absolute;left:0;top:0;pointer-events:auto;cursor:pointer;font:700 11px var(--mono);color:#cfe8f3;background:rgba(7,12,17,.74);border:1px solid #2f4659;border-radius:3px;padding:1px 5px;white-space:nowrap;will-change:transform}
+.l3 i{font-style:normal;font-weight:400;color:#8fa6b8;margin-left:6px}
+.l3.arr{color:var(--cyan)}.l3:not(.arr):not(.veh){color:var(--amber2)}
+.l3.sel{border-color:var(--amber);background:rgba(36,25,5,.9)}
+.l3.req{border-color:var(--amber);animation:glow 1s infinite}
+.l3.emg{border-color:var(--bad);color:#ffb3b3}
+.vtools{position:absolute;left:8px;top:8px;display:flex;gap:6px;flex-wrap:wrap;z-index:3}
+.vtools.r{left:auto;right:8px}
+.vtools{right:8px}.vtools .seg{flex-wrap:wrap}.vtools .seg button{background:rgba(9,15,21,.82);padding:3px 8px}
+.vtools .seg button.on{background:var(--amber)}
+.nogl::after{content:"3D view needs WebGL, which is unavailable here. The map and all controls still work.";position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:20px;color:var(--dim)}
+/* side */
+#side{display:flex;flex-direction:column;gap:8px;min-height:0;min-width:0}
+.pan{background:var(--panel);border:1px solid var(--line);border-radius:3px;min-height:0;display:flex;flex-direction:column}
+.pan>h2{margin:0;padding:5px 10px;font:600 12px var(--disp);letter-spacing:.14em;text-transform:uppercase;color:var(--dim);border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+.pan>h2 span{font:500 10px var(--mono);letter-spacing:.02em;text-transform:none}
+#p-strips{flex:30 1 0}#p-sel{flex:0 1 auto;max-height:46%}#p-log{flex:26 1 0}
+#strips{overflow:auto;padding:6px;min-height:0}
+#sel{overflow:auto;padding:8px 10px}
+.empty{color:var(--dim);padding:12px 8px;font-size:13px}.empty span{display:block;margin-top:6px;font-size:12px;line-height:1.9}
+.strip{position:relative;display:grid;grid-template-columns:100px minmax(0,1fr) auto;gap:8px;align-items:center;padding:6px 10px 8px 15px;background:var(--paper);color:var(--ink);border-radius:2px;margin-bottom:4px;cursor:pointer;overflow:hidden;box-shadow:0 1px 0 rgba(0,0,0,.5)}
+.strip.arr{background:var(--paper2)}.strip.veh{background:#cdd3d8}
+.strip .bar{position:absolute;left:0;top:0;bottom:0;width:6px;background:#8a8a8a}
+.strip.dep .bar{background:#c98a14}.strip.arr .bar{background:#1d86a8}
+.strip.req .bar{background:var(--amber);animation:blink 1s infinite}.strip.emg .bar{background:var(--bad);animation:blink .5s infinite}
+.strip.sel{outline:2px solid var(--amber);outline-offset:-2px}
+.strip:hover{filter:brightness(1.06)}
+.c1 b{font:700 14px var(--mono);display:block;letter-spacing:-.01em}.c1 em{font:700 9px var(--mono);background:var(--ink);color:#fff;padding:0 3px;margin-left:4px;border-radius:2px;font-style:normal;vertical-align:2px}
+.c1 span{font:500 11px var(--mono);color:#4a4f55}
+.c2{min-width:0}.c2 .st{display:block;font:600 12px var(--body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.c2 .dst{display:block;font:500 11px var(--mono);color:#4a4f55;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.c3{display:flex;flex-direction:column;align-items:flex-end;gap:2px}.sq{font:700 12px var(--mono)}.sq.bad,dd.bad{color:#b3261e}
+.warn{font:700 10px var(--mono);background:#b3261e;color:#fff;padding:0 4px;border-radius:2px}
+.wait{position:absolute;left:0;bottom:0;height:3px;background:#b3261e;transition:width .25s linear}
+.s-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}.s-head b{font:700 20px var(--disp);letter-spacing:.04em;color:var(--amber2)}.s-head span{font:500 11px var(--mono);color:var(--dim)}
+.s-info{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:4px 12px;margin:6px 0 4px}
+.s-info div{min-width:0}dt{font:500 10px var(--mono);color:var(--dim);text-transform:uppercase;letter-spacing:.08em}dd{margin:0;font:600 12px var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.s-req{border:1px solid #3d5368;border-radius:3px;padding:7px 9px;margin:8px 0;background:var(--panel2)}
+.s-req.urgent{border-color:var(--bad);background:#22151a}.s-req.none{color:var(--dim);border-style:dashed;background:none}
+.s-req small{font:600 10px var(--mono);letter-spacing:.1em;color:var(--amber);text-transform:uppercase}.s-req.urgent small{color:#ff8a8a}.s-req.none small{color:var(--dim);letter-spacing:.02em;text-transform:none;font-weight:500}
+.s-req p{margin:3px 0 7px;font:italic 500 13px var(--body);color:#cfdbe4}
+.trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.trio button{border-radius:3px;padding:7px 4px;font:700 12px var(--mono);letter-spacing:.03em;background:#0c141b;border:1px solid}
+.b-acc{border-color:#2f7b50!important;color:var(--ok)}.b-den{border-color:#8a3434!important;color:var(--bad)}.b-wait{border-color:#8a6a1c!important;color:var(--amber)}
+.trio button:hover{filter:brightness(1.4)}
+.trio button:hover.b-acc{background:#10281a}.trio button:hover.b-den{background:#2a1214}.trio button:hover.b-wait{background:#2a200a}
+.prev{margin-top:6px;font:500 12px var(--mono);color:#aebfcc;min-height:34px;line-height:1.45}.prev b{color:var(--amber2)}
+.s-light{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:6px 0}.s-light small{flex-basis:100%;font:600 10px var(--mono);color:var(--amber);text-transform:uppercase;letter-spacing:.1em}
+.lg{border:1px solid;border-radius:3px;padding:5px 9px;background:#0c141b;font:700 11px var(--mono)}.lg.g{color:#5fff8a;border-color:#2a8a4a}.lg.r{color:#ff6a6a;border-color:#8a3434}.lg.w{color:#fff;border-color:#8a96a0}
+.s-quick{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.s-quick button{background:#0c141b;border:1px solid #2c4054;border-radius:3px;padding:4px 8px;font:500 12px var(--body);color:#b9c9d6}
+.s-quick button:hover{border-color:var(--amber);color:var(--amber2)}.s-quick button.hot{border-color:var(--bad);color:#ffb3b3;background:#2a1114;font-weight:600}
+#log{overflow:auto;padding:4px 8px;font:12px/1.45 var(--mono);min-height:0}
+.ll{display:grid;grid-template-columns:38px 42px minmax(0,1fr);gap:6px;padding:2px 0;border-bottom:1px dotted #17232e}
+.ll time{color:#566a7a}.ll b{font-weight:700;font-size:10px;padding-top:1px}
+.ll.pilot b{color:var(--cyan)}.ll.atc b{color:var(--amber)}.ll.atc span{color:#f1deb4}.ll.sys b{color:#6f8396}.ll.sys span{color:#9fb2c1}
+.ll.sys.bad span{color:#ff8e8e}.ll.sys.warn span{color:var(--amber2)}.ll.sys.ok span{color:var(--ok)}.ll.urgent span{color:#ffb3b3}
+.ll a{color:#fff;text-decoration:underline dotted;cursor:pointer;font-weight:700}
+/* command bar */
+#cmdbar{display:flex;gap:8px;align-items:center;padding-bottom:8px}
+#cmd-for{font:700 12px var(--mono);color:var(--amber2);background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:7px 10px;min-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}
+#cmd{flex:1;min-width:0;background:var(--panel);border:1px solid #31485c;border-radius:3px;color:var(--fg);padding:8px 12px;font:500 14px var(--mono)}
+#cmd::placeholder{color:#58708a}
+#mic,#send{background:var(--panel);border:1px solid #31485c;border-radius:3px;padding:7px 14px;font:700 12px var(--mono)}
+#send{background:var(--amber);color:#1b1305;border-color:var(--amber)}
+#mic.on{background:var(--bad);border-color:var(--bad);color:#fff;animation:glow .8s infinite}
+/* overlays */
+.ov{position:fixed;inset:0;z-index:20;display:grid;place-items:center;background:rgba(5,8,12,.82);backdrop-filter:blur(3px);padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));overflow:auto}
+.ov[hidden]{display:none}
+.card{width:min(560px,100%);background:var(--panel);border:1px solid #2c4054;border-radius:4px;padding:22px 24px}
+.card h2{margin:0 0 4px;font:700 34px var(--disp);letter-spacing:.08em;text-transform:uppercase;color:var(--amber)}
+.card .sub{font:500 12px var(--mono);color:var(--dim);margin-bottom:14px}
+.card p{margin:8px 0;color:#b9c9d6}
+.how{margin:10px 0 14px;padding:0;list-style:none;display:grid;gap:5px;font-size:13px;color:#b9c9d6}
+.how li{padding-left:16px;position:relative}.how li::before{content:"";position:absolute;left:2px;top:7px;width:6px;height:6px;background:var(--amber);border-radius:50%}
+.form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 14px;margin:12px 0}
+.form label,.srow label{display:grid;gap:3px;font:500 11px var(--mono);color:var(--dim);text-transform:uppercase;letter-spacing:.06em}
+.form label.wide,.srow.wide{grid-column:1/-1}
+select,input[type=text],input[type=password],input[type=number]{background:#0b1218;border:1px solid #31485c;border-radius:3px;color:var(--fg);padding:7px 9px;font:500 13px var(--mono);width:100%;min-width:0}
+.chk{display:flex!important;align-items:center;gap:8px;grid-auto-flow:column;text-transform:none!important;letter-spacing:0!important;font:500 13px var(--body)!important;color:var(--fg)!important}
+.chk input{width:16px;height:16px;accent-color:var(--amber)}
+.btn{background:var(--amber);color:#1b1305;border:0;border-radius:3px;padding:10px 18px;font:700 15px var(--disp);letter-spacing:.1em;text-transform:uppercase}
+.btn.ghost{background:none;border:1px solid #3a5166;color:var(--fg)}
+.btn:hover{filter:brightness(1.08)}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.hint{font:500 11px/1.5 var(--mono);color:var(--dim)}
+#over .card{text-align:left}#over.bad .card h2{color:var(--bad)}
+#o-grade{float:right;font:700 64px/1 var(--disp);color:var(--amber)}
+#o-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 18px;margin:12px 0}
+#o-stats div{display:flex;justify-content:space-between;border-bottom:1px dotted #26394a;padding:3px 0;font:500 12px var(--mono);color:#aebfcc}#o-stats b{color:var(--fg)}
+/* manual */
+#manual .pane{width:min(1040px,100%);height:min(92vh,900px);background:var(--panel);border:1px solid #2c4054;border-radius:4px;display:flex;flex-direction:column;min-height:0}
+.m-top{display:flex;gap:10px;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.m-top h2{margin:0;font:700 24px var(--disp);letter-spacing:.1em;text-transform:uppercase;color:var(--amber)}
+#m-q{flex:1;min-width:200px;font-size:15px;padding:9px 12px}
+#m-cats{display:flex;gap:5px;flex-wrap:wrap;padding:8px 14px;border-bottom:1px solid var(--line)}
+#m-cats button{background:#0c141b;border:1px solid #2c4054;border-radius:12px;padding:3px 11px;font:500 12px var(--mono);color:#9fb2c1}
+#m-cats button.on{background:var(--amber);color:#1b1305;border-color:var(--amber)}
+#m-body{overflow:auto;padding:12px 14px;display:grid;gap:10px;min-height:0;align-content:start}
+.mc{border:1px solid #2a3d4f;border-radius:3px;padding:10px 12px;background:var(--panel2)}
+.mc[hidden]{display:none}
+.mc header{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:4px}.mc h3{margin:0;font:700 17px var(--disp);letter-spacing:.05em;text-transform:uppercase}
+.chip{font:600 10px var(--mono);background:#0c141b;border:1px solid #31485c;border-radius:10px;padding:1px 8px;color:var(--cyan);text-transform:uppercase;letter-spacing:.06em}.chip.red{color:#ff8a8a;border-color:#7a3030}
+.when{margin:2px 0 6px;color:var(--dim);font-size:13px}
+.say{display:grid;gap:3px;margin:4px 0 8px}.say b{font:600 10px var(--mono);letter-spacing:.1em;color:var(--cyan)}
+q{display:block;font:500 12.5px/1.45 var(--mono);color:#e4edf3;quotes:none}
+.trio3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.trio3.one{grid-template-columns:1fr}
+.trio3>div{border:1px solid;border-radius:3px;padding:7px 9px;background:#0c141b;display:grid;gap:4px;align-content:start}
+.trio3>div b{font:700 11px var(--mono);letter-spacing:.1em}.trio3>div small{font:500 11px/1.4 var(--mono);color:#7f95a6}
+.use{justify-self:start;background:none;border:1px solid #3a5166;border-radius:3px;font:600 11px var(--mono);padding:2px 8px;color:#b9c9d6;margin-top:2px}.use:hover{border-color:var(--amber);color:var(--amber)}
+.note{margin:8px 0 0;font-size:13px;color:#aebfcc;border-left:3px solid var(--amber);padding-left:9px}
+.refbody{font-size:13px;color:#c3d1dc}.refbody p{margin:6px 0}
+table.mt{border-collapse:collapse;width:100%;font:500 12.5px var(--mono)}table.mt td{border:1px solid #243647;padding:4px 8px;vertical-align:top}table.mt b{color:var(--amber2)}
+#m-none{padding:24px;color:var(--dim);text-align:center}
+/* notices */
+.banner,.toast{position:fixed;left:50%;transform:translate(-50%,-20px);opacity:0;pointer-events:none;z-index:30;transition:all .25s;border-radius:3px;padding:9px 16px;font:600 13px var(--mono);max-width:min(92vw,720px);text-align:center}
+.banner{top:max(10px,env(safe-area-inset-top,0px));background:#3b1215;border:1px solid var(--bad);color:#ffc9c9}
+.toast{bottom:76px;background:#0f1a23;border:1px solid #3a5166;color:var(--fg)}.toast.warn{border-color:var(--amber);color:var(--amber2)}.toast.ok{border-color:var(--ok);color:var(--ok)}
+.banner.show,.toast.show{opacity:1;transform:translate(-50%,0)}
+
+
+/* docked manual */
+#manual.docked{position:fixed;inset:0 0 0 auto;width:min(460px,42vw);display:block;background:var(--panel);border-left:1px solid #2c4054;padding:0;overflow:hidden;backdrop-filter:none;z-index:15;box-shadow:-10px 0 30px rgba(0,0,0,.4)}
+#manual.docked .pane{width:100%;height:100%;border:0;border-radius:0}
+#manual.docked .trio3{grid-template-columns:1fr}
+#manual.docked .m-top h2{font-size:20px}#manual.docked #m-q{min-width:0;flex-basis:100%;order:5}
+body.man-docked #app{padding-right:calc(min(460px,42vw) + 12px)}
+.mc.cur{border-color:var(--amber);box-shadow:0 0 0 1px var(--amber),0 0 18px rgba(255,178,46,.25)}
+.mc.cur h3::after{content:"  ◂ NOW";color:var(--amber);font:600 10px var(--mono);letter-spacing:.1em}
+@media (max-width:1000px){#manual.docked{inset:auto 0 0 0;width:auto;height:52vh;border-left:0;border-top:1px solid #2c4054}body.man-docked #app{padding-right:max(16px,env(safe-area-inset-right,0px));padding-bottom:52vh}}
+/* tutorial */
+#tut{position:fixed;inset:0;z-index:40}#tut[hidden]{display:none}
+#tut-hl{position:fixed;border:2px solid var(--amber);border-radius:5px;box-shadow:0 0 0 9999px rgba(4,7,11,.76),0 0 22px rgba(255,178,46,.45);pointer-events:none;transition:all .35s cubic-bezier(.3,.7,.2,1)}
+#tut-card{position:fixed;width:min(380px,calc(100vw - 32px));background:var(--panel);border:1px solid var(--amber);border-radius:5px;padding:14px 16px 12px;box-shadow:0 12px 40px rgba(0,0,0,.6);transition:left .35s,top .35s}
+#tut-card .stp{font:600 10px var(--mono);letter-spacing:.14em;color:var(--amber);text-transform:uppercase}
+#tut-card h3{margin:3px 0 6px;font:700 24px var(--disp);letter-spacing:.05em;text-transform:uppercase}
+#tut-card p{margin:0 0 6px;color:#c3d1dc;font-size:13.5px;line-height:1.45}
+#tut-card ul{margin:4px 0 8px;padding-left:18px;color:#c3d1dc;font-size:13px;line-height:1.5}
+#tut-card li b,#tut-card p b{color:var(--amber2)}
+.tut-nav{display:flex;align-items:center;gap:8px;margin-top:10px}
+.tut-dots{display:flex;gap:5px;flex:1}.tut-dots i{width:7px;height:7px;border-radius:50%;background:#2c4054}.tut-dots i.on{background:var(--amber)}.tut-dots i.done{background:#7a5c1c}
+.tut-nav button{border-radius:3px;padding:6px 13px;font:700 12px var(--mono);border:1px solid #3a5166;background:none}
+.tut-nav .nx{background:var(--amber);color:#1b1305;border-color:var(--amber)}
+.tut-skip{background:none;border:0;color:var(--dim);font:500 11px var(--mono);text-decoration:underline;cursor:pointer;padding:0 4px}
+@keyframes blink{50%{opacity:.35}}@keyframes glow{50%{box-shadow:0 0 0 2px rgba(255,178,46,.35)}}
+@media (max-width:1000px){
+ html,body{overflow:auto}#app{height:auto;min-height:100%;grid-template-rows:auto auto auto}
+ #work{grid-template-columns:1fr}#views{height:78vh}#side{height:auto}#p-strips{min-height:240px;flex:none}#p-log{min-height:220px;flex:none}#p-sel{max-height:none}
+ #cmdbar{position:sticky;bottom:0;background:var(--bg);padding-top:6px;flex-wrap:wrap}#cmd-for{max-width:100%}.form{grid-template-columns:1fr}.trio3{grid-template-columns:1fr}#o-stats{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div id="app">
+ <header id="bar">
+  <div class="brand"><h1>Marlow Tower</h1><span>EGMW · RWY 09/27</span></div>
+  <div class="chip2"><small>UTC</small><span id="t-clock">06:10:00</span></div>
+  <div class="chip2" id="t-atis">ATIS</div>
+  <button id="rwybtn" title="Change the runway in use (only when no traffic is on or near the runway)">RWY 09</button>
+  <div class="seg" id="speed" title="Simulation speed (P pauses)"><button data-s="0">❚❚</button><button data-s="1" class="on">1×</button><button data-s="2">2×</button><button data-s="4">4×</button></div>
+  <div class="chip2"><small>Score</small><b id="t-score">0</b></div>
+  <div class="chip2" title="Safety rating — a collision ends the shift"><small>Safety</small><div class="safe"><i id="t-safe" style="width:100%"></i></div><b id="t-safen">100</b></div>
+  <div class="chip2"><small>Left</small><span id="t-left">30:00</span></div>
+  <div class="chip2" id="hdr-nextreq" style="cursor:pointer" title="Jump to the next aircraft waiting for you (Tab)"><small>Requests</small><b id="t-req">0</b></div>
+  <div class="spacer"></div>
+  <span class="vstat" id="v-stat">Browser voices</span>
+  <div class="seg" id="layout" title="Layout"><button data-l="split" class="on">Split</button><button data-l="3d">3D</button><button data-l="map">Map</button></div>
+  <button class="tbtn" id="tut-btn" title="Replay the tutorial">Tutorial</button>
+  <button class="tbtn" id="man-btn" title="Phraseology manual (M)">Manual</button>
+  <button class="tbtn" id="set-btn" title="Voice, Gemini key and options">Settings</button>
+ </header>
+ <main id="work">
+  <section id="views" class="lay-split">
+   <div id="v3d">
+    <canvas id="gl"></canvas><div id="labels3d"></div>
+    <div class="vtools"><div class="seg" id="camtools"><button data-cam="tower" class="on">Tower</button><button data-cam="apron">Apron</button><button data-cam="rwy09">Final 09</button><button data-cam="rwy27">Final 27</button><button data-cam="mid">Midfield</button><button data-cam="follow">Follow</button></div></div>
+   </div>
+   <div id="vmap">
+    <canvas id="mapc"></canvas>
+    <div class="vtools"><div class="seg"><button id="mz-fit">Airport</button><button id="mz-wide">Radar 10 nm</button><button id="mz-in">＋</button><button id="mz-out">－</button></div></div>
+   </div>
+  </section>
+  <aside id="side">
+   <section class="pan" id="p-strips"><h2>Flight strips <span>click to select · amber = waiting for you</span></h2><div id="strips"></div></section>
+   <section class="pan" id="p-sel"><h2>Selected aircraft</h2><div id="sel"></div></section>
+   <section class="pan" id="p-log"><h2>Radio <span>118.100 · 121.800 · 121.700</span></h2><div id="log"></div></section>
+  </aside>
+ </main>
+ <footer id="cmdbar">
+  <div id="cmd-for">no aircraft</div>
+  <input id="cmd" type="text" autocomplete="off" spellcheck="false" placeholder="Type or hold Space to talk, e.g. “Speedbird 452, runway 09, line up and wait”">
+  <button id="mic" title="Microphone (hold Space)">🎙 TALK</button>
+  <button id="send">SEND</button>
+ </footer>
+</div>
+
+<div id="start" class="ov">
+ <div class="card">
+  <h2>Marlow Tower</h2>
+  <div class="sub">MARLOW INTERNATIONAL · EGMW · DELIVERY / GROUND / TOWER</div>
+  <p>You are the controller on duty. Aircraft call in with real radiotelephony, you answer with the same phrases. Get it wrong and runways get crowded, read-backs go unchecked and aircraft meet in the wrong place.</p>
+  <ul class="how">
+   <li>Select an aircraft, then press <b>Accept</b>, <b>Deny</b> or <b>Wait</b> to send the standard reply, or type / speak your own.</li>
+   <li>Listen to every read-back. A wrong digit or a missing “hold short” has to be caught.</li>
+   <li>Keep the runway clear before clearing anyone to land or take off.</li>
+   <li>The <b>Manual</b> (key M) has every phrase, searchable.</li>
+  </ul>
+  <div class="form">
+   <label>Difficulty<select id="s-level"><option value="cadet">Cadet — quiet, read-back hints</option><option value="controller">Controller</option><option value="veteran">Veteran — busy, many mishaps</option></select></label>
+   <label>Mode<select id="s-mode"><option value="career">Career — a collision ends the shift</option><option value="training">Training — accidents are penalties</option></select></label>
+   <label>Time of day<select id="s-tod"><option value="day">Day</option><option value="dusk">Dusk</option><option value="night">Night</option></select></label>
+   <label>Shift length (min)<input id="s-shift" type="number" min="5" max="120" value="30"></label>
+   <label class="chk"><input id="s-fog" type="checkbox"> Low visibility (fog)</label>
+   <label class="chk"><input id="s-voice" type="checkbox" checked> Pilot voices</label>
+   <label class="wide">Google AI Studio / Gemini API key (optional)<input id="s-key" type="password" placeholder="AIza… — kept in this browser only" autocomplete="off"></label>
+   <label class="chk wide"><input id="s-gem" type="checkbox" checked> Use Gemini for pilot voices (falls back to browser voices)</label>
+  </div>
+  <div class="row"><button class="btn" id="start-btn">Start shift</button><button class="btn ghost" id="start-tut">Tutorial</button><button class="btn ghost" id="start-man">Manual</button><button class="btn ghost" id="start-set">Voice settings</button></div>
+  <p class="hint">Gemini voices need network access to Google, so use the downloaded HTML file in Chrome or Edge. Microphone input uses your browser's speech recognition; typing always works.</p>
+ </div>
+</div>
+
+<div id="over" class="ov" hidden>
+ <div class="card">
+  <div id="o-grade">—</div>
+  <h2 id="o-title">Shift complete</h2>
+  <p id="o-reason"></p>
+  <div id="o-stats"></div>
+  <div class="row"><button class="btn" id="again">New shift</button><button class="btn ghost" id="review">Review radio log</button></div>
+ </div>
+</div>
+
+<div id="manual" class="ov" hidden>
+ <div class="pane">
+  <div class="m-top"><h2>Phraseology manual</h2><input id="m-q" type="text" placeholder="Search phrases: squawk, line up, mayday, hold short, pushback…" autocomplete="off" spellcheck="false"><span class="hint" id="m-count"></span><button class="tbtn" id="man-dock" title="Keep the manual open beside the game">Dock ▸</button><button class="tbtn" id="man-close">Close (Esc)</button></div>
+  <div id="m-cats"></div>
+  <div id="m-body"></div>
+  <div id="m-none" hidden>Nothing matches that search.</div>
+ </div>
+</div>
+
+<div id="settings" class="ov" hidden>
+ <div class="card">
+  <h2 style="font-size:28px">Voice &amp; options</h2>
+  <div class="form">
+   <label class="wide">Gemini API key<input id="k-key" type="password" placeholder="AIza…" autocomplete="off"></label>
+   <label class="wide">TTS model<input id="k-model" type="text" placeholder="gemini-3.8-flash-tts"></label>
+   <label class="chk"><input id="k-gem" type="checkbox"> Use Gemini voices</label>
+   <label class="chk"><input id="k-voice" type="checkbox"> Pilot voices on</label>
+   <label class="chk"><input id="k-fb" type="checkbox"> Browser voice fallback</label>
+   <label class="chk"><input id="k-fx" type="checkbox"> Radio static filter</label>
+   <label class="chk"><input id="k-mic" type="checkbox"> Hold Space to talk</label>
+   <label class="chk"><input id="k-assist" type="checkbox"> Highlight wrong read-backs</label>
+   <label class="wide">Volume<input id="k-vol" type="range" min="0" max="1" step="0.05" style="width:100%;accent-color:#ffb22e"></label>
+  </div>
+  <div class="row"><button class="btn ghost" id="k-test">Test voice</button><button class="btn" id="set-close">Done</button></div>
+  <p class="hint" id="k-res"></p>
+  <p class="hint">Your key stays in this browser's local storage and is only sent to Google's Gemini API. If the model name is rejected the game tries other TTS models automatically.</p>
+ </div>
+</div>
+<div id="tut" hidden><div id="tut-hl"></div><div id="tut-card" role="dialog" aria-live="polite"></div></div>
+<div id="banner" class="banner"></div>
+<div id="toast" class="toast"></div>
