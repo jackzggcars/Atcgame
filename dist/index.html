@@ -769,7 +769,8 @@ function radioBusy(){
 }
 function request(a,kind,x){
  const ph=PH[kind];if(!ph||a.nordo)return;
- if(!ph.urgent&&radioBusy()){if(a.pend)return;a.pend=true;later(3+Math.random()*2.5,()=>{a.pend=false;if(!a.dead)request(a,kind,x);});return;}
+ const crit=(kind==='LANDREQ'||kind==='GAREQ')&&a.D&&a.D/NM<2.6;
+ if(!ph.urgent&&!crit&&radioBusy()){if(a.pend)return;a.pend=true;later(3+Math.random()*2.5,()=>{a.pend=false;if(!a.dead)request(a,kind,x);});return;}
  a.req={kind,t:G.t,n:0,x:x||{}};a.unit=ph.unit;
  const v=V(a,Object.assign({unit:UNITS[ph.unit].n,dist:a.kind==='arr'&&a.D?String(Math.max(1,Math.round(a.D/NM))):''},x||{}));
  v.dist=String((x&&x.dist)||v.dist);
@@ -1006,7 +1007,7 @@ function appUpdate(a,dt){
  let vt;if(a.spdCmd&&Dnm>3.2)vt=a.spdCmd*KT;else vt=Dnm>6?160*KT:Dnm<2.2?vref:lerp(vref,160*KT,(Dnm-2.2)/3.8);
  vt=Math.max(vt,vref);a.v+=clamp(vt-a.v,-1.3*dt,1.0*dt);
  a.D-=a.v*dt;placeApproach(a);a.pitch=-0.05;
- if(!a.req&&!a.cleared&&!a.askedLand&&Dnm<3.6&&a.D>0){a.askedLand=true;request(a,'LANDREQ',{dist:Math.max(1,Math.round(Dnm))});}
+ if((!a.req||a.req.kind==='CHECKIN')&&!a.nextReq&&!a.cleared&&a.D>0&&(!a.askedLand&&Dnm<4.2||a.askedLand&&Dnm<2.2&&G.t-(a.lastLR||0)>20)){a.askedLand=true;a.lastLR=G.t;request(a,'LANDREQ',{dist:Math.max(1,Math.round(Dnm))});}
  if(a.D>0&&a.chk<1&&Dnm<0.62||a.D>0&&a.chk<2&&Dnm<0.27){
   a.chk=(a.chk||0)+1;
   const occ=rwyOccupied(a);const tail=Math.max(0,-G.head||0);
@@ -1017,7 +1018,7 @@ function appUpdate(a,dt){
   else if(a.chk===1&&(tail>12||G.fog)&&Math.random()<0.28)why=tail>12?'tailwind':'no visual contact with the runway';
   if(why)startGoAround(a,why);
  }
- if(a.D>0&&Dnm<0.34&&!a.cleared&&!a.emerg&&!a.nordo)startGoAround(a,'no landing clearance');
+ if(a.D>0&&Dnm<0.34&&!a.cleared&&!a.emerg&&!a.nordo)startGoAround(a,'no landing clearance received');
  if(a.D>0&&Dnm<0.34&&a.nordo&&a.lightG!=='green')startGoAround(a,'no light signal');
  if(a.D<=-300)touchdown(a);
 }
@@ -1025,7 +1026,7 @@ function startGoAround(a,why){
  if(a.phase==='GOAROUND')return;
  a.phase='GOAROUND';a.gaT=0;a.vs=3;a.stats=0;a.req=null;G.stats.goArounds++;a.fuel-=3;a.gaCalled=false;
  say('pilot',a,'Going around, '+csName(a)+(why?' ('+why+')':'')+'.','urgent');
- if(why==='runway occupied'||why==='no landing clearance'){G.safety=Math.max(0,G.safety-2);sysMsg('Go-around: '+why+' (safety −2)','warn');}
+ if(why==='runway occupied'||/^no landing clearance/.test(why)){G.safety=Math.max(0,G.safety-2);sysMsg('Go-around: '+why+' (safety −2)','warn');}
  emit('goaround',a);
 }
 function touchdown(a){
@@ -1430,7 +1431,6 @@ const HANDLERS={
  contapp(a,c){
   if(a.phase!=='APPROACH'){sayAgain(a);return;}
   const k=a.req?a.req.kind:null;
-  a.cleared=false;
   if(k)a.req=null;a.nextReq=null;
   if(k&&PH[k].urgent){pilotReply(a,fmt(PH[k].rbWait,V(a)));return;}
   readback(a,'CHECKIN','Accept');

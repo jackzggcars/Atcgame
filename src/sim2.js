@@ -284,7 +284,6 @@ const HANDLERS={
  contapp(a,c){
   if(a.phase!=='APPROACH'){sayAgain(a);return;}
   const k=a.req?a.req.kind:null;
-  a.cleared=false;
   if(k)a.req=null;a.nextReq=null;
   if(k&&PH[k].urgent){pilotReply(a,fmt(PH[k].rbWait,V(a)));return;}
   readback(a,'CHECKIN','Accept');
