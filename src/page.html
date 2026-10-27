@@ -323,7 +323,67 @@ select,input[type=text],input[type=password],input[type=number]{border-radius:0;
 .mc,.trio3>div{border-radius:0}
 #m-cats button.on{background:var(--acc);border-color:var(--acc);color:#02130a}
 .toast,.banner{border-radius:0}
+/* ===== CLASSIC ATC SOFTWARE LAYER: black scopes, Win32-style grey chrome, Lucida Console text (EuroScope / VATSIM client feel) ===== */
+:root{--bg:#000;--panel:#000;--panel2:#1b1b1b;--line:#7a7a7a;--fg:#eaeaea;--dim:#a0a0a0;--acc:#d4d0c8;--acc2:#fff;--amber:#ffd400;--amber2:#ffe266;--cyan:#00e5ff;--ok:#2bd32b;--bad:#ff3b3b;--mono:"Lucida Console","Consolas","Courier New",monospace;--disp:Tahoma,"Segoe UI",Arial,sans-serif;--body:Tahoma,"Segoe UI",Arial,sans-serif}
+body{background:#000;font-family:var(--body)}
+*{text-shadow:none!important}
+.pan{border:1px solid #808080;background:#000;box-shadow:none}
+.pan>h2{background:#c0c0c0;color:#000;font:700 11px Tahoma,Arial,sans-serif;letter-spacing:0;text-transform:none;border-bottom:1px solid #000;padding:2px 8px 2px 6px}
+.pan>h2::after{content:"_  ▫  ×";color:#000;letter-spacing:.1em;font:700 11px Tahoma,Arial,sans-serif;top:2px}
+.pan>h2 span,.pan>h2 *{color:#000!important;font:400 10px Tahoma,Arial,sans-serif!important;margin-right:18px}
+#views>div{border:1px solid #808080;box-shadow:none}
+.chip2{background:#000;border:1px solid #808080;color:#eaeaea}.chip2 small{color:#a0a0a0}
+.chip2.hot{border-color:#ffd400;color:#ffd400}
+.clk span{font:700 14px var(--mono);color:#fff;letter-spacing:.04em}
+#t-wx,.atisb{color:#fff}
+/* grey Win32 push buttons */
+.tbtn,#rwybtn,.seg button,.s-quick button,.btn,#send,#mic,.trio button,#cmd-for,.card .btn.ghost{background:#d4d0c8;background-image:none;color:#000;border:2px solid;border-color:#fff #808080 #808080 #fff;border-radius:0;font:400 11px Tahoma,Arial,sans-serif;box-shadow:0 0 0 1px #000}
+.tbtn:hover,#rwybtn:hover,.seg button:hover:not(.on),.s-quick button:hover,#mic:hover{background:#e2dfd8;color:#000;border-color:#fff #808080 #808080 #fff}
+.tbtn:active,.seg button:active,.s-quick button:active,#send:active,.btn:active{border-color:#808080 #fff #fff #808080}
+.seg{background:#d4d0c8;border:1px solid #000}
+.seg button{border-right:1px solid #808080;box-shadow:none}
+.seg button.on,#m-cats button.on{background:#b8b4aa;color:#000;font-weight:700;border-color:#808080 #fff #fff #808080}
+#rwybtn.adv{background:#ffd400;color:#000;animation:glow 1.4s infinite}
+#send{background:#d4d0c8;color:#000;font-weight:700}
+/* header */
+.brand h1{font:700 15px Tahoma,Arial,sans-serif;letter-spacing:.02em;color:#fff;text-transform:none}
+.brand span{color:#a0a0a0;font:400 10px var(--mono)}
+.led.on{background:#2bd32b;box-shadow:none}
+#radiopanel{background:#000;border:1px solid #808080}
+.rp{border-right:1px solid #808080}.rp b{color:#c0c0c0;font:400 10px var(--mono);letter-spacing:.04em}
+.rp span{color:#00e5ff;font:400 14px var(--mono)}
+.rp i{border:1px solid #808080;color:#808080}
+.rp.rx-on{background:#000}.rp.rx-on .rx{background:#2bd32b;color:#000;border-color:#2bd32b;box-shadow:none}
+.rp.tx-on{background:#000}.rp.tx-on .tx{background:#ff3b3b;color:#fff;border-color:#ff3b3b;box-shadow:none}
+.rp.act b::after{color:#ffd400}
+#atis-pop{background:#000;border:1px solid #808080;color:#eaeaea;box-shadow:0 6px 18px #000}#atis-pop b{color:#ffd400}
+/* lists, strips and messages */
+#strips{background:#000}
+.bay{background:#1b1b1b;border-left:3px solid #ffd400;color:#e0e0e0;font:700 10px Tahoma,Arial,sans-serif;letter-spacing:.04em}.bay em{color:#a0a0a0}
+.strip,.strip.arr{background-image:none;box-shadow:none}.strip{background:#ece4cc}.strip.arr{background:#d6e3ea}
+.strip.talking{box-shadow:0 0 0 2px #ffd400}.strip.talking::after{background:#ffd400;color:#000}
+#talk-ind{color:#ffd400}
+#log{background:#000;font:11px/1.45 var(--mono)}
+.ll time{color:#808080}.ll.pilot b{color:#00e5ff}.ll.pilot span{color:#eaeaea}.ll.atc b{color:#ffd400}.ll.atc span{color:#fff}
+.ll.sys b{color:#808080}.ll.sys span{color:#b0b0b0}.ll.sys.ok span{color:#2bd32b}.ll.sys.warn span{color:#ffd400}.ll.sys.bad span{color:#ff5050}
+.s-req{background:#000;border:1px solid #808080}.s-req small{color:#ffd400}
+.fp{background:#f0f0f0}.fp-stats{background:#000}
+#cmdbar{background:#c0c0c0;border:1px solid #000;padding:4px}
+#cmd{background:#000;color:#fff;border:2px solid;border-color:#808080 #fff #fff #808080;font:12px var(--mono);caret-color:#fff}
+#cmd:focus-visible{outline:1px dotted #ffd400;box-shadow:none}
+#cmd-freq{background:#000;color:#00e5ff;border:2px solid;border-color:#808080 #fff #fff #808080;font:12px var(--mono)}
+#cmd-for{color:#000}
+#cab .gg b{color:#e8e8e8}.l3{background:rgba(0,0,0,.7);border-color:#808080}
+/* dialogs */
+.card{background:#1b1b1b;border:2px solid;border-color:#fff #404040 #404040 #fff;box-shadow:0 0 0 1px #000,0 12px 40px #000}
+.card h2{color:#fff}
+.tbar{background:#c0c0c0;color:#000;font:700 11px Tahoma,Arial,sans-serif}.tbar span{color:#000}
+select,input[type=text],input[type=password],input[type=number]{background:#000;border:2px solid;border-color:#808080 #fff #fff #808080;color:#fff}
+.card .how li::before{background:#ffd400}
+.chk input{accent-color:#808080}
+.safe i{background:#2bd32b}
 </style>
+
 
 <div id="app">
  <header id="bar">

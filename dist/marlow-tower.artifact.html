@@ -323,7 +323,67 @@ select,input[type=text],input[type=password],input[type=number]{border-radius:0;
 .mc,.trio3>div{border-radius:0}
 #m-cats button.on{background:var(--acc);border-color:var(--acc);color:#02130a}
 .toast,.banner{border-radius:0}
+/* ===== CLASSIC ATC SOFTWARE LAYER: black scopes, Win32-style grey chrome, Lucida Console text (EuroScope / VATSIM client feel) ===== */
+:root{--bg:#000;--panel:#000;--panel2:#1b1b1b;--line:#7a7a7a;--fg:#eaeaea;--dim:#a0a0a0;--acc:#d4d0c8;--acc2:#fff;--amber:#ffd400;--amber2:#ffe266;--cyan:#00e5ff;--ok:#2bd32b;--bad:#ff3b3b;--mono:"Lucida Console","Consolas","Courier New",monospace;--disp:Tahoma,"Segoe UI",Arial,sans-serif;--body:Tahoma,"Segoe UI",Arial,sans-serif}
+body{background:#000;font-family:var(--body)}
+*{text-shadow:none!important}
+.pan{border:1px solid #808080;background:#000;box-shadow:none}
+.pan>h2{background:#c0c0c0;color:#000;font:700 11px Tahoma,Arial,sans-serif;letter-spacing:0;text-transform:none;border-bottom:1px solid #000;padding:2px 8px 2px 6px}
+.pan>h2::after{content:"_  ▫  ×";color:#000;letter-spacing:.1em;font:700 11px Tahoma,Arial,sans-serif;top:2px}
+.pan>h2 span,.pan>h2 *{color:#000!important;font:400 10px Tahoma,Arial,sans-serif!important;margin-right:18px}
+#views>div{border:1px solid #808080;box-shadow:none}
+.chip2{background:#000;border:1px solid #808080;color:#eaeaea}.chip2 small{color:#a0a0a0}
+.chip2.hot{border-color:#ffd400;color:#ffd400}
+.clk span{font:700 14px var(--mono);color:#fff;letter-spacing:.04em}
+#t-wx,.atisb{color:#fff}
+/* grey Win32 push buttons */
+.tbtn,#rwybtn,.seg button,.s-quick button,.btn,#send,#mic,.trio button,#cmd-for,.card .btn.ghost{background:#d4d0c8;background-image:none;color:#000;border:2px solid;border-color:#fff #808080 #808080 #fff;border-radius:0;font:400 11px Tahoma,Arial,sans-serif;box-shadow:0 0 0 1px #000}
+.tbtn:hover,#rwybtn:hover,.seg button:hover:not(.on),.s-quick button:hover,#mic:hover{background:#e2dfd8;color:#000;border-color:#fff #808080 #808080 #fff}
+.tbtn:active,.seg button:active,.s-quick button:active,#send:active,.btn:active{border-color:#808080 #fff #fff #808080}
+.seg{background:#d4d0c8;border:1px solid #000}
+.seg button{border-right:1px solid #808080;box-shadow:none}
+.seg button.on,#m-cats button.on{background:#b8b4aa;color:#000;font-weight:700;border-color:#808080 #fff #fff #808080}
+#rwybtn.adv{background:#ffd400;color:#000;animation:glow 1.4s infinite}
+#send{background:#d4d0c8;color:#000;font-weight:700}
+/* header */
+.brand h1{font:700 15px Tahoma,Arial,sans-serif;letter-spacing:.02em;color:#fff;text-transform:none}
+.brand span{color:#a0a0a0;font:400 10px var(--mono)}
+.led.on{background:#2bd32b;box-shadow:none}
+#radiopanel{background:#000;border:1px solid #808080}
+.rp{border-right:1px solid #808080}.rp b{color:#c0c0c0;font:400 10px var(--mono);letter-spacing:.04em}
+.rp span{color:#00e5ff;font:400 14px var(--mono)}
+.rp i{border:1px solid #808080;color:#808080}
+.rp.rx-on{background:#000}.rp.rx-on .rx{background:#2bd32b;color:#000;border-color:#2bd32b;box-shadow:none}
+.rp.tx-on{background:#000}.rp.tx-on .tx{background:#ff3b3b;color:#fff;border-color:#ff3b3b;box-shadow:none}
+.rp.act b::after{color:#ffd400}
+#atis-pop{background:#000;border:1px solid #808080;color:#eaeaea;box-shadow:0 6px 18px #000}#atis-pop b{color:#ffd400}
+/* lists, strips and messages */
+#strips{background:#000}
+.bay{background:#1b1b1b;border-left:3px solid #ffd400;color:#e0e0e0;font:700 10px Tahoma,Arial,sans-serif;letter-spacing:.04em}.bay em{color:#a0a0a0}
+.strip,.strip.arr{background-image:none;box-shadow:none}.strip{background:#ece4cc}.strip.arr{background:#d6e3ea}
+.strip.talking{box-shadow:0 0 0 2px #ffd400}.strip.talking::after{background:#ffd400;color:#000}
+#talk-ind{color:#ffd400}
+#log{background:#000;font:11px/1.45 var(--mono)}
+.ll time{color:#808080}.ll.pilot b{color:#00e5ff}.ll.pilot span{color:#eaeaea}.ll.atc b{color:#ffd400}.ll.atc span{color:#fff}
+.ll.sys b{color:#808080}.ll.sys span{color:#b0b0b0}.ll.sys.ok span{color:#2bd32b}.ll.sys.warn span{color:#ffd400}.ll.sys.bad span{color:#ff5050}
+.s-req{background:#000;border:1px solid #808080}.s-req small{color:#ffd400}
+.fp{background:#f0f0f0}.fp-stats{background:#000}
+#cmdbar{background:#c0c0c0;border:1px solid #000;padding:4px}
+#cmd{background:#000;color:#fff;border:2px solid;border-color:#808080 #fff #fff #808080;font:12px var(--mono);caret-color:#fff}
+#cmd:focus-visible{outline:1px dotted #ffd400;box-shadow:none}
+#cmd-freq{background:#000;color:#00e5ff;border:2px solid;border-color:#808080 #fff #fff #808080;font:12px var(--mono)}
+#cmd-for{color:#000}
+#cab .gg b{color:#e8e8e8}.l3{background:rgba(0,0,0,.7);border-color:#808080}
+/* dialogs */
+.card{background:#1b1b1b;border:2px solid;border-color:#fff #404040 #404040 #fff;box-shadow:0 0 0 1px #000,0 12px 40px #000}
+.card h2{color:#fff}
+.tbar{background:#c0c0c0;color:#000;font:700 11px Tahoma,Arial,sans-serif}.tbar span{color:#000}
+select,input[type=text],input[type=password],input[type=number]{background:#000;border:2px solid;border-color:#808080 #fff #fff #808080;color:#fff}
+.card .how li::before{background:#ffd400}
+.chk input{accent-color:#808080}
+.safe i{background:#2bd32b}
 </style>
+
 
 <div id="app">
  <header id="bar">
@@ -6053,7 +6113,7 @@ function radarSym(ctx,e,px,pz,col,t){
 })();
 const MAPV={
  cx:0,cz:-170,sc:0.34,w:100,h:100,sel:0,hits:[],hover:null,onPick:null,trails:new Map(),lastTrail:0,
- C:{bg:'#070c12',grid:'#0d1620',tw:'#1b2a24',twc:'#3d5a4c',rw:'#161d1b',rwEdge:'#8fa89b',txt:'#b9d4c4',dim:'#587064',dep:'#ffc83a',arr:'#38d6e6',bad:'#ff4a4a',ok:'#5fe08d',veh:'#d7e2dc',mag:'#ff6bd6',hold:'#e9d23a',sel:'#ffffff'},
+ C:{bg:'#000',grid:'#080808',tw:'#232323',twc:'#6a6a6a',rw:'#141414',rwEdge:'#c4c4c4',txt:'#d8d8d8',dim:'#8a8a8a',dep:'#ffe34a',arr:'#3be83b',bad:'#ff4a4a',ok:'#5fe08d',veh:'#d7e2dc',mag:'#ff6bd6',hold:'#e9d23a',sel:'#ffffff'},
  init(canvas){
   this.cv=canvas;this.ctx=canvas.getContext('2d');this.bind();this.resize();
  },
@@ -6097,7 +6157,7 @@ const MAPV={
   const sc=this.sc,S=(x,z)=>this.P(x,z),TH=this.TH;this.hits=[];
   this.environment(ctx,sc);
   // radar scope: soft vignette, range rings centred on the field, bearing ticks
-  { const g=ctx.createRadialGradient(this.w/2,this.h/2,Math.min(this.w,this.h)*0.15,this.w/2,this.h/2,Math.max(this.w,this.h)*0.75);g.addColorStop(0,'rgba(20,38,52,0.45)');g.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=g;ctx.fillRect(0,0,this.w,this.h); }
+  { const g=ctx.createRadialGradient(this.w/2,this.h/2,Math.min(this.w,this.h)*0.15,this.w/2,this.h/2,Math.max(this.w,this.h)*0.75);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=g;ctx.fillRect(0,0,this.w,this.h); }
   { const gstep=sc>0.08?100:sc>0.02?500:NM*2,gp=gstep*sc;ctx.strokeStyle=C.grid;ctx.lineWidth=1;ctx.beginPath();
     const [ox0,oz0]=S(0,0);const sx0=((ox0%gp)+gp)%gp,sz0=((oz0%gp)+gp)%gp;
     for(let x=sx0;x<=this.w;x+=gp){const px=Math.round(x)+0.5;ctx.moveTo(px,0);ctx.lineTo(px,this.h);}
@@ -6198,7 +6258,7 @@ const MAPV={
    const bh=lines.length*12+4;
    ctx.strokeStyle=col;ctx.globalAlpha=0.7;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(px+Math.min(8,size)*0.7,pz-Math.min(8,size)*0.7);ctx.lineTo(bx-4,bz+bh-12);ctx.lineTo(bx-1,bz+bh-12);ctx.stroke();ctx.globalAlpha=1;
    if(isSel){ctx.fillStyle='rgba(255,255,255,0.10)';ctx.fillRect(bx-3,bz-9,mw+8,bh);ctx.strokeStyle=C.sel;ctx.lineWidth=1;ctx.strokeRect(bx-3.5,bz-9.5,mw+9,bh+1);}
-   lines.forEach((q,i)=>{ctx.fillStyle=i===0?(inConf?C.bad:(isSel?'#fff':col)):(i===1?(air?'#7dff9c':'#d3e4da'):'#8fb8a2');ctx.font=FONT(i===0,11);ctx.fillText(q,bx,bz+i*12+2);});
+   lines.forEach((q,i)=>{ctx.fillStyle=i===0?(inConf?C.bad:(isSel?'#fff':col)):(i===1?(air?'#ffffff':'#d3e4da'):'#8fb8a2');ctx.font=FONT(i===0,11);ctx.fillText(q,bx,bz+i*12+2);});
    if(e.req){const blink=Math.sin(t*7)>-0.2;if(blink){ctx.fillStyle=C.dep;ctx.font=FONT(true,10);ctx.fillText('◄ CALLING',bx+mw+8,bz+2);}}
    this.hits.push({x:bx+mw/2,y:bz+bh/2-8,r:Math.max(16,mw/2+4),e});
   };
@@ -6219,8 +6279,8 @@ const MAPV={
   // sector polygons: CTR (10 nm, lumpy) and TMA (28 nm), dashed cyan like SimAware/EuroScope airspace
   const poly=(R,n,jit,fill,stroke,dash)=>{ctx.beginPath();for(let i=0;i<n;i++){const a=i/n*6.283,k=R*(1+(Math.sin(a*3+seed%7)*0.5+Math.sin(a*5+seed%11)*0.5)*jit);const x=Math.cos(a)*k*NM,z=Math.sin(a)*k*NM;const [px,pz]=this.P(x,z);i?ctx.lineTo(px,pz):ctx.moveTo(px,pz);}ctx.closePath();if(fill){ctx.fillStyle=fill;ctx.fill();}ctx.strokeStyle=stroke;ctx.setLineDash(dash||[]);ctx.lineWidth=1.2;ctx.stroke();ctx.setLineDash([]);};
   if(sc<0.1){
-   poly(28,48,0.12,'rgba(40,120,160,0.05)','rgba(60,170,210,0.55)',[]);
-   poly(10,36,0.08,'rgba(40,150,190,0.07)','rgba(80,200,230,0.7)',[6,4]);
+   poly(28,48,0.12,'rgba(40,120,160,0.05)','rgba(60,170,120,0.8)',[]);
+   poly(10,36,0.08,'rgba(40,150,190,0.07)','rgba(60,170,120,0.8)',[6,4]);
    // neighbouring sector boundaries
    ctx.strokeStyle='rgba(120,150,190,0.3)';ctx.lineWidth=1;ctx.setLineDash([2,5]);ctx.beginPath();
    for(let k=0;k<3;k++){const a=(seed%360+k*120+rn()*30)*D2R,[p1,p2]=this.P(Math.cos(a)*28*NM,Math.sin(a)*28*NM),[q1,q2]=this.P(Math.cos(a)*70*NM,Math.sin(a)*70*NM);ctx.moveTo(p1,p2);ctx.lineTo(q1,q2);}ctx.stroke();ctx.setLineDash([]);
@@ -6252,8 +6312,8 @@ const MAPV={
  overlay(ctx,t){
   const C=this.C;
   // scope info block (top-right), like a controller client's status line
-  ctx.font='bold 11px "JetBrains Mono",monospace';ctx.textAlign='right';ctx.fillStyle='#6fe0a0';const rng=Math.round(Math.min(this.w,this.h)/2/this.sc/NM*10)/10;
-  ctx.fillText(AIRPORT.short.toUpperCase()+'  '+AIRPORT.icao+'   RWY '+RWD()+'   QNH '+(G.qnh||''),this.w-14,22);ctx.fillStyle='#4f8a6a';ctx.font='10px "JetBrains Mono",monospace';ctx.fillText('NORTH UP · RANGE '+(rng>=1?rng.toFixed(1)+' NM':Math.round(rng*1852)+' M')+' · TARGETS '+G.ents.filter(e=>!e.dead&&!e.veh).length,this.w-14,36);ctx.textAlign='left';
+  ctx.font='bold 11px "JetBrains Mono",monospace';ctx.textAlign='right';ctx.fillStyle='#ffffff';const rng=Math.round(Math.min(this.w,this.h)/2/this.sc/NM*10)/10;
+  ctx.fillText(AIRPORT.short.toUpperCase()+'  '+AIRPORT.icao+'   RWY '+RWD()+'   QNH '+(G.qnh||''),this.w-14,22);ctx.fillStyle='#a0a0a0';ctx.font='10px "JetBrains Mono",monospace';ctx.fillText('NORTH UP · RANGE '+(rng>=1?rng.toFixed(1)+' NM':Math.round(rng*1852)+' M')+' · TARGETS '+G.ents.filter(e=>!e.dead&&!e.veh).length,this.w-14,36);ctx.textAlign='left';
   // scale bar
   const len=this.sc>0.05?500:NM,px=len*this.sc;ctx.strokeStyle=C.txt;ctx.fillStyle=C.txt;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(14,this.h-16);ctx.lineTo(14+px,this.h-16);ctx.moveTo(14,this.h-20);ctx.lineTo(14,this.h-12);ctx.moveTo(14+px,this.h-20);ctx.lineTo(14+px,this.h-12);ctx.stroke();
   ctx.font='10px "JetBrains Mono",monospace';ctx.fillText(len===500?'500 m':'1 nm',18,this.h-24);

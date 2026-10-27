@@ -67,7 +67,7 @@ function radarSym(ctx,e,px,pz,col,t){
 })();
 const MAPV={
  cx:0,cz:-170,sc:0.34,w:100,h:100,sel:0,hits:[],hover:null,onPick:null,trails:new Map(),lastTrail:0,
- C:{bg:'#070c12',grid:'#0d1620',tw:'#1b2a24',twc:'#3d5a4c',rw:'#161d1b',rwEdge:'#8fa89b',txt:'#b9d4c4',dim:'#587064',dep:'#ffc83a',arr:'#38d6e6',bad:'#ff4a4a',ok:'#5fe08d',veh:'#d7e2dc',mag:'#ff6bd6',hold:'#e9d23a',sel:'#ffffff'},
+ C:{bg:'#000',grid:'#080808',tw:'#232323',twc:'#6a6a6a',rw:'#141414',rwEdge:'#c4c4c4',txt:'#d8d8d8',dim:'#8a8a8a',dep:'#ffe34a',arr:'#3be83b',bad:'#ff4a4a',ok:'#5fe08d',veh:'#d7e2dc',mag:'#ff6bd6',hold:'#e9d23a',sel:'#ffffff'},
  init(canvas){
   this.cv=canvas;this.ctx=canvas.getContext('2d');this.bind();this.resize();
  },
@@ -111,7 +111,7 @@ const MAPV={
   const sc=this.sc,S=(x,z)=>this.P(x,z),TH=this.TH;this.hits=[];
   this.environment(ctx,sc);
   // radar scope: soft vignette, range rings centred on the field, bearing ticks
-  { const g=ctx.createRadialGradient(this.w/2,this.h/2,Math.min(this.w,this.h)*0.15,this.w/2,this.h/2,Math.max(this.w,this.h)*0.75);g.addColorStop(0,'rgba(20,38,52,0.45)');g.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=g;ctx.fillRect(0,0,this.w,this.h); }
+  { const g=ctx.createRadialGradient(this.w/2,this.h/2,Math.min(this.w,this.h)*0.15,this.w/2,this.h/2,Math.max(this.w,this.h)*0.75);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=g;ctx.fillRect(0,0,this.w,this.h); }
   { const gstep=sc>0.08?100:sc>0.02?500:NM*2,gp=gstep*sc;ctx.strokeStyle=C.grid;ctx.lineWidth=1;ctx.beginPath();
     const [ox0,oz0]=S(0,0);const sx0=((ox0%gp)+gp)%gp,sz0=((oz0%gp)+gp)%gp;
     for(let x=sx0;x<=this.w;x+=gp){const px=Math.round(x)+0.5;ctx.moveTo(px,0);ctx.lineTo(px,this.h);}
@@ -212,7 +212,7 @@ const MAPV={
    const bh=lines.length*12+4;
    ctx.strokeStyle=col;ctx.globalAlpha=0.7;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(px+Math.min(8,size)*0.7,pz-Math.min(8,size)*0.7);ctx.lineTo(bx-4,bz+bh-12);ctx.lineTo(bx-1,bz+bh-12);ctx.stroke();ctx.globalAlpha=1;
    if(isSel){ctx.fillStyle='rgba(255,255,255,0.10)';ctx.fillRect(bx-3,bz-9,mw+8,bh);ctx.strokeStyle=C.sel;ctx.lineWidth=1;ctx.strokeRect(bx-3.5,bz-9.5,mw+9,bh+1);}
-   lines.forEach((q,i)=>{ctx.fillStyle=i===0?(inConf?C.bad:(isSel?'#fff':col)):(i===1?(air?'#7dff9c':'#d3e4da'):'#8fb8a2');ctx.font=FONT(i===0,11);ctx.fillText(q,bx,bz+i*12+2);});
+   lines.forEach((q,i)=>{ctx.fillStyle=i===0?(inConf?C.bad:(isSel?'#fff':col)):(i===1?(air?'#ffffff':'#d3e4da'):'#8fb8a2');ctx.font=FONT(i===0,11);ctx.fillText(q,bx,bz+i*12+2);});
    if(e.req){const blink=Math.sin(t*7)>-0.2;if(blink){ctx.fillStyle=C.dep;ctx.font=FONT(true,10);ctx.fillText('◄ CALLING',bx+mw+8,bz+2);}}
    this.hits.push({x:bx+mw/2,y:bz+bh/2-8,r:Math.max(16,mw/2+4),e});
   };
@@ -233,8 +233,8 @@ const MAPV={
   // sector polygons: CTR (10 nm, lumpy) and TMA (28 nm), dashed cyan like SimAware/EuroScope airspace
   const poly=(R,n,jit,fill,stroke,dash)=>{ctx.beginPath();for(let i=0;i<n;i++){const a=i/n*6.283,k=R*(1+(Math.sin(a*3+seed%7)*0.5+Math.sin(a*5+seed%11)*0.5)*jit);const x=Math.cos(a)*k*NM,z=Math.sin(a)*k*NM;const [px,pz]=this.P(x,z);i?ctx.lineTo(px,pz):ctx.moveTo(px,pz);}ctx.closePath();if(fill){ctx.fillStyle=fill;ctx.fill();}ctx.strokeStyle=stroke;ctx.setLineDash(dash||[]);ctx.lineWidth=1.2;ctx.stroke();ctx.setLineDash([]);};
   if(sc<0.1){
-   poly(28,48,0.12,'rgba(40,120,160,0.05)','rgba(60,170,210,0.55)',[]);
-   poly(10,36,0.08,'rgba(40,150,190,0.07)','rgba(80,200,230,0.7)',[6,4]);
+   poly(28,48,0.12,'rgba(40,120,160,0.05)','rgba(60,170,120,0.8)',[]);
+   poly(10,36,0.08,'rgba(40,150,190,0.07)','rgba(60,170,120,0.8)',[6,4]);
    // neighbouring sector boundaries
    ctx.strokeStyle='rgba(120,150,190,0.3)';ctx.lineWidth=1;ctx.setLineDash([2,5]);ctx.beginPath();
    for(let k=0;k<3;k++){const a=(seed%360+k*120+rn()*30)*D2R,[p1,p2]=this.P(Math.cos(a)*28*NM,Math.sin(a)*28*NM),[q1,q2]=this.P(Math.cos(a)*70*NM,Math.sin(a)*70*NM);ctx.moveTo(p1,p2);ctx.lineTo(q1,q2);}ctx.stroke();ctx.setLineDash([]);
@@ -266,8 +266,8 @@ const MAPV={
  overlay(ctx,t){
   const C=this.C;
   // scope info block (top-right), like a controller client's status line
-  ctx.font='bold 11px "JetBrains Mono",monospace';ctx.textAlign='right';ctx.fillStyle='#6fe0a0';const rng=Math.round(Math.min(this.w,this.h)/2/this.sc/NM*10)/10;
-  ctx.fillText(AIRPORT.short.toUpperCase()+'  '+AIRPORT.icao+'   RWY '+RWD()+'   QNH '+(G.qnh||''),this.w-14,22);ctx.fillStyle='#4f8a6a';ctx.font='10px "JetBrains Mono",monospace';ctx.fillText('NORTH UP · RANGE '+(rng>=1?rng.toFixed(1)+' NM':Math.round(rng*1852)+' M')+' · TARGETS '+G.ents.filter(e=>!e.dead&&!e.veh).length,this.w-14,36);ctx.textAlign='left';
+  ctx.font='bold 11px "JetBrains Mono",monospace';ctx.textAlign='right';ctx.fillStyle='#ffffff';const rng=Math.round(Math.min(this.w,this.h)/2/this.sc/NM*10)/10;
+  ctx.fillText(AIRPORT.short.toUpperCase()+'  '+AIRPORT.icao+'   RWY '+RWD()+'   QNH '+(G.qnh||''),this.w-14,22);ctx.fillStyle='#a0a0a0';ctx.font='10px "JetBrains Mono",monospace';ctx.fillText('NORTH UP · RANGE '+(rng>=1?rng.toFixed(1)+' NM':Math.round(rng*1852)+' M')+' · TARGETS '+G.ents.filter(e=>!e.dead&&!e.veh).length,this.w-14,36);ctx.textAlign='left';
   // scale bar
   const len=this.sc>0.05?500:NM,px=len*this.sc;ctx.strokeStyle=C.txt;ctx.fillStyle=C.txt;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(14,this.h-16);ctx.lineTo(14+px,this.h-16);ctx.moveTo(14,this.h-20);ctx.lineTo(14,this.h-12);ctx.moveTo(14+px,this.h-20);ctx.lineTo(14+px,this.h-12);ctx.stroke();
   ctx.font='10px "JetBrains Mono",monospace';ctx.fillText(len===500?'500 m':'1 nm',18,this.h-24);
