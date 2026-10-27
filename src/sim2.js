@@ -117,8 +117,10 @@ function exec(c){
  if(a.dead)return false;
  if(a.nordo)return true;
  if(a.err&&resolveErr(a,c))return true;
+ const cour=courtesyKind(c);
+ if(cour&&!c.intent&&!(c.wait&&a.req)&&!((c.deny||c.neg)&&a.req)){courtesyReply(a,c,cour,false);return true;}
  const H=HANDLERS[c.intent];
- if(H){H(a,c);return true;}
+ if(H){H(a,c);if(cour)courtesyReply(a,c,cour,true);return true;}
  if(c.wait&&a.req){handleWait(a);return true;}
  if((c.deny||c.neg)&&a.req){handleDeny(a);return true;}
  if(c.wait){pilotReply(a,'Standing by, '+csName(a)+'.');return true;}

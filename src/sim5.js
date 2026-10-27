@@ -199,3 +199,50 @@ function wildUpdate(dt){
  sysMsg('WILDLIFE: '+an+' has been spotted on runway '+RWD()+'. Operations 1 is being sent for an inspection — expect a short closure.','warn');
  spawnOps(true);
 }
+
+/* ---------- courtesies: pilots react to pleasantries ---------- */
+const PLACE_ALIAS={KJFK:['jfk','j f k','kennedy','john f kennedy'],EGLL:['lhr','heathrow'],KLAX:['lax'],EGKK:['lgw','gatwick'],LFPG:['cdg','charles de gaulle'],EHAM:['schiphol','amsterdam'],EDDF:['frankfurt','fra'],OMDB:['dubai','dxb'],KATL:['atlanta','hartsfield'],KORD:['ohare',"o hare",'chicago']};
+function placeMention(raw){
+ const t=' '+raw.toLowerCase().replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ')+' ';const tight=t.replace(/ /g,'');
+ const hit=(w)=>w.length<=3?t.includes(' '+w+' '):t.includes(' '+w+' ')||(w.includes(' ')&&t.includes(w));
+ let found=null;
+ const consider=(code,list)=>{if(found)return;for(const w of list){if(w&&(hit(w)||(w.length>=3&&!w.includes(' ')&&false))){found=code;return;}}if(code==='KJFK'&&/ ?j ?f ?k ?/.test(t)&&/ j f k |jfk/.test(t+tight))found=code;};
+ const ap=AIRPORTS||{};for(const k in ap){const A=ap[k];consider(k,[A.short&&A.short.toLowerCase(),A.city&&A.city.toLowerCase(),A.icao.toLowerCase()].concat(PLACE_ALIAS[k]||[]));}
+ if(!found)for(const d of DESTS){const n=d.n.toLowerCase();if(hit(n)||hit(d.c.toLowerCase())){found='D:'+d.n;break;}}
+ if(!found)return null;
+ if(found[0]==='D'&&found[1]===':')return{label:found.slice(2),here:false};
+ const A=ap[found];return{label:A.short||A.city||found,here:found===AIRPORT.icao};
+}
+function courtesyKind(c){
+ const m=c.n,raw=c.raw.toLowerCase();
+ if(/\b(merry christmas|happy (new year|christmas|holidays|easter|halloween|birthday))\b/.test(raw))return'season';
+ if(/\bwelcome( back)? (to|at|in)\b|\bwelcome\b/.test(m))return'welcome';
+ if(/(nice|great|good|smooth|beautiful|lovely|excellent|perfect|fine) (landing|job|flying|approach|work|touchdown)|well done|nicely done|good one|impressive|greaser|butter/.test(raw))return'praise';
+ if(/(have a|enjoy your|enjoy the|safe|pleasant|good|nice|great) (flight|trip|journey|day|evening|night|weekend|stay|one)|safe travels|farewell|see you|take care|bye|goodbye|good night|good day|all the best|until next time|fly safe/.test(m))return'bye';
+ if(/\b(thanks|thank you|cheers|appreciate|much obliged)\b/.test(m)&&!c.intent)return'thanks';
+ if(/\b(sorry|apologies|apologize)\b/.test(m))return'sorry';
+ if(/how are you|how'?s it going|how is it going|how was the flight|how was your flight/.test(raw))return'how';
+ if(/\bgood (morning|afternoon|evening)\b|\bhello\b|\bhi there\b|\bhey\b/.test(m)&&!c.intent&&!c.wait&&!c.deny)return'greet';
+ return null;
+}
+function courtesyReply(a,c,kind,after){
+ const arr=a.kind==='arr',tw=(UNITS[a.unit]||UNITS.TWR).n,cs=csName(a),here=AIRPORT.short;
+ const pl=placeMention(c.raw);G.stats.courtesy=(G.stats.courtesy||0)+1;
+ const R={
+  welcome:()=>{
+   if(pl&&!pl.here)return pick([`Ha, ${tw}, we're at ${here} today, not ${pl.label}, but thanks all the same, ${cs}!`,`Er, ${tw}, I think we're in ${here}, not ${pl.label}. Thanks for the welcome though, ${cs}.`,`${tw}, ${cs}, nice try, this is ${here}, but we appreciate it!`]);
+   if(pl&&pl.here&&arr)return pick([`Thank you, ${tw}, great to be at ${pl.label}, ${cs}!`,`Cheers, ${tw}! Always a pleasure coming into ${pl.label}, ${cs}.`,`Much appreciated, ${tw}, it's good to be back at ${pl.label}, ${cs}.`]);
+   if(arr)return pick([`Thank you, ${tw}, good to be here, ${cs}.`,`Cheers, ${tw}, glad to be on the ground, ${cs}.`,`Thanks for the welcome, ${tw}, ${cs}.`]);
+   return pick([`Thanks, ${tw}, though we're just leaving, ${cs}!`,`Ha, thank you ${tw}, ${cs}. We'll be back.`]);},
+  bye:()=>pick(a.kind==='dep'?[`Thank you, ${tw}, good day, ${cs}.`,`Cheers, ${tw}, see you next time, ${cs}!`,`Thanks ${tw}, you have a good one too, ${cs}.`,`Appreciate it, ${tw}, take care, ${cs}.`]:[`Thanks, ${tw}, you too, ${cs}.`,`Cheers, ${tw}, have a good shift, ${cs}.`,`Thank you, ${tw}, good day, ${cs}.`]),
+  thanks:()=>pick([`You're welcome, ${tw}, ${cs}.`,`No problem, ${tw}, ${cs}.`,`Any time, ${tw}, ${cs}.`,`Our pleasure, ${cs}.`]),
+  sorry:()=>pick([`No problem at all, ${tw}, ${cs}.`,`Don't worry about it, ${tw}, ${cs}.`,`All good, ${tw}, ${cs}.`,`No worries, ${cs}.`]),
+  how:()=>pick([`Doing well, thanks ${tw}, ${cs}. Smooth ride today.`,`Can't complain, ${tw}, ${cs}. Coffee's still warm in the cockpit.`,`All good here, ${tw}, thanks for asking, ${cs}.`,`Very well, thank you, ${cs}. Passengers are happy.`]),
+  greet:()=>pick([`Good day, ${tw}, ${cs}.`,`Hello, ${tw}, ${cs}.`,`Hi ${tw}, ${cs}, how are you?`,`Morning, ${tw}, ${cs}.`]),
+  season:()=>{const t=c.raw.toLowerCase();const w=/christmas/.test(t)?'Merry Christmas':/new year/.test(t)?'Happy New Year':/halloween/.test(t)?'Happy Halloween':/easter/.test(t)?'Happy Easter':/birthday/.test(t)?'Thank you, that is kind':'Happy holidays';return `${w} to you too, ${tw}, from all of us on ${cs}!`;},
+  praise:()=>{const r=a.tdHard;if(a.phase==='ROLLOUT'||a.phase==='VACATED'||a.tdT!=null){if(r!=null&&r<0.3)return pick([`Thank you, ${tw}! Hope the passengers noticed, ${cs}.`,`Ha, thanks ${tw}, that was a good one, ${cs}.`,`Cheers, ${tw}, I'll take it, ${cs}.`]);if(r!=null&&r>0.8)return pick([`Ha, you're too kind, ${tw}, that one was a bit firm, ${cs}.`,`Thanks ${tw}, we'll blame the wind, ${cs}.`]);}
+   return pick([`Thanks, ${tw}, appreciate it, ${cs}.`,`Cheers, ${tw}, ${cs}.`,`Kind of you to say, ${tw}, ${cs}.`]);}
+ };
+ const txt=(R[kind]||R.thanks)();
+ later(after?rnd(4.5,7):rnd(1.4,2.6),()=>{if(!a.dead)say('pilot',a,txt,'');});
+}
