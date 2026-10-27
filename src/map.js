@@ -67,7 +67,7 @@ function radarSym(ctx,e,px,pz,col,t){
 })();
 const MAPV={
  cx:0,cz:-170,sc:0.34,w:100,h:100,sel:0,hits:[],hover:null,onPick:null,trails:new Map(),lastTrail:0,
- C:{bg:'#070c12',grid:'#0d1620',tw:'#1b2a24',twc:'#3d5a4c',rw:'#161d1b',rwEdge:'#8fa89b',txt:'#b9d4c4',dim:'#587064',dep:'#ffc83a',arr:'#38d6e6',bad:'#ff4a4a',ok:'#5fe08d',veh:'#d7e2dc',mag:'#ff6bd6',hold:'#e9d23a',sel:'#ffffff'},
+ C:{bg:'#070c12',grid:'#0d1620',tw:'#1e2227',twc:'#434b54',rw:'#17191c',rwEdge:'#949ba3',txt:'#bec6cf',dim:'#5d636b',dep:'#ffc83a',arr:'#38d6e6',bad:'#ff4a4a',ok:'#5fe08d',veh:'#d9dce0',mag:'#ff6bd6',hold:'#e9d23a',sel:'#ffffff'},
  init(canvas){
   this.cv=canvas;this.ctx=canvas.getContext('2d');this.bind();this.resize();
  },
@@ -135,8 +135,8 @@ const MAPV={
     if(sc>0.12){ctx.fillStyle=C.dim;ctx.font='11px "Barlow Condensed",sans-serif';ctx.textAlign='center';const [tx,tz]=S(0,-425);ctx.fillText(AIRPORT.term,tx,tz+4);ctx.textAlign='left';}
     if(sc>0.03&&AIRPORT.labels){ctx.fillStyle='#7d93a6';ctx.font='11px "Barlow Condensed",sans-serif';ctx.textAlign='center';AIRPORT.labels.forEach(([n,x,z])=>{if(n===AIRPORT.term||n==='TERMINAL')return;const [lx,lz]=S(x,z);ctx.fillText(n,lx,lz+4);});ctx.textAlign='left';} }
   // other runways of the real airport (not used in this simulation, drawn for realism)
-  (AIRPORT.others||[]).forEach(o=>{this.strip(ctx,o.dx,o.dz,o.len,o.w,o.rel||0,'#10181a','#31413c');
-    if(sc>0.025){ctx.fillStyle='#4d6459';ctx.font='10px "JetBrains Mono",monospace';ctx.textAlign='center';const [lx,lz]=S(o.dx,o.dz);ctx.fillText(o.name,lx,lz-6);ctx.textAlign='left';}});
+  (AIRPORT.others||[]).forEach(o=>{this.strip(ctx,o.dx,o.dz,o.len,o.w,o.rel||0,'#10181a','#34393e');
+    if(sc>0.025){ctx.fillStyle='#52585f';ctx.font='10px "JetBrains Mono",monospace';ctx.textAlign='center';const [lx,lz]=S(o.dx,o.dz);ctx.fillText(o.name,lx,lz-6);ctx.textAlign='left';}});
   // runway
   { const busy=rwyOccupied(null);ctx.lineWidth=1;this.strip(ctx,0,0,AP.half*2,Math.max(AP.w,sc<0.08?AP.w*1.8:AP.w),0,busy?'#3a2a2d':C.rw,busy?'#ff7a7a':C.rwEdge);
     ctx.strokeStyle='#7f94a6';ctx.setLineDash([8,10]);{const [a0,a1]=S(-AP.half,0),[b0,b1]=S(AP.half,0);ctx.beginPath();ctx.moveTo(a0,a1);ctx.lineTo(b0,b1);ctx.stroke();}ctx.setLineDash([]);
@@ -212,7 +212,7 @@ const MAPV={
    const bh=lines.length*12+4;
    ctx.strokeStyle=col;ctx.globalAlpha=0.7;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(px+Math.min(8,size)*0.7,pz-Math.min(8,size)*0.7);ctx.lineTo(bx-4,bz+bh-12);ctx.lineTo(bx-1,bz+bh-12);ctx.stroke();ctx.globalAlpha=1;
    if(isSel){ctx.fillStyle='rgba(255,255,255,0.10)';ctx.fillRect(bx-3,bz-9,mw+8,bh);ctx.strokeStyle=C.sel;ctx.lineWidth=1;ctx.strokeRect(bx-3.5,bz-9.5,mw+9,bh+1);}
-   lines.forEach((q,i)=>{ctx.fillStyle=i===0?(inConf?C.bad:(isSel?'#fff':col)):(i===1?(air?'#7dff9c':'#d3e4da'):'#8fb8a2');ctx.font=FONT(i===0,11);ctx.fillText(q,bx,bz+i*12+2);});
+   lines.forEach((q,i)=>{ctx.fillStyle=i===0?(inConf?C.bad:(isSel?'#fff':col)):(i===1?(air?'#e4edf6':'#d6dbe1'):'#8fa6bb');ctx.font=FONT(i===0,11);ctx.fillText(q,bx,bz+i*12+2);});
    if(e.req){const blink=Math.sin(t*7)>-0.2;if(blink){ctx.fillStyle=C.dep;ctx.font=FONT(true,10);ctx.fillText('◄ CALLING',bx+mw+8,bz+2);}}
    this.hits.push({x:bx+mw/2,y:bz+bh/2-8,r:Math.max(16,mw/2+4),e});
   };
@@ -266,8 +266,8 @@ const MAPV={
  overlay(ctx,t){
   const C=this.C;
   // scope info block (top-right), like a controller client's status line
-  ctx.font='bold 11px "JetBrains Mono",monospace';ctx.textAlign='right';ctx.fillStyle='#6fe0a0';const rng=Math.round(Math.min(this.w,this.h)/2/this.sc/NM*10)/10;
-  ctx.fillText(AIRPORT.short.toUpperCase()+'  '+AIRPORT.icao+'   RWY '+RWD()+'   QNH '+(G.qnh||''),this.w-14,22);ctx.fillStyle='#4f8a6a';ctx.font='10px "JetBrains Mono",monospace';ctx.fillText('NORTH UP · RANGE '+(rng>=1?rng.toFixed(1)+' NM':Math.round(rng*1852)+' M')+' · TARGETS '+G.ents.filter(e=>!e.dead&&!e.veh).length,this.w-14,36);ctx.textAlign='left';
+  ctx.font='bold 11px "JetBrains Mono",monospace';ctx.textAlign='right';ctx.fillStyle='#9cc4e8';const rng=Math.round(Math.min(this.w,this.h)/2/this.sc/NM*10)/10;
+  ctx.fillText(AIRPORT.short.toUpperCase()+'  '+AIRPORT.icao+'   RWY '+RWD()+'   QNH '+(G.qnh||''),this.w-14,22);ctx.fillStyle='#6f8aa6';ctx.font='10px "JetBrains Mono",monospace';ctx.fillText('NORTH UP · RANGE '+(rng>=1?rng.toFixed(1)+' NM':Math.round(rng*1852)+' M')+' · TARGETS '+G.ents.filter(e=>!e.dead&&!e.veh).length,this.w-14,36);ctx.textAlign='left';
   // scale bar
   const len=this.sc>0.05?500:NM,px=len*this.sc;ctx.strokeStyle=C.txt;ctx.fillStyle=C.txt;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(14,this.h-16);ctx.lineTo(14+px,this.h-16);ctx.moveTo(14,this.h-20);ctx.lineTo(14,this.h-12);ctx.moveTo(14+px,this.h-20);ctx.lineTo(14+px,this.h-12);ctx.stroke();
   ctx.font='10px "JetBrains Mono",monospace';ctx.fillText(len===500?'500 m':'1 nm',18,this.h-24);
