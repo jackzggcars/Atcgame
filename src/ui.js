@@ -24,7 +24,7 @@ const UI={
   this.brand();
   MAPV.init($('mapc'));MAPV.fit();
   R3.onPick=e=>{if(e)this.select(e.id);};MAPV.onPick=e=>{if(e)this.select(e.id);};
-  this.bind();this.buildManual();this.syncSettings();this.voiceStatus();
+  this.bind();this.buildManual();this.syncSettings();this.voiceStatus();this.buildPresets();let _ui='classic';try{_ui=localStorage.getItem('marlow.ui')||'classic';}catch(e){}this.applyLayout(_ui,false);
   window.addEventListener('resize',()=>this.resize());this.resize();
   Mic.onText=t=>{$('cmd').value=t;};Mic.onDone=t=>{if((t||'').trim()){$('cmd').value=t.trim();this.submit();}};
   Mic.onState=(on,err)=>{$('mic').classList.toggle('on',on);Voice.hold(on);if(on){this.toast('Listening… speak your transmission','ok');return;}
@@ -255,6 +255,26 @@ const UI={
  setCamBtn(m){$('v3d').classList.toggle('cab-on',m==='tower');document.querySelectorAll('#camtools button').forEach(b=>b.classList.toggle('on',b.dataset.cam===m));},
  setLayout(l){this.layout=l;$('views').className='lay-'+l;document.querySelectorAll('#layout button').forEach(b=>b.classList.toggle('on',b.dataset.l===l));setTimeout(()=>this.resize(),30);},
  /* ---------- settings ---------- */
+ /* ---- UI layout presets ---- */
+ PRESETS:[
+  {id:'classic',name:'Classic',d:'Views left, strips / flight plan / messages in a column on the right.',b:[['v3d',0,0,60,56],['map',0,56,60,44],['str',62,0,38,34],['fp',62,35,38,30],['msg',62,66,38,34]]},
+  {id:'left',name:'Left column',d:'Same panels, but the column is on the left (good if your right hand is on the mouse).',b:[['str',0,0,38,34],['fp',0,35,38,30],['msg',0,66,38,34],['v3d',40,0,60,56],['map',40,56,60,44]]},
+  {id:'dock',name:'Bottom dock',d:'Big views on top, the three panels side by side along the bottom.',b:[['v3d',0,0,50,66],['map',51,0,49,66],['str',0,68,33,32],['fp',34,68,32,32],['msg',67,68,33,32]]},
+  {id:'top',name:'Strip bar on top',d:'Panels along the top like a strip rack, views below.',b:[['str',0,0,33,30],['fp',34,0,32,30],['msg',67,0,33,30],['v3d',0,32,50,68],['map',51,32,49,68]]},
+  {id:'wide',name:'Wide comms',d:'Wider right column for long strips and the radio log.',b:[['v3d',0,0,48,56],['map',0,56,48,44],['str',50,0,50,34],['fp',50,35,50,30],['msg',50,66,50,34]]},
+  {id:'slim',name:'Big picture',d:'Slim right column, as much screen as possible for the 3D view and radar.',b:[['v3d',0,0,74,56],['map',0,56,74,44],['str',76,0,24,34],['fp',76,35,24,30],['msg',76,66,24,34]]},
+  {id:'sbs',name:'Side-by-side',d:'3D view and radar next to each other, panels on the right.',b:[['v3d',0,0,30,100],['map',31,0,30,100],['str',62,0,38,34],['fp',62,35,38,30],['msg',62,66,38,34]]}
+ ],
+ presetSvg(b){const col={v3d:['#3b6ea5','3D'],map:['#050505','RADAR'],str:['#e6dcc0','STRIPS'],fp:['#eeeeee','PLAN'],msg:['#101010','MSGS']};
+  return '<svg viewBox="0 0 100 62" width="100%" preserveAspectRatio="none" aria-hidden="true"><rect width="100" height="62" fill="#2a2a2a"/>'+b.map(([k,x,y,w,h])=>{const X=1+x*0.98,Y=1+y*0.56,W=w*0.98-1,H=h*0.56-1,c=col[k];
+   return '<rect x="'+X.toFixed(1)+'" y="'+Y.toFixed(1)+'" width="'+W.toFixed(1)+'" height="'+H.toFixed(1)+'" fill="'+c[0]+'" stroke="#c0c0c0" stroke-width=".7"/>'+(k==='map'?'<circle cx="'+(X+W/2).toFixed(1)+'" cy="'+(Y+H/2).toFixed(1)+'" r="'+Math.min(W,H)*0.28+'" fill="none" stroke="#00b8d4" stroke-width=".5"/><circle cx="'+(X+W*0.6).toFixed(1)+'" cy="'+(Y+H*0.4).toFixed(1)+'" r="1.1" fill="#3be83b"/>':'')+'<text x="'+(X+W/2).toFixed(1)+'" y="'+(Y+H/2+2).toFixed(1)+'" font-size="'+Math.min(6,W/3.2).toFixed(1)+'" text-anchor="middle" font-family="Tahoma,Arial" fill="'+(k==='str'||k==='fp'?'#222':'#e8e8e8')+'">'+c[1]+'</text>';}).join('')+'<rect x="1" y="59" width="98" height="2" fill="#c0c0c0"/></svg>';},
+ buildPresets(){const el=$('ui-presets');if(!el)return;
+  el.innerHTML=this.PRESETS.map(p=>'<button type="button" class="pre" data-ui="'+p.id+'" title="'+p.d+'">'+this.presetSvg(p.b)+'<b>'+p.name+'</b><small>'+p.d+'</small></button>').join('');
+  el.addEventListener('click',e=>{const b=e.target.closest('.pre');if(b)this.applyLayout(b.dataset.ui,true);});},
+ applyLayout(id,save){if(!this.PRESETS.some(p=>p.id===id))id='classic';document.body.dataset.ui=id;
+  document.querySelectorAll('#ui-presets .pre').forEach(b=>b.classList.toggle('on',b.dataset.ui===id));
+  if(save){try{localStorage.setItem('marlow.ui',id);}catch(e){}}
+  setTimeout(()=>{try{this.resize();}catch(e){}},30);setTimeout(()=>{try{this.resize();}catch(e){}},300);},
  syncSettings(){
   $('k-key').value=Voice.key||'';$('k-model').value=Voice.model;$('k-gem').checked=Voice.gemini;$('k-voice').checked=Voice.on;$('k-fb').checked=Voice.fallback;$('k-fx').checked=Voice.fx;$('k-style').checked=Voice.styleOn;$('k-vol').value=Voice.vol;$('k-mic').checked=Voice.micOn;
   if(G.cfg){$('k-assist').checked=!!G.cfg.assist;}
