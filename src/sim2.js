@@ -159,16 +159,16 @@ function handleWait(a){
  const k=a.req.kind,ph=PH[k],x=a.req.x;a.req=null;
  pilotReply(a,fmt(ph.rbWait||'Standing by, {cs}.',V(a)));
  const d=ph.urgent?rnd(10,16):rnd(18,28);
- if(a.veh)later(d+2,()=>{if(!a.dead&&a.phase==='REQ'&&!a.req)reaskVeh(a);});else a.nextReq={kind:k,at:G.t+d,x};
+ if(a.veh)later(d+30,()=>{if(!a.dead&&a.phase==='REQ'&&!a.req)reaskVeh(a);});else a.nextReq={kind:k,at:G.t+d,x};
 }
 function handleDeny(a){
  const k=a.req.kind,ph=PH[k],x=a.req.x;
  if(ph.urgent){incident('deny','Emergency request refused: '+a.cs,3);pilotReply(a,fmt(ph.rbDeny,V(a)));a.req.t=G.t;return;}
  a.req=null;pilotReply(a,fmt(ph.rbDeny||'Roger, {cs}.',V(a)));
  const d=k==='CLR'?rnd(80,110):rnd(45,75);
- if(a.veh)later(d,()=>{if(!a.dead&&a.phase==='REQ'&&!a.req)reaskVeh(a);});else a.nextReq={kind:k,at:G.t+d,x};
+ if(a.veh)later(d+90,()=>{if(!a.dead&&a.phase==='REQ'&&!a.req)reaskVeh(a);});else a.nextReq={kind:k,at:G.t+d,x};
 }
-function reaskVeh(v){v.req={kind:'INSP',t:G.t,n:0,x:{}};say('pilot',v,fmt(PH.INSP.pilot[0],V(null,{unit:UNITS.GND.n,rwy:RWD()})));emit('req',v);}
+function reaskVeh(v){if(!v.dead&&v.phase==='REQ'&&!v.req&&airfieldBusy()){later(rnd(40,70),()=>{if(!v.dead&&v.phase==='REQ'&&!v.req)reaskVeh(v);});return;}v.req={kind:'INSP',t:G.t,n:0,x:{}};say('pilot',v,fmt(PH.INSP.pilot[0],V(null,{unit:UNITS.GND.n,rwy:RWD()})));emit('req',v);}
 function bestGate(a){
  if(a.gate&&G.gates[a.gate]===a.id)return +a.gate;
  let best=null,bl=1e9;

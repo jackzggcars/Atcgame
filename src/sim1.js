@@ -320,7 +320,7 @@ function spawnLogic(dt){
  const active=G.ents.filter(e=>!e.veh&&!e.dead&&e.phase!=='BOARDING'&&e.phase!=='PARKED').length,full=active>=(c.maxActive||99);
  if(G.acc.dep>=1){if(!full&&gatesFree().length>=2&&spawnDep())G.acc.dep=0;else G.acc.dep=0.9;}
  if(G.acc.arr>=1){if(!full&&spawnArr())G.acc.arr=0;else G.acc.arr=0.95;}
- if(G.t>G.opsNext&&!G.ents.some(e=>e.veh&&e.vt==='ops')){G.opsNext=G.t+rnd(300,420);spawnOps(false);}
+ if(G.t>G.opsNext&&!G.ents.some(e=>e.veh&&e.vt==='ops')){if(airfieldBusy()||G.ents.some(e=>!e.veh&&!e.dead&&e.req&&e.req.kind!=='INSP'&&G.t-e.req.t>0))G.opsNext=G.t+25;else{G.opsNext=G.t+rnd(540,780);spawnOps(false);}}
 }
 
 /* ---------------- aircraft update ---------------- */
@@ -561,7 +561,7 @@ function mkVeh(vt,x,z){return {id:G.nextId++,kind:'veh',veh:true,vt,x,z,y:0,th:M
 function spawnOps(urgent){
  if(G.ents.some(e=>e.veh&&e.vt==='ops'&&!e.dead))return;
  const v=mkVeh('ops',0,-110);v.phase='REQ';v.rt='Operations 1';v.t0=G.t;G.ents.push(v);emit('spawn',v);
- later(urgent?14:2,()=>{if(!v.dead){v.req={kind:'INSP',t:G.t,n:0,x:{}};v.unit='GND';const t=fmt(PH.INSP.pilot[0],V(null,{unit:UNITS.GND.n,rwy:RWD()}));say('pilot',v,t,'');emit('req',v);}});
+ const ask=()=>{if(v.dead)return;if(!urgent&&airfieldBusy()){later(30,ask);return;}v.req={kind:'INSP',t:G.t,n:0,x:{}};v.unit='GND';const t=fmt(PH.INSP.pilot[0],V(null,{unit:UNITS.GND.n,rwy:RWD()}));say('pilot',v,t,'');emit('req',v);};later(urgent?14:2,ask);
 }
 function sendFire(x){
  const ex=G.ents.filter(e=>e.veh&&e.vt==='fire'&&!e.dead);
@@ -583,10 +583,12 @@ function opsInspectPath(){
  back.ids.forEach(id=>P.push({x:NODES[id].x,z:NODES[id].z}));
  return buildPath(P,28);
 }
+/* true while the airfield is too busy for a routine ground request (emergency, runway movement, traffic close in) */
+function airfieldBusy(){return G.ents.some(e=>!e.veh&&!e.dead&&(e.emerg||e.fire>0||['ROLL','ROLLOUT','RTO','BLOCKED_ROLL','LINEUP','ON_RWY','RWY_STOP','GOAROUND','SLIDE'].includes(e.phase)||(e.phase==='APPROACH'&&e.D<7*NM&&e.D>-300)||(e.phase==='CLIMB'&&e.y<400)));}
 function updVeh(v,dt){
  switch(v.phase){
  case 'REQ':case 'WAIT':
-  if(v.req){v.waitSec+=dt;if(G.t-v.req.t>(v.req.n+1)*75){v.req.n++;say('pilot',v,fmt('{unit}, Operations 1, still waiting for the runway inspection.',{unit:UNITS.GND.n}));}}
+  if(v.req){v.waitSec+=dt;if(v.req.n<2&&!airfieldBusy()&&G.t-v.req.t>(v.req.n+1)*150){v.req.n++;say('pilot',v,fmt('{unit}, Operations 1, still waiting for the runway inspection.',{unit:UNITS.GND.n}));}}
   break;
  case 'INSP':{
   if(v.s>=v.sIn-3&&!v.wasOn){
