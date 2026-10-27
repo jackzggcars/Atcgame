@@ -46,6 +46,7 @@ const clkF=t=>{const s=Math.floor(G.clock-G.t+t)%86400;return String(Math.floor(
  const _ga=startGoAround;startGoAround=function(a,why){if(a)a.wasGA=true;return _ga(a,why);};
  const _td=touchdown;touchdown=function(a){
   _td(a);
+  if(a.phase==='ROLLOUT'&&!a.veh&&a.tdHard!=null){const r=a.tdHard;if(r<0.07){G.stats.greasers=(G.stats.greasers||0)+1;G.score+=10;sysMsg(a.cs+': a perfect touchdown, barely felt it (+10).','ok');}else if(r>0.95){G.stats.thumps=(G.stats.thumps||0)+1;sysMsg(a.cs+': firm landing — passengers will remember that one.','warn');}}
   if(a.prio&&!a.paid){a.paid=true;
    if(a.wasGA){G.score=Math.max(0,G.score-12);sysMsg(a.cs+' ('+(a.prio==='medevac'?'medical':'VIP')+' flight) was sent around — delay (−12).','warn');}
    else{const b=Math.round(clamp(110-(a.waitSec||0)*1.5,30,110));G.score+=b;sysMsg(a.cs+' ('+(a.prio==='medevac'?'medical':'VIP')+' flight) landed without delay (+'+b+').','ok');}}
@@ -181,7 +182,20 @@ function visUpdate(dt){
  if(c.events===false)return;
  if(v.open&&!v.msg&&G.t>8){v.msg=true;sysMsg('AIRPORT OPEN DAY today: expect extra helicopters and light aircraft, a special-livery guest arrival and a military flypast.','ok');}
  if(!G.fly&&v.flyLeft>0&&G.t>v.evNext){v.flyLeft--;v.evNext=G.t+rnd(900,1300);flyAnnounce();}
+ wildUpdate(dt);
  flyUpdate(dt);
  if(c.divert!==false&&G.t>v.div){v.div=G.t+rnd(840,1300);divertWave();}
  if(v.open&&!v.guest&&G.t>v.guestT){G.forceSpec='openday';const ok=spawnArr();G.forceSpec=null;if(ok)v.guest=true;else v.guestT=G.t+20;}
+}
+
+/* ---------- wildlife on the runway ---------- */
+function wildUpdate(dt){
+ const v=G.v;if(v.wild==null)v.wild=rnd(520,980);
+ if(G.t<v.wild||G.flags.debris||G.ents.some(e=>e.veh&&e.vt==='ops'&&!e.dead))return;
+ if(rwyOccupied(null)||G.ents.some(e=>!e.dead&&['ROLL','ROLLOUT','RTO'].includes(e.phase)))return;
+ v.wild=G.t+rnd(900,1500);
+ const an=pickW([['a fox',3],['a flock of geese',3],['a deer',1.2],['a heron',1],['a pair of swans',1]]);
+ G.flags.debris=true;G.stats.wildlife=(G.stats.wildlife||0)+1;
+ sysMsg('WILDLIFE: '+an+' has been spotted on runway '+RWD()+'. Operations 1 is being sent for an inspection — expect a short closure.','warn');
+ spawnOps(true);
 }
