@@ -214,6 +214,7 @@ const AIRPORTS={
 const ALLOWED=Object.keys(AIRPORTS);
 let _sel='EGMW';try{_sel=localStorage.getItem('marlow.airport')||'EGMW';}catch(e){}
 if(!AIRPORTS[_sel])_sel='EGMW';
+for(const k in AIRPORTS){const A=AIRPORTS[k];if(A.airlines&&!A.airlines.some(x=>x[0]==='RYR'))A.airlines.push(['RYR',4]);}
 const AIRPORT=AIRPORTS[_sel];
 function bearingTo(lat1,lon1,lat2,lon2){const r=Math.PI/180,p1=lat1*r,p2=lat2*r,dl=(lon2-lon1)*r;const y=Math.sin(dl)*Math.cos(p2),x=Math.cos(p1)*Math.sin(p2)-Math.sin(p1)*Math.cos(p2)*Math.cos(dl);return((Math.atan2(y,x)/r)+360)%360;}
 function distNm(lat1,lon1,lat2,lon2){const r=Math.PI/180,dl=(lon2-lon1)*r,p1=lat1*r,p2=lat2*r;const a=Math.sin((p2-p1)/2)**2+Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)**2;return 2*Math.asin(Math.sqrt(a))*3440.065;}

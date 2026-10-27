@@ -245,7 +245,7 @@ const R3={
   d.r+=(R-d.r)*Math.min(1,dt*4);
   let y=0,vib=gnd?sp*(e.veh?0.004:0.0014)*Math.sin(t*(e.veh?29:19)+e.id*1.7):0;
   let p=d.x+vib+(gnd?sp*0.0012*Math.sin(t*3.1+e.id):0);
-  if(!e.veh&&e.tdT!=null&&gnd){const k=G.t-e.tdT;if(k>=0&&k<4){const A=0.35+0.65*(e.tdHard||0),f=Math.exp(-2.6*k);p+=0.03*A*f*Math.sin(9*k);y=0.22*A*f*Math.abs(Math.sin(5.5*k));}}
+  if(!e.veh&&e.tdT!=null&&gnd){const k=G.t-e.tdT;if(k>=0&&k<6){const RY=e.al&&e.al.icao==='RYR'?1.9:1,A=(0.35+0.65*(e.tdHard||0))*RY,f=Math.exp(-(RY>1?1.7:2.6)*k);p+=0.03*A*f*Math.sin(9*k);y=0.22*A*f*Math.abs(Math.sin(5.5*k));}}
   let wr=0;if(e.wakeT>0){const k=Math.min(1,e.wakeT/3);wr=Math.sin(t*7.3+e.id)*0.20*k+Math.sin(t*13)*0.05*k;p+=Math.sin(t*5.1)*0.03*k;}
   if(e.cellWx||G.cell&&G.cell.over&&e.y>3){wr+=Math.sin(t*3.1+e.id)*0.04+Math.sin(t*8.7)*0.02;}
   // airborne: natural flight motion — turbulence-driven pitch / roll / heading wander, heave, and banking into turns

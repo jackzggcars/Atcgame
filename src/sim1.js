@@ -535,7 +535,7 @@ function circuitFly(a,dt,isRet){
  }
 }
 function touchdown(a){
- a.phase='ROLLOUT';a.y=0;a.pitch=0.07;a.tdT=G.t;a.tdHard=Math.random();a.rwyAuth=true;a.z=0;const d=dirOf();
+ a.phase='ROLLOUT';a.y=0;a.pitch=0.07;a.tdT=G.t;a.tdHard=(a.al&&a.al.icao==='RYR')?0.74+0.26*Math.random():Math.random();a.rwyAuth=true;a.z=0;const d=dirOf();
  if(a.slideKind&&startSlide(a))return;
  if(G.flags.debris&&Math.random()<0.5){a.phase='BLOCKED_ROLL';say('pilot',a,'Tyre burst on landing, '+csName(a)+'!','urgent');return;}
  const ex=d>0?['D','E']:['C','B'];let pickX=null;

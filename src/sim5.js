@@ -46,6 +46,7 @@ const clkF=t=>{const s=Math.floor(G.clock-G.t+t)%86400;return String(Math.floor(
  const _ga=startGoAround;startGoAround=function(a,why){if(a)a.wasGA=true;return _ga(a,why);};
  const _td=touchdown;touchdown=function(a){
   _td(a);
+  if(a.al&&a.al.icao==='RYR'&&a.phase==='ROLLOUT'){G.stats.ryr=(G.stats.ryr||0)+1;if(Math.random()<0.75)later(rnd(2.5,4.5),()=>{if(!a.dead)say('pilot',a,pick(["Er, tower, that landing was... intentional.","Sorry about that, tower, the runway arrived early.","Tower, the passengers are applauding. I think.","That one was brought to you by Ryanair, tower.","Tower, was that the runway or a trampoline?","Ryanair landing, tower. Hard, but it counts.","Down and safe, tower. Mostly down. Mostly safe."]),'');});}
   if(a.phase==='ROLLOUT'&&!a.veh&&a.tdHard!=null){const r=a.tdHard;if(r<0.07){G.stats.greasers=(G.stats.greasers||0)+1;G.score+=10;sysMsg(a.cs+': a perfect touchdown, barely felt it (+10).','ok');}else if(r>0.95){G.stats.thumps=(G.stats.thumps||0)+1;sysMsg(a.cs+': firm landing — passengers will remember that one.','warn');}}
   if(a.prio&&!a.paid){a.paid=true;
    if(a.wasGA){G.score=Math.max(0,G.score-12);sysMsg(a.cs+' ('+(a.prio==='medevac'?'medical':'VIP')+' flight) was sent around — delay (−12).','warn');}

@@ -1312,6 +1312,7 @@ const AIRPORTS={
 const ALLOWED=Object.keys(AIRPORTS);
 let _sel='EGMW';try{_sel=localStorage.getItem('marlow.airport')||'EGMW';}catch(e){}
 if(!AIRPORTS[_sel])_sel='EGMW';
+for(const k in AIRPORTS){const A=AIRPORTS[k];if(A.airlines&&!A.airlines.some(x=>x[0]==='RYR'))A.airlines.push(['RYR',4]);}
 const AIRPORT=AIRPORTS[_sel];
 function bearingTo(lat1,lon1,lat2,lon2){const r=Math.PI/180,p1=lat1*r,p2=lat2*r,dl=(lon2-lon1)*r;const y=Math.sin(dl)*Math.cos(p2),x=Math.cos(p1)*Math.sin(p2)-Math.sin(p1)*Math.cos(p2)*Math.cos(dl);return((Math.atan2(y,x)/r)+360)%360;}
 function distNm(lat1,lon1,lat2,lon2){const r=Math.PI/180,dl=(lon2-lon1)*r,p1=lat1*r,p2=lat2*r;const a=Math.sin((p2-p1)/2)**2+Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)**2;return 2*Math.asin(Math.sqrt(a))*3440.065;}
@@ -1980,7 +1981,7 @@ function circuitFly(a,dt,isRet){
  }
 }
 function touchdown(a){
- a.phase='ROLLOUT';a.y=0;a.pitch=0.07;a.tdT=G.t;a.tdHard=Math.random();a.rwyAuth=true;a.z=0;const d=dirOf();
+ a.phase='ROLLOUT';a.y=0;a.pitch=0.07;a.tdT=G.t;a.tdHard=(a.al&&a.al.icao==='RYR')?0.74+0.26*Math.random():Math.random();a.rwyAuth=true;a.z=0;const d=dirOf();
  if(a.slideKind&&startSlide(a))return;
  if(G.flags.debris&&Math.random()<0.5){a.phase='BLOCKED_ROLL';say('pilot',a,'Tyre burst on landing, '+csName(a)+'!','urgent');return;}
  const ex=d>0?['D','E']:['C','B'];let pickX=null;
@@ -2761,6 +2762,7 @@ const clkF=t=>{const s=Math.floor(G.clock-G.t+t)%86400;return String(Math.floor(
  const _ga=startGoAround;startGoAround=function(a,why){if(a)a.wasGA=true;return _ga(a,why);};
  const _td=touchdown;touchdown=function(a){
   _td(a);
+  if(a.al&&a.al.icao==='RYR'&&a.phase==='ROLLOUT'){G.stats.ryr=(G.stats.ryr||0)+1;if(Math.random()<0.75)later(rnd(2.5,4.5),()=>{if(!a.dead)say('pilot',a,pick(["Er, tower, that landing was... intentional.","Sorry about that, tower, the runway arrived early.","Tower, the passengers are applauding. I think.","That one was brought to you by Ryanair, tower.","Tower, was that the runway or a trampoline?","Ryanair landing, tower. Hard, but it counts.","Down and safe, tower. Mostly down. Mostly safe."]),'');});}
   if(a.phase==='ROLLOUT'&&!a.veh&&a.tdHard!=null){const r=a.tdHard;if(r<0.07){G.stats.greasers=(G.stats.greasers||0)+1;G.score+=10;sysMsg(a.cs+': a perfect touchdown, barely felt it (+10).','ok');}else if(r>0.95){G.stats.thumps=(G.stats.thumps||0)+1;sysMsg(a.cs+': firm landing — passengers will remember that one.','warn');}}
   if(a.prio&&!a.paid){a.paid=true;
    if(a.wasGA){G.score=Math.max(0,G.score-12);sysMsg(a.cs+' ('+(a.prio==='medevac'?'medical':'VIP')+' flight) was sent around — delay (−12).','warn');}
@@ -3462,7 +3464,7 @@ const R3={
   d.r+=(R-d.r)*Math.min(1,dt*4);
   let y=0,vib=gnd?sp*(e.veh?0.004:0.0014)*Math.sin(t*(e.veh?29:19)+e.id*1.7):0;
   let p=d.x+vib+(gnd?sp*0.0012*Math.sin(t*3.1+e.id):0);
-  if(!e.veh&&e.tdT!=null&&gnd){const k=G.t-e.tdT;if(k>=0&&k<4){const A=0.35+0.65*(e.tdHard||0),f=Math.exp(-2.6*k);p+=0.03*A*f*Math.sin(9*k);y=0.22*A*f*Math.abs(Math.sin(5.5*k));}}
+  if(!e.veh&&e.tdT!=null&&gnd){const k=G.t-e.tdT;if(k>=0&&k<6){const RY=e.al&&e.al.icao==='RYR'?1.9:1,A=(0.35+0.65*(e.tdHard||0))*RY,f=Math.exp(-(RY>1?1.7:2.6)*k);p+=0.03*A*f*Math.sin(9*k);y=0.22*A*f*Math.abs(Math.sin(5.5*k));}}
   let wr=0;if(e.wakeT>0){const k=Math.min(1,e.wakeT/3);wr=Math.sin(t*7.3+e.id)*0.20*k+Math.sin(t*13)*0.05*k;p+=Math.sin(t*5.1)*0.03*k;}
   if(e.cellWx||G.cell&&G.cell.over&&e.y>3){wr+=Math.sin(t*3.1+e.id)*0.04+Math.sin(t*8.7)*0.02;}
   // airborne: natural flight motion — turbulence-driven pitch / roll / heading wander, heave, and banking into turns
@@ -6487,7 +6489,7 @@ const UI={
   setTimeout(()=>{
    const s=G.stats;$('o-title').textContent=o.kind==='accident'?'ACCIDENT':o.kind==='licence'?'LICENCE SUSPENDED':'SHIFT COMPLETE';
    $('over').classList.toggle('bad',o.kind!=='shift');$('o-reason').textContent=o.reason;
-   $('o-stats').innerHTML=[['Score',Math.round(G.score)],['Safety rating',G.safety],['Departures',s.dep],['Arrivals',s.arr],['Go-arounds',s.goArounds],['Runway incursions',s.incursion||0],['Separation losses',s.los||0],['Emergencies handled',s.emerg||0],['Read-back errors missed',s.readback||0],['Shift length',this.clockStr(G.t)]].map(r=>'<div><span>'+r[0]+'</span><b>'+r[1]+'</b></div>').join('')+(()=>{const A=[],n=(s.arr||0)+(s.dep||0);if((s.greasers||0)>=2)A.push(['Silk Touch',s.greasers+' perfect landings']);if(!s.goArounds&&(s.arr||0)>=4)A.push(['Clean Sheet','no go-arounds']);if(!s.los&&!s.incursion&&n>=8)A.push(['Spotless Separation','no conflicts']);if((s.emerg||0)>=3)A.push(['Crisis Manager',s.emerg+' emergencies']);if(s.hijack)A.push(['Cool Head','hijack resolved']);if(s.wildlife)A.push(['Wildlife Warden',s.wildlife+' runway sweeps']);if(n>=25)A.push(['Busy Bee',n+' movements']);if((s.courtesy||0)>=4)A.push(['Friendly Voice',s.courtesy+' pleasantries']);if(G.safety>=95&&n>=10)A.push(['Safe Hands','safety '+G.safety]);return A.length?'<div class="awd"><span>Awards</span>'+A.map(x=>'<i title="'+x[1]+'">★ '+x[0]+'</i>').join('')+'</div>':'';})();
+   $('o-stats').innerHTML=[['Score',Math.round(G.score)],['Safety rating',G.safety],['Departures',s.dep],['Arrivals',s.arr],['Go-arounds',s.goArounds],['Runway incursions',s.incursion||0],['Separation losses',s.los||0],['Emergencies handled',s.emerg||0],['Read-back errors missed',s.readback||0],['Shift length',this.clockStr(G.t)]].map(r=>'<div><span>'+r[0]+'</span><b>'+r[1]+'</b></div>').join('')+(()=>{const A=[],n=(s.arr||0)+(s.dep||0);if((s.greasers||0)>=2)A.push(['Silk Touch',s.greasers+' perfect landings']);if(!s.goArounds&&(s.arr||0)>=4)A.push(['Clean Sheet','no go-arounds']);if(!s.los&&!s.incursion&&n>=8)A.push(['Spotless Separation','no conflicts']);if((s.emerg||0)>=3)A.push(['Crisis Manager',s.emerg+' emergencies']);if(s.hijack)A.push(['Cool Head','hijack resolved']);if(s.wildlife)A.push(['Wildlife Warden',s.wildlife+' runway sweeps']);if(n>=25)A.push(['Busy Bee',n+' movements']);if((s.ryr||0)>=2)A.push(['Ryanair Survivor',s.ryr+' bouncy landings']);if((s.courtesy||0)>=4)A.push(['Friendly Voice',s.courtesy+' pleasantries']);if(G.safety>=95&&n>=10)A.push(['Safe Hands','safety '+G.safety]);return A.length?'<div class="awd"><span>Awards</span>'+A.map(x=>'<i title="'+x[1]+'">★ '+x[0]+'</i>').join('')+'</div>':'';})();
    const gr=o.kind==='shift'?(G.safety>=85&&G.score>1200?'S':G.safety>=70?'A':G.safety>=50?'B':'C'):'—';$('o-grade').textContent=gr;
    $('over').hidden=false;
   },o.kind==='accident'?7500:600);
